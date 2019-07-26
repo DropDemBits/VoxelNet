@@ -1,0 +1,45 @@
+<project>
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>ddb.io.voxelnet</groupId>
+	<artifactId>voxelnet</artifactId>
+	<version>0</version>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>8</source>
+					<target>8</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<properties>
+		<lwjgl.version>3.1.5</lwjgl.version>
+		<netty.version>4.1.32.Final</netty.version>
+	</properties>
+	
+	<dependencies>
+		<dependency><groupId>io.netty</groupId><artifactId>netty-all</artifactId><version>${netty.version}</version></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl</artifactId><version>${lwjgl.version}</version></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl-assimp</artifactId><version>${lwjgl.version}</version></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl-glfw</artifactId><version>${lwjgl.version}</version></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl-openal</artifactId><version>${lwjgl.version}</version></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl-opengl</artifactId><version>${lwjgl.version}</version></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl-stb</artifactId><version>${lwjgl.version}</version></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl</artifactId><version>${lwjgl.version}</version><classifier>${lwjgl.natives}</classifier></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl-assimp</artifactId><version>${lwjgl.version}</version><classifier>${lwjgl.natives}</classifier></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl-glfw</artifactId><version>${lwjgl.version}</version><classifier>${lwjgl.natives}</classifier></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl-openal</artifactId><version>${lwjgl.version}</version><classifier>${lwjgl.natives}</classifier></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl-opengl</artifactId><version>${lwjgl.version}</version><classifier>${lwjgl.natives}</classifier></dependency>
+		<dependency><groupId>org.lwjgl</groupId><artifactId>lwjgl-stb</artifactId><version>${lwjgl.version}</version><classifier>${lwjgl.natives}</classifier></dependency>
+	</dependencies>
+	
+	<profiles>
+		<profile><id>lwjgl-natives-linux</id><activation><os><family>unix</family></os></activation><properties><lwjgl.natives>natives-linux</lwjgl.natives></properties></profile>
+		<profile><id>lwjgl-natives-macos</id><activation><os><family>mac</family></os></activation><properties><lwjgl.natives>natives-macos</lwjgl.natives></properties></profile>
+		<profile><id>lwjgl-natives-windows</id><activation><os><family>windows</family></os></activation><properties><lwjgl.natives>natives-windows</lwjgl.natives></properties></profile>
+	</profiles>
+</project>
