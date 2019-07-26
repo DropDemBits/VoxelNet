@@ -1,11 +1,15 @@
 package ddb.io.voxelnet;
 
+import ddb.io.voxelnet.render.Model;
+import ddb.io.voxelnet.render.Shader;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
 import sun.security.provider.certpath.Vertex;
 
 import java.nio.IntBuffer;
+import java.util.Arrays;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -17,15 +21,9 @@ public class Game {
 	/** Current window associated with this game instance */
 	long window;
 	/** Current shader program */
-	int shader;
-	/** Handle for the vertex buffer */
-	int model;
-	
-	final float[] vertData = new float[] {
-			-0.5f, -0.5f, /**/ 1.0f, 0.0f, 0.0f,
-			 0.0f,  0.5f, /**/ 0.0f, 1.0f, 0.0f,
-			 0.5f, -0.5f, /**/ 0.0f, 0.0f, 1.0f,
-	};
+	Shader shader;
+	/** Currently rendered model */
+	Model model;
 	
 	private void run()
 	{
@@ -68,78 +66,63 @@ public class Game {
 		glfwShowWindow(window);
 		
 		// Add window resizing callback
-		glfwSetWindowSizeCallback(window, (GLFWWindowSizeCallbackI) (win, width, height) -> {
+		glfwSetWindowSizeCallback(window, (win, width, height) -> {
 			// Update the GL viewport size
 			glViewport(0, 0, width, height);
 		});
 		
 		// Setup GL Context
-		GL.createCapabilities();
+		GLCapabilities caps = GL.createCapabilities();
 		
 		// Create the shader
-		int vertexShader, fragShader;
+		shader = new Shader("assets/shaders/default.glsl");
 		
-		// Compile the vertex shader
-		vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader,
-				"\n" +
-						"#version 110\n" +
-						"attribute vec4 position;\n" +
-						"attribute vec3 vertex_color;\n" +
-						"varying vec3 color;\n" +
-						"void main (void) {\n" +
-						"   gl_Position = vec4(position.xy, 0, 1);\n" +
-						"   color = vertex_color;\n" +
-						"}");
-		glCompileShader(vertexShader);
-		if (glGetShaderi(vertexShader, GL_COMPILE_STATUS) == GL_FALSE)
-			throw new IllegalStateException("Failed to compile vertex shader");
+		// Create the model
+		model = new Model();
+		/*
+		model.beginPoly();
+		model.addVertex(-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f);
+		model.addVertex( 0.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f);
+		model.addVertex( 0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f);
+		model.endPoly();
+		*/
 		
-		// Compile the fragment shader
-		fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragShader,
-				"\n" +
-						"#version 110\n" +
-						"varying vec3 color;\n" +
-						"void main (void) {\n" +
-						"   gl_FragColor = vec4(color.rgb, 1);\n" +
-						"}");
-		glCompileShader(fragShader);
-		if (glGetShaderi(fragShader, GL_COMPILE_STATUS) == GL_FALSE)
+		/*
+		model.beginPoly();
+		model.addVertex(1.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f);
+		model.addVertex(0.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f);
+		model.addVertex(0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f);
+		model.endPoly();
+		*/
+		
+		/*
+		model.beginPoly();
+		model.addVertex(-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f);
+		model.addVertex( 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f);
+		model.addVertex( 0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f);
+		model.addVertex(-0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f);
+		model.endPoly();
+		*/
+		
+		model.beginPoly();
+		for(float angle = 0; angle < 360; angle += 360.0f / 10.0f)
 		{
-			System.out.println(glGetShaderInfoLog(fragShader));
-			throw new IllegalStateException("Failed to compile fragment shader");
+			float x = (float) Math.sin(Math.toRadians(angle)) * 0.5f;
+			float y = (float) Math.cos(Math.toRadians(angle)) * 0.5f;
+			
+			float r = (float) Math.sin(Math.toRadians(angle + 0.0));
+			float g = (float) Math.sin(Math.toRadians(angle + 120.0));
+			float b = (float) Math.sin(Math.toRadians(angle + 240.0));
+			
+			model.addVertex(x, y, 0.0f, r, g, b);
 		}
+		model.endPoly();
 		
-		// Link it all together
-		shader = glCreateProgram();
-		glAttachShader(shader, vertexShader);
-		glAttachShader(shader, fragShader);
-		glLinkProgram(shader);
+		model.bind();
+		model.updateVertices();
+		model.unbind();
 		
-		if (glGetProgrami(shader, GL_LINK_STATUS) == GL_FALSE)
-			throw new IllegalStateException("Failed to link the default shader");
-		
-		glDetachShader(shader, vertexShader);
-		glDetachShader(shader, fragShader);
-		// Delete shaders once everything is gone
-		//glDeleteShader(vertexShader);
-		//glDeleteShader(fragShader);
-		
-		// Create the vertex buffer
-		model = glGenBuffers();
-		glBindBuffer(GL_ARRAY_BUFFER, model);
-		glBufferData(GL_ARRAY_BUFFER, vertData, GL_STATIC_DRAW);
-		
-		// Attribute locations
-		int pos = glGetAttribLocation(shader, "position");
-		int clr = glGetAttribLocation(shader, "vertex_color");
-		
-		glEnableVertexAttribArray(pos);
-		glEnableVertexAttribArray(clr);
-		
-		glVertexAttribPointer(pos, 2, GL_FLOAT, false, 5 * 4, 0);
-		glVertexAttribPointer(clr, 3, GL_FLOAT, false, 5 * 4, 2 * 4);
+		shader.fixupModel(model);
 		
 		/// Done Init ///
 		/// Enter Main Loop  ///
@@ -188,6 +171,9 @@ public class Game {
 			glfwPollEvents();
 		}
 		
+		// Free the model
+		model.free();
+		
 		// Free GLFW things
 		glfwDestroyWindow(window);
 		glfwTerminate();
@@ -204,19 +190,12 @@ public class Game {
 		glClearColor(0f, 0f, 0f, 1f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		// Draw two triangles (immediate mode & VBO + Shaders)
-		glBegin(GL_TRIANGLES);
-		glColor3f(1.f, 0.f, 0.f);
-		glVertex2d(1, 0.5);
-		glColor3f(0.f, 1.f, 0.f);
-		glVertex2d(0, 0.5);
-		glColor3f(0.f, 0.f, 1.f);
-		glVertex2d(0.5, -0.5);
-		glEnd();
-		
-		glUseProgram(shader);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-		glUseProgram(0);
+		// Draw two triangles (VBO + Shaders)
+		shader.bind();
+		model.bind();
+		glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
+		model.unbind();
+		shader.unbind();
 	}
 	
 	private void parseArgs(String[] args) {}
@@ -227,6 +206,6 @@ public class Game {
 		final Game game = new Game();
 		
 		game.parseArgs(args);
-		new Thread((Runnable) game::run, "Client").start();
+		new Thread(game::run, "Client").start();
 	}
 }
