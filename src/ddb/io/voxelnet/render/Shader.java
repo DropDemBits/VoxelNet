@@ -167,22 +167,6 @@ public class Shader
 			glUseProgram(0);
 	}
 	
-	public void fixupModel(Model model)
-	{
-		model.bind();
-		
-		int pos = glGetAttribLocation(programHandle, "position");
-		int texCoord = glGetAttribLocation(programHandle, "texCoord");
-		
-		glEnableVertexAttribArray(pos);
-		glVertexAttribPointer(pos, 3, GL_FLOAT, false, 5 * 4, 0);
-		
-		glEnableVertexAttribArray(texCoord);
-		glVertexAttribPointer(texCoord, 2, GL_FLOAT, false, 5 * 4, 3 * 4);
-		
-		model.unbind();
-	}
-	
 	/*** Uniform Related ***/
 	private int getUniform(String name)
 	{

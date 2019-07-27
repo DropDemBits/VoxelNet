@@ -10,6 +10,7 @@ public class ChunkModel
 {
 	Model model;
 	Chunk chunk;
+	private boolean isDirty = false;
 	
 	/**
 	 * Creates a chunk model
@@ -23,12 +24,10 @@ public class ChunkModel
 	
 	/**
 	 * Updates the chunk model
-	 * @param adjacentChunks The chunks adjacent to the current chunk model
-	 *                          (in the order of NORTH, WEST, SOUTH, EAST, UP, DOWN)
 	 * @param atlas The texture atlas to use for the faces
 	 * @return True if the chunk has been updated
 	 */
-	public boolean updateModel(Chunk[] adjacentChunks, TextureAtlas atlas)
+	public boolean updateModel(TextureAtlas atlas)
 	{
 		// Check if the chunk actually needs to be re-rendered
 		if(!chunk.isDirty())
@@ -42,46 +41,66 @@ public class ChunkModel
 		if(chunk.isEmpty())
 			return true;
 		
-		int[] faceTexIDs = new int[] {1, 1, 1, 1, 0, 2};
+		int[][] faceTexIDs = new int[][] {
+				new int[] {1, 1, 1, 1, 0, 2},
+				new int[] {2, 2, 2, 2, 2, 2},
+				new int[] {3, 3, 3, 3, 3, 3},
+		};
 		
 		long now = System.currentTimeMillis();
 		// Chunk is not empty, update the things
-		for (int i = 0; i < 16 * 16 * 16; i++)
+		for (int x = 0; x < 16; x++)
 		{
-			int x = i % 16;
-			int y = i / 256;
-			int z = (i / 16) % 16;
-			
-			if (chunk.getData()[x + z * 16 + y * 256] == 0)
-				continue;
-			
-			for(Facing face : Facing.values())
+			for (int z = 0; z < 16; z++)
 			{
-				int[] offset = face.getOffset();
-				byte adjacentBlock = chunk.getBlock(x + offset[0], y + offset[1], z + offset[2]);
-				
-				// Don't add the face if the adjacent block is solid
-				if(adjacentBlock > 0)
-					continue;
-				
-				float[] texCoords = atlas.getPositions(faceTexIDs[face.ordinal()]);
-				BlockRenderer.addCubeFace(
-						model,
-						(float) chunk.chunkX * 16 + x,
-						(float) y,
-						(float) chunk.chunkZ * 16 + z,
-						face,
-						texCoords);
+				for (int y = 0; y < 16; y++)
+				{
+					byte id = chunk.getData()[x + z * 16 + y * 256];
+					if (id == 0)
+						continue;
+					
+					for (Facing face : Facing.values())
+					{
+						int[] offset = face.getOffset();
+						byte adjacentBlock = chunk.getBlock(x + offset[0], y + offset[1], z + offset[2]);
+						
+						if(adjacentBlock == -1)
+						{
+							// Check the nearby chunk for the appropriate block id
+							adjacentBlock = chunk.world.getBlock(
+									chunk.chunkX * 16 + x + offset[0],
+									chunk.chunkY * 16 + y + offset[1],
+									chunk.chunkZ * 16 + z + offset[2]);
+						}
+						
+						if (adjacentBlock > 0)
+						{
+							// Don't add the face if the adjacent block is solid
+							continue;
+						}
+						
+						float[] texCoords = atlas.getPositions(faceTexIDs[id - 1][face.ordinal()]);
+						BlockRenderer.addCubeFace(
+								model,
+								(float) (chunk.chunkX * 16 + x),
+								(float) (chunk.chunkY * 16 + y),
+								(float) (chunk.chunkZ * 16 + z),
+								face,
+								texCoords);
+					}
+				}
 			}
 		}
-		System.out.println("(" + chunk.chunkX + ", " + chunk.chunkZ + ")");
+		System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
 		System.out.println("\tGenerate time: " + (System.currentTimeMillis() - now));
 		
-		model.bind();
-		model.updateVertices();
-		model.unbind();
+		// Defer the vertex buffer update to the render stage
+		isDirty = true;
 		
 		System.out.println("\tUpdate time: " + (System.currentTimeMillis() - now));
+		
+		// Indicate that the chunk has been updated
+		chunk.makeClean();
 		return true;
 	}
 	
@@ -92,5 +111,15 @@ public class ChunkModel
 	public Model getModel()
 	{
 		return model;
+	}
+	
+	public boolean isDirty()
+	{
+		return isDirty;
+	}
+	
+	public void makeClean()
+	{
+		isDirty = false;
 	}
 }

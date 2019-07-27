@@ -3,7 +3,10 @@ package ddb.io.voxelnet.render;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
+import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 
 public class Model
 {
@@ -25,9 +28,7 @@ public class Model
 	// Indices
 	private List<Integer> indices;
 	
-	private boolean isBound = false;
-	
-	// GL VBO Handle
+	// GL *BO Handles
 	private int vboHandle;
 	private int iboHandle;
 	
@@ -73,12 +74,16 @@ public class Model
 	 */
 	public void bind()
 	{
-		if (isBound)
-			return;
-		
-		isBound = true;
 		glBindBuffer(GL_ARRAY_BUFFER, vboHandle);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboHandle);
+		
+		// position
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * 4, 0);
+		
+		// texCoord
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * 4, 3 * 4);
 	}
 	
 	/**
@@ -87,10 +92,6 @@ public class Model
 	 */
 	public void unbind()
 	{
-		if (!isBound)
-			return;
-		
-		isBound = false;
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}

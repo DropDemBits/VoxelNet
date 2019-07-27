@@ -1,8 +1,10 @@
 package ddb.io.voxelnet;
 
+import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.render.*;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.Chunk;
+import ddb.io.voxelnet.world.World;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
@@ -33,15 +35,12 @@ public class Game {
 	/** Current shader program */
 	Shader shader;
 	/** List of chunks to render */
-	List<ChunkModel> chunks = new ArrayList<>();
 	Texture texture;
+	World world;
+	WorldRenderer worldRenderer;
 	
-	Matrix4f perspective = new Matrix4f();
-	float x = 32.0f;
-	float y = 18.0f;
-	float z = 32.0f;
-	float pitch = 0.0f;
-	float yaw = 0.0f;
+	EntityPlayer player;
+	Camera camera;
 	
 	double lastX = 0.0f, lastY = 0.0f;
 	
@@ -103,8 +102,7 @@ public class Game {
 			// Update the GL viewport size
 			glViewport(0, 0, width, height);
 			// Update the perspective matrix
-			perspective.identity();
-			perspective.perspective((float) Math.toRadians(FOV), (float) width / (float) height, ZNEAR, ZFAR);
+			camera.updatePerspective((float) width / (float) height);
 		});
 		
 		// Add mouse movement callback
@@ -117,8 +115,10 @@ public class Game {
 			if(Math.abs(deltaX) > 50.0 || Math.abs(deltaY) > 50.0)
 				return;
 			
-			pitch += -deltaY * MOUSE_SENSITIVITY;
-			yaw += -deltaX * MOUSE_SENSITIVITY;
+			player.rotate(
+					(float) -deltaY * MOUSE_SENSITIVITY,
+					 (float) -deltaX * MOUSE_SENSITIVITY
+			);
 		});
 		
 		// Setup input modes
@@ -135,27 +135,21 @@ public class Game {
 		// Create the texture atlas
 		TextureAtlas atlas = new TextureAtlas(texture, 16, 16);
 		
-		for (int cx = 0; cx < 8; cx++)
-		{
-			for (int cz = 0; cz < 8; cz++)
-			{
-				Chunk chunk = new Chunk(cx, cz);
-				
-				// Fill the chunk
-				for(int i = 0; i < chunk.getData().length; i++)
-					chunk.setBlock(i % 16, i / 256, (i / 16) % 16, (byte)1);
-				
-				chunks.add(new ChunkModel(chunk));
-			}
-		}
+		// Setup the world and world renderer
+		world = new World();
+		worldRenderer = new WorldRenderer(world, atlas);
 		
-		for (ChunkModel chunkModel : chunks)
-		{
-			chunkModel.updateModel(null, atlas);
-		}
-
-		// Create the initial projection matrix
-		perspective.perspective((float) Math.toRadians(FOV), (float) INITIAL_WIDTH / (float) INITIAL_HEIGHT, ZNEAR, ZFAR);
+		// Setup the player and the camera
+		player = new EntityPlayer();
+		player.setPos(0.0f, 68.0f, 0.0f);
+		camera = new Camera();
+		
+		// Setup the initial projection matrix
+		camera.updatePerspective((float) INITIAL_WIDTH / (float) INITIAL_HEIGHT);
+		
+		// Setup the view matrix
+		camera.asPlayer(player);
+		camera.updateView();
 		
 		shader.bind();
 		shader.setUniform1i("texture0", 0);
@@ -222,12 +216,11 @@ public class Game {
 	
 	private void update()
 	{
-		//System.out.println(pitch);
 		float xDir = 0.0f, yDir = 0.0f, zDir = 0.0f;
-		float speed = 6.0f / 60.0f;
+		float speed = 4.0f / 60.0f;
 		
 		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			speed *= 2.0f;
+			speed *= 1.5f;
 		
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 			zDir += -1.0f;
@@ -243,37 +236,25 @@ public class Game {
 		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 			yDir -=  1.0f;
 		
-		double phi = Math.toRadians(yaw);
-		double mag = Math.sqrt(Math.pow(xDir, 2) + Math.pow(zDir, 2));
-		
-		if (mag <= 0.0f)
-			mag = 1.0f;
-		
-		x += speed * (xDir * Math.cos(phi) + zDir * Math.sin(phi)) / mag;
-		y += speed * yDir;
-		z -= speed * (xDir * Math.sin(phi) - zDir * Math.cos(phi)) / mag;
-		
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 			glfwSetWindowShouldClose(window, true);
 		
-		// Clamp the pitch
-		if (pitch < -90.0f)
-			pitch = -90.0f;
-		if (pitch > 90.0f)
-			pitch = 90.0f;
+		player.speed = speed;
+		player.move(xDir, yDir, zDir);
+		player.update();
 		
+		camera.asPlayer(player);
+		camera.updateView();
+		
+		world.update();
+		worldRenderer.update();
 	}
 	
 	private void render(double partialTicks)
 	{
 		// Create the pvm matrix
-		Matrix4f pvm = new Matrix4f();
-		perspective.get(pvm);
-		pvm.rotate((float) -Math.toRadians(pitch), 1.0f, 0.0f, 0.0f);
-		pvm.rotate((float) -Math.toRadians(yaw), 0.0f, 1.0f, 0.0f);
-		pvm.translate(-x, -y, -z);
+		Matrix4f pvm = camera.getTransform();
 		float[] mat = new float[4 * 4];
-		
 		shader.setUniformMatrix4fv("pvm", false, pvm.get(mat));
 		
 		glClearColor(0f, 0f, 0f, 1f);
@@ -287,15 +268,7 @@ public class Game {
 		// Draw the chunks
 		shader.bind();
 		
-		for (ChunkModel chunkModel : chunks)
-		{
-			Model model = chunkModel.getModel();
-			shader.fixupModel(model);
-			
-			model.bind();
-			glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
-			model.unbind();
-		}
+		worldRenderer.render();
 		
 		shader.unbind();
 	}

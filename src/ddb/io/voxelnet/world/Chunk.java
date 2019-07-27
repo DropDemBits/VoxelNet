@@ -7,7 +7,8 @@ import java.util.Arrays;
  */
 public class Chunk
 {
-	public final int chunkX, chunkZ;
+	public final int chunkX, chunkY, chunkZ;
+	public final World world;
 	
 	// Highest block height for each column. -1 indicates that the column is
 	// empty
@@ -20,16 +21,23 @@ public class Chunk
 	private boolean isEmpty = true;
 	// If the chunk needs to be re-rendered
 	private boolean isDirty = false;
+	// If the chunk was recently generated
+	private boolean recentlyGenerated = true;
 	
 	/**
 	 * Constructs a new chunk
+	 * @param world The world associated with this chunk
 	 * @param x The chunk x position
+	 * @param y The chunk x position
 	 * @param z The chunk z position
 	 */
-	public Chunk(int x, int z)
+	public Chunk(World world, int x, int y, int z)
 	{
-		chunkX = x;
-		chunkZ = z;
+		this.world = world;
+		this.chunkX = x;
+		this.chunkY = y;
+		this.chunkZ = z;
+		
 		Arrays.fill(blockColumns, (byte)-1);
 	}
 	
@@ -149,5 +157,22 @@ public class Chunk
 	public boolean isEmpty()
 	{
 		return isEmpty;
+	}
+	
+	/**
+	 * Checks if the chunk is recently generated
+	 * @return True if the chunk was recently generated
+	 */
+	public boolean recentlyGenerated()
+	{
+		return recentlyGenerated;
+	}
+	
+	/**
+	 * Sets the chunk to be already generated
+	 */
+	public void setGenerated()
+	{
+		recentlyGenerated = false;
 	}
 }
