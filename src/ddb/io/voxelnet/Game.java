@@ -1,16 +1,18 @@
 package ddb.io.voxelnet;
 
-import ddb.io.voxelnet.render.Model;
-import ddb.io.voxelnet.render.Shader;
-import ddb.io.voxelnet.render.Texture;
-import ddb.io.voxelnet.render.TextureAtlas;
+import ddb.io.voxelnet.render.*;
+import ddb.io.voxelnet.util.Facing;
+import ddb.io.voxelnet.world.Chunk;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
 
+import javax.jws.WebParam;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -30,15 +32,15 @@ public class Game {
 	long window;
 	/** Current shader program */
 	Shader shader;
-	/** Currently rendered model */
-	Model model;
+	/** List of chunks to render */
+	List<ChunkModel> chunks = new ArrayList<>();
 	Texture texture;
 	
 	Matrix4f perspective = new Matrix4f();
-	float x = 0.0f;
-	float y = 0.0f;
-	float z = 1.0f;
-	float pitch = 45.0f;
+	float x = 32.0f;
+	float y = 18.0f;
+	float z = 32.0f;
+	float pitch = 0.0f;
 	float yaw = 0.0f;
 	
 	double lastX = 0.0f, lastY = 0.0f;
@@ -119,8 +121,9 @@ public class Game {
 			yaw += -deltaX * MOUSE_SENSITIVITY;
 		});
 		
-		// Disable the cursor
+		// Setup input modes
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
 		
 		// Create the shader
 		shader = new Shader("assets/shaders/default.glsl");
@@ -131,98 +134,32 @@ public class Game {
 		
 		// Create the texture atlas
 		TextureAtlas atlas = new TextureAtlas(texture, 16, 16);
-		float[] grassTop = atlas.getPositions(0);
-		float[] grassSide = atlas.getPositions(1);
-		float[] dirt = atlas.getPositions(2);
 		
-		// Create the model
-		model = new Model();
-		
-		for (int cx = 0; cx < 2; cx++)
+		for (int cx = 0; cx < 8; cx++)
 		{
-			for (int cz = 0; cz < 2; cz++)
+			for (int cz = 0; cz < 8; cz++)
 			{
-				for (int i = 0; i < 16 * 16 * 16; i++)
-				{
-					int x = cx * 16 + i % 16;
-					int y = i / 256;
-					int z = cz * 16 + (i / 16) % 16;
-					
-					pushCubeFace(model, (float) x, (float) y, (float) z, 0, grassSide);
-					pushCubeFace(model, (float) x, (float) y, (float) z, 1, grassSide);
-					pushCubeFace(model, (float) x, (float) y, (float) z, 2, grassSide);
-					pushCubeFace(model, (float) x, (float) y, (float) z, 3, grassSide);
-					pushCubeFace(model, (float) x, (float) y, (float) z, 4, grassTop);
-					pushCubeFace(model, (float) x, (float) y, (float) z, 5, dirt);
-				}
+				Chunk chunk = new Chunk(cx, cz);
+				
+				// Fill the chunk
+				for(int i = 0; i < chunk.getData().length; i++)
+					chunk.setBlock(i % 16, i / 256, (i / 16) % 16, (byte)1);
+				
+				chunks.add(new ChunkModel(chunk));
 			}
 		}
 		
-		System.out.println(model.getIndexCount());
-		
-		model.bind();
-		model.updateVertices();
-		model.unbind();
+		for (ChunkModel chunkModel : chunks)
+		{
+			chunkModel.updateModel(null, atlas);
+		}
 
 		// Create the initial projection matrix
 		perspective.perspective((float) Math.toRadians(FOV), (float) INITIAL_WIDTH / (float) INITIAL_HEIGHT, ZNEAR, ZFAR);
 		
 		shader.bind();
-		shader.fixupModel(model);
 		shader.setUniform1i("texture0", 0);
 		shader.unbind();
-	}
-	
-	// NWSE TB
-	private void pushCubeFace(Model model, float x, float y, float z, int face, float[] texCoords)
-	{
-		model.beginPoly();
-		switch (face)
-		{
-			case 0:
-				// North Face
-				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[0], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1]);
-				break;
-			case 1:
-				// West Face
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1]);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[2], texCoords[3]);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[0], texCoords[3]);
-				break;
-			case 2:
-				// South Face
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1]);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[2], texCoords[3]);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3]);
-				break;
-			case 3:
-				// East Face
-				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1]);
-				break;
-			case 4:
-				// Top Face
-				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[1]);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3]);
-				break;
-			case 5:
-				// Bottom Face
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[3]);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1]);
-				break;
-		}
-		model.endPoly();
 	}
 	
 	private void loop()
@@ -274,10 +211,8 @@ public class Game {
 	
 	private void cleanup()
 	{
-		// Free the model
-		texture.free();
-		model.free();
-		shader.free();
+		// Free the context
+		GLContext.INSTANCE.free();
 		
 		// Free GLFW things
 		glfwDestroyWindow(window);
@@ -289,26 +224,34 @@ public class Game {
 	{
 		//System.out.println(pitch);
 		float xDir = 0.0f, yDir = 0.0f, zDir = 0.0f;
-		float speed = 4.0f / 60.0f;
+		float speed = 6.0f / 60.0f;
+		
+		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			speed *= 2.0f;
 		
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			zDir += -1.0f * speed;
+			zDir += -1.0f;
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			zDir +=  1.0f * speed;
+			zDir +=  1.0f;
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			xDir += -1.0f * speed;
+			xDir += -1.0f;
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			xDir +=  1.0f * speed;
+			xDir +=  1.0f;
 		
 		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-			yDir +=  1.0f * speed;
+			yDir +=  1.0f;
 		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-			yDir -=  1.0f * speed;
+			yDir -=  1.0f;
 		
 		double phi = Math.toRadians(yaw);
-		x += xDir * Math.cos(phi) + zDir * Math.sin(phi);
-		y += yDir;
-		z -= xDir * Math.sin(phi) - zDir * Math.cos(phi);
+		double mag = Math.sqrt(Math.pow(xDir, 2) + Math.pow(zDir, 2));
+		
+		if (mag <= 0.0f)
+			mag = 1.0f;
+		
+		x += speed * (xDir * Math.cos(phi) + zDir * Math.sin(phi)) / mag;
+		y += speed * yDir;
+		z -= speed * (xDir * Math.sin(phi) - zDir * Math.cos(phi)) / mag;
 		
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 			glfwSetWindowShouldClose(window, true);
@@ -341,11 +284,19 @@ public class Game {
 		
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		// Draw a textured cube
+		// Draw the chunks
 		shader.bind();
-		model.bind();
-		glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
-		model.unbind();
+		
+		for (ChunkModel chunkModel : chunks)
+		{
+			Model model = chunkModel.getModel();
+			shader.fixupModel(model);
+			
+			model.bind();
+			glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
+			model.unbind();
+		}
+		
 		shader.unbind();
 	}
 	

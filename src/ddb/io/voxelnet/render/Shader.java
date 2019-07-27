@@ -101,6 +101,7 @@ public class Shader
 			
 			// Create the program
 			programHandle = glCreateProgram();
+			GLContext.INSTANCE.addShader(programHandle);
 			
 			// Apply the vertex layout
 			if (vertexLayout.size() > 0)
@@ -164,11 +165,6 @@ public class Shader
 	{
 		if(isValid)
 			glUseProgram(0);
-	}
-	
-	public void free()
-	{
-		glDeleteProgram(programHandle);
 	}
 	
 	public void fixupModel(Model model)

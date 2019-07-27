@@ -41,6 +41,8 @@ public class Texture
 			height = y.get();
 			
 			texHandle = glGenTextures();
+			GLContext.INSTANCE.addTexture(texHandle);
+			
 			glBindTexture(GL_TEXTURE_2D, texHandle);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -63,11 +65,6 @@ public class Texture
 	public void unbind()
 	{
 		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-	
-	public void free()
-	{
-		glDeleteTextures(texHandle);
 	}
 	
 	public int getWidth()

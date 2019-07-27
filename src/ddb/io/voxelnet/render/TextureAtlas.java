@@ -31,11 +31,6 @@ public class TextureAtlas
 		texture.unbind();
 	}
 	
-	public void free()
-	{
-		texture.free();
-	}
-	
 	public float[] getPositions(int index)
 	{
 		return getPositions(index % columns, index / columns);

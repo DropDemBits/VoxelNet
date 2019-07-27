@@ -39,6 +39,9 @@ public class Model
 		// Create the buffers
 		vboHandle = glGenBuffers();
 		iboHandle = glGenBuffers();
+		
+		GLContext.INSTANCE.addBuffer(vboHandle);
+		GLContext.INSTANCE.addBuffer(iboHandle);
 	}
 	
 	private float[] getVertexData()
@@ -99,22 +102,6 @@ public class Model
 	public int getIndexCount()
 	{
 		return indices.size();
-	}
-	
-	/**
-	 * Frees all GL handles associated with this model
-	 * @throws IllegalStateException If the model is free'd more than once
-	 */
-	public void free()
-	{
-		if (iboHandle == -1 || vboHandle == -1)
-			throw new IllegalStateException("Freeing model twice");
-		
-		unbind();
-		glDeleteBuffers(new int[] {iboHandle, vboHandle});
-		
-		iboHandle = -1;
-		vboHandle = -1;
 	}
 	
 	public void reset()
