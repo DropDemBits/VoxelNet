@@ -204,19 +204,31 @@ public class Shader
 		return location;
 	}
 	
-	public void setUniformMatrix(String name, Matrix4f mat)
-	{
-		int location = getUniform(name);
-		bind();
-		//glUniform4fv(location, mat.);
-		unbind();
-	}
-	
-	public void setUniform(String name, int value)
+	/**
+	 * Sets the uniform's value for the current shader
+	 * Must not be contained inside of a bind/unbind pair
+	 * @param name The name of the uniform to set
+	 * @param value The new value of the uniform
+	 */
+	public void setUniform1i(String name, int value)
 	{
 		int location = getUniform(name);
 		bind();
 		glUniform1i(location, value);
+		unbind();
+	}
+	
+	/**
+	 * Sets the uniform's value for the current shader
+	 * Must not be contained inside of a bind/unbind pair
+	 * @param name The name of the uniform to set
+	 * @param value The new value of the uniform
+	 */
+	public void setUniformMatrix4fv(String name, boolean transpose, float[] value)
+	{
+		int location = getUniform(name);
+		bind();
+		glUniformMatrix4fv(location, transpose, value);
 		unbind();
 	}
 	

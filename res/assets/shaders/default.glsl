@@ -5,8 +5,10 @@ attribute vec2 texCoord;
 
 varying vec2 frag_texCoord;
 
+uniform mat4 pvm;
+
 void main (void) {
-    gl_Position = vec4(position, 1);
+    gl_Position = pvm * vec4(position, 1);
     frag_texCoord = texCoord;
 }
 

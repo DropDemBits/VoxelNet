@@ -4,21 +4,27 @@ import ddb.io.voxelnet.render.Model;
 import ddb.io.voxelnet.render.Shader;
 import ddb.io.voxelnet.render.Texture;
 import ddb.io.voxelnet.render.TextureAtlas;
+import org.joml.Matrix4f;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
-import sun.security.provider.certpath.Vertex;
 
 import java.nio.IntBuffer;
-import java.util.Arrays;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
 
 public class Game {
+	
+	private static final int INITIAL_WIDTH = 854;
+	private static final int INITIAL_HEIGHT = 480;
+	
+	private static final float FOV   = 60.0f;
+	private static final float ZNEAR = 0.01f;
+	private static final float ZFAR  = 1000.0f;
+	
+	private static final float MOUSE_SENSITIVITY = 0.5f;
 	
 	/** Current window associated with this game instance */
 	long window;
@@ -26,8 +32,28 @@ public class Game {
 	Shader shader;
 	/** Currently rendered model */
 	Model model;
+	Texture texture;
+	
+	Matrix4f perspective = new Matrix4f();
+	float x = 0.0f;
+	float y = 0.0f;
+	float z = 1.0f;
+	float pitch = 45.0f;
+	float yaw = 0.0f;
+	
+	double lastX = 0.0f, lastY = 0.0f;
 	
 	private void run()
+	{
+		/// Init ///
+		init();
+		/// Main Loop ///
+		loop();
+		/// Cleanup ///
+		cleanup();
+	}
+	
+	private void init()
 	{
 		// Setup the error callback
 		GLFWErrorCallback.createPrint(System.err).set();
@@ -40,7 +66,7 @@ public class Game {
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-		window = glfwCreateWindow( 640, 480, "Hello World", 0, 0);
+		window = glfwCreateWindow( INITIAL_WIDTH, INITIAL_HEIGHT, "VoxelNet", 0, 0);
 		
 		if (window == 0)
 			throw new IllegalStateException("Failure creating the window");
@@ -67,46 +93,140 @@ public class Game {
 		// Show the window
 		glfwShowWindow(window);
 		
+		// Setup GL Context
+		GLCapabilities caps = GL.createCapabilities();
+		
 		// Add window resizing callback
 		glfwSetWindowSizeCallback(window, (win, width, height) -> {
 			// Update the GL viewport size
 			glViewport(0, 0, width, height);
+			// Update the perspective matrix
+			perspective.identity();
+			perspective.perspective((float) Math.toRadians(FOV), (float) width / (float) height, ZNEAR, ZFAR);
 		});
 		
-		// Setup GL Context
-		GLCapabilities caps = GL.createCapabilities();
+		// Add mouse movement callback
+		glfwSetCursorPosCallback(window, (window, x, y) -> {
+			double deltaX = x - lastX;
+			double deltaY = y - lastY;
+			lastX = x;
+			lastY = y;
+			
+			if(Math.abs(deltaX) > 50.0 || Math.abs(deltaY) > 50.0)
+				return;
+			
+			pitch += -deltaY * MOUSE_SENSITIVITY;
+			yaw += -deltaX * MOUSE_SENSITIVITY;
+		});
+		
+		// Disable the cursor
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		
 		// Create the shader
 		shader = new Shader("assets/shaders/default.glsl");
 		
 		// Load the texture
-		Texture texture = new Texture("assets/textures/atlas.png");
+		texture = new Texture("assets/textures/atlas.png");
 		texture.bind(0);
-		shader.setUniform("texture0", 0);
 		
 		// Create the texture atlas
 		TextureAtlas atlas = new TextureAtlas(texture, 16, 16);
-		float[] pos = atlas.getPositions(0);
+		float[] grassTop = atlas.getPositions(0);
+		float[] grassSide = atlas.getPositions(1);
+		float[] dirt = atlas.getPositions(2);
 		
 		// Create the model
 		model = new Model();
 		
-		model.beginPoly();
-		model.addVertex(-0.5f, -0.5f, 0.0f, pos[0], pos[1]);
-		model.addVertex( 0.5f, -0.5f, 0.0f, pos[2], pos[1]);
-		model.addVertex( 0.5f,  0.5f, 0.0f, pos[2], pos[3]);
-		model.addVertex(-0.5f,  0.5f, 0.0f, pos[0], pos[3]);
-		model.endPoly();
+		for (int cx = 0; cx < 2; cx++)
+		{
+			for (int cz = 0; cz < 2; cz++)
+			{
+				for (int i = 0; i < 16 * 16 * 16; i++)
+				{
+					int x = cx * 16 + i % 16;
+					int y = i / 256;
+					int z = cz * 16 + (i / 16) % 16;
+					
+					pushCubeFace(model, (float) x, (float) y, (float) z, 0, grassSide);
+					pushCubeFace(model, (float) x, (float) y, (float) z, 1, grassSide);
+					pushCubeFace(model, (float) x, (float) y, (float) z, 2, grassSide);
+					pushCubeFace(model, (float) x, (float) y, (float) z, 3, grassSide);
+					pushCubeFace(model, (float) x, (float) y, (float) z, 4, grassTop);
+					pushCubeFace(model, (float) x, (float) y, (float) z, 5, dirt);
+				}
+			}
+		}
+		
+		System.out.println(model.getIndexCount());
 		
 		model.bind();
 		model.updateVertices();
 		model.unbind();
+
+		// Create the initial projection matrix
+		perspective.perspective((float) Math.toRadians(FOV), (float) INITIAL_WIDTH / (float) INITIAL_HEIGHT, ZNEAR, ZFAR);
 		
+		shader.bind();
 		shader.fixupModel(model);
-		
-		/// Done Init ///
-		/// Enter Main Loop  ///
-		
+		shader.setUniform1i("texture0", 0);
+		shader.unbind();
+	}
+	
+	// NWSE TB
+	private void pushCubeFace(Model model, float x, float y, float z, int face, float[] texCoords)
+	{
+		model.beginPoly();
+		switch (face)
+		{
+			case 0:
+				// North Face
+				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3]);
+				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[0], texCoords[3]);
+				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1]);
+				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1]);
+				break;
+			case 1:
+				// West Face
+				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1]);
+				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1]);
+				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[2], texCoords[3]);
+				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[0], texCoords[3]);
+				break;
+			case 2:
+				// South Face
+				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1]);
+				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1]);
+				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[2], texCoords[3]);
+				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3]);
+				break;
+			case 3:
+				// East Face
+				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3]);
+				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3]);
+				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1]);
+				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1]);
+				break;
+			case 4:
+				// Top Face
+				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[1]);
+				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[1]);
+				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3]);
+				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3]);
+				break;
+			case 5:
+				// Bottom Face
+				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[3]);
+				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[3]);
+				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1]);
+				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1]);
+				break;
+		}
+		model.endPoly();
+	}
+	
+	private void loop()
+	{
 		int fps = 0, ups = 0;
 		double last = glfwGetTime();
 		double lag = 0;
@@ -150,7 +270,10 @@ public class Game {
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}
-		
+	}
+	
+	private void cleanup()
+	{
 		// Free the model
 		texture.free();
 		model.free();
@@ -164,15 +287,61 @@ public class Game {
 	
 	private void update()
 	{
-		//System.out.println("Hey");
+		//System.out.println(pitch);
+		float xDir = 0.0f, yDir = 0.0f, zDir = 0.0f;
+		float speed = 4.0f / 60.0f;
+		
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			zDir += -1.0f * speed;
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			zDir +=  1.0f * speed;
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			xDir += -1.0f * speed;
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			xDir +=  1.0f * speed;
+		
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+			yDir +=  1.0f * speed;
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+			yDir -=  1.0f * speed;
+		
+		double phi = Math.toRadians(yaw);
+		x += xDir * Math.cos(phi) + zDir * Math.sin(phi);
+		y += yDir;
+		z -= xDir * Math.sin(phi) - zDir * Math.cos(phi);
+		
+		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+			glfwSetWindowShouldClose(window, true);
+		
+		// Clamp the pitch
+		if (pitch < -90.0f)
+			pitch = -90.0f;
+		if (pitch > 90.0f)
+			pitch = 90.0f;
+		
 	}
 	
 	private void render(double partialTicks)
 	{
+		// Create the pvm matrix
+		Matrix4f pvm = new Matrix4f();
+		perspective.get(pvm);
+		pvm.rotate((float) -Math.toRadians(pitch), 1.0f, 0.0f, 0.0f);
+		pvm.rotate((float) -Math.toRadians(yaw), 0.0f, 1.0f, 0.0f);
+		pvm.translate(-x, -y, -z);
+		float[] mat = new float[4 * 4];
+		
+		shader.setUniformMatrix4fv("pvm", false, pvm.get(mat));
+		
 		glClearColor(0f, 0f, 0f, 1f);
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_DEPTH_TEST);
+		glCullFace(GL_BACK);
+		glDepthFunc(GL_LEQUAL);
+		
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		// Draw two triangles (VBO + Shaders)
+		// Draw a textured cube
 		shader.bind();
 		model.bind();
 		glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
