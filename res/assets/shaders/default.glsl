@@ -1,22 +1,24 @@
 #vertex
 #version 110
 attribute vec3 position;
-attribute vec3 color;
+attribute vec2 texCoord;
 
-varying vec3 frag_color;
+varying vec2 frag_texCoord;
 
 void main (void) {
     gl_Position = vec4(position, 1);
-    frag_color = color;
+    frag_texCoord = texCoord;
 }
 
 #fragment
 #version 110
 
-varying vec3 frag_color;
+varying vec2 frag_texCoord;
+
+uniform sampler2D texture0;
 
 void main (void) {
-    gl_FragColor = vec4(frag_color, 1);
+    gl_FragColor = texture2D(texture0, frag_texCoord);
 }
 
 #vertexlayout

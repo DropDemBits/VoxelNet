@@ -2,6 +2,8 @@ package ddb.io.voxelnet;
 
 import ddb.io.voxelnet.render.Model;
 import ddb.io.voxelnet.render.Shader;
+import ddb.io.voxelnet.render.Texture;
+import ddb.io.voxelnet.render.TextureAtlas;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
@@ -77,45 +79,23 @@ public class Game {
 		// Create the shader
 		shader = new Shader("assets/shaders/default.glsl");
 		
+		// Load the texture
+		Texture texture = new Texture("assets/textures/atlas.png");
+		texture.bind(0);
+		shader.setUniform("texture0", 0);
+		
+		// Create the texture atlas
+		TextureAtlas atlas = new TextureAtlas(texture, 16, 16);
+		float[] pos = atlas.getPositions(0);
+		
 		// Create the model
 		model = new Model();
-		/*
-		model.beginPoly();
-		model.addVertex(-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f);
-		model.addVertex( 0.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f);
-		model.addVertex( 0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f);
-		model.endPoly();
-		*/
-		
-		/*
-		model.beginPoly();
-		model.addVertex(1.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f);
-		model.addVertex(0.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f);
-		model.addVertex(0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f);
-		model.endPoly();
-		*/
-		
-		/*
-		model.beginPoly();
-		model.addVertex(-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f);
-		model.addVertex( 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f);
-		model.addVertex( 0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f);
-		model.addVertex(-0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f);
-		model.endPoly();
-		*/
 		
 		model.beginPoly();
-		for(float angle = 0; angle < 360; angle += 360.0f / 10.0f)
-		{
-			float x = (float) Math.sin(Math.toRadians(angle)) * 0.5f;
-			float y = (float) Math.cos(Math.toRadians(angle)) * 0.5f;
-			
-			float r = (float) Math.sin(Math.toRadians(angle + 0.0));
-			float g = (float) Math.sin(Math.toRadians(angle + 120.0));
-			float b = (float) Math.sin(Math.toRadians(angle + 240.0));
-			
-			model.addVertex(x, y, 0.0f, r, g, b);
-		}
+		model.addVertex(-0.5f, -0.5f, 0.0f, pos[0], pos[1]);
+		model.addVertex( 0.5f, -0.5f, 0.0f, pos[2], pos[1]);
+		model.addVertex( 0.5f,  0.5f, 0.0f, pos[2], pos[3]);
+		model.addVertex(-0.5f,  0.5f, 0.0f, pos[0], pos[3]);
 		model.endPoly();
 		
 		model.bind();
@@ -172,7 +152,9 @@ public class Game {
 		}
 		
 		// Free the model
+		texture.free();
 		model.free();
+		shader.free();
 		
 		// Free GLFW things
 		glfwDestroyWindow(window);

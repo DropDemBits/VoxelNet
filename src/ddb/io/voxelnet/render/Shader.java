@@ -1,10 +1,15 @@
 package ddb.io.voxelnet.render;
 
+import org.joml.Matrix4f;
+import sun.awt.image.ImageWatched;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.lwjgl.opengl.GL11.GL_FALSE;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
@@ -16,6 +21,7 @@ public class Shader
 	private final boolean isValid;
 	// Holds the program handle
 	private int programHandle;
+	private Map<String, Integer> locationCache;
 	
 	public Shader (String path)
 	{
@@ -75,10 +81,6 @@ public class Shader
 				}
 			}
 			
-			System.out.println(vertexSource.toString());
-			System.out.println(fragmentSource.toString());
-			System.out.println(vertexLayout.toString());
-			
 			// Compile each shader
 			int vertexShader, fragmentShader;
 			vertexShader = compileAndVerifyShader(GL_VERTEX_SHADER, vertexSource.toString());
@@ -125,6 +127,7 @@ public class Shader
 				throw new IllegalStateException("Failed to link the shader");
 			}
 			
+			locationCache = new LinkedHashMap<>();
 			validShader = true;
 		}
 		catch (Exception e) {
@@ -172,16 +175,49 @@ public class Shader
 	{
 		model.bind();
 		
-		int clr = glGetAttribLocation(programHandle, "color");
 		int pos = glGetAttribLocation(programHandle, "position");
+		int texCoord = glGetAttribLocation(programHandle, "texCoord");
 		
 		glEnableVertexAttribArray(pos);
-		glVertexAttribPointer(pos, 2, GL_FLOAT, false, 6 * 4, 0);
+		glVertexAttribPointer(pos, 3, GL_FLOAT, false, 5 * 4, 0);
 		
-		glEnableVertexAttribArray(clr);
-		glVertexAttribPointer(clr, 3, GL_FLOAT, false, 6 * 4, 3 * 4);
+		glEnableVertexAttribArray(texCoord);
+		glVertexAttribPointer(texCoord, 2, GL_FLOAT, false, 5 * 4, 3 * 4);
 		
 		model.unbind();
+	}
+	
+	/*** Uniform Related ***/
+	private int getUniform(String name)
+	{
+		// No uniforms if the shader isn't valid
+		if (!isValid)
+			return -1;
+		
+		int location;
+		if ((location = locationCache.getOrDefault(name, -2)) != -2)
+			return location;
+		
+		// Add a new entry to the cache
+		location = glGetUniformLocation(programHandle, name);
+		locationCache.put(name, location);
+		return location;
+	}
+	
+	public void setUniformMatrix(String name, Matrix4f mat)
+	{
+		int location = getUniform(name);
+		bind();
+		//glUniform4fv(location, mat.);
+		unbind();
+	}
+	
+	public void setUniform(String name, int value)
+	{
+		int location = getUniform(name);
+		bind();
+		glUniform1i(location, value);
+		unbind();
 	}
 	
 }

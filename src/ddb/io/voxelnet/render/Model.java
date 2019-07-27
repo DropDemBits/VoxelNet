@@ -8,7 +8,7 @@ import static org.lwjgl.opengl.GL15.*;
 public class Model
 {
 	// Size of a vertex, in floats
-	private static final int VERTEX_SIZE = 6;
+	private static final int VERTEX_SIZE = 5;
 	
 	/// Polygon State ///
 	// Current starting index for the polygon
@@ -36,17 +36,9 @@ public class Model
 		vertexData = new ArrayList<>();
 		indices = new ArrayList<>();
 		
-		// Create the vertex buffer
+		// Create the buffers
 		vboHandle = glGenBuffers();
-		glBindBuffer(GL_ARRAY_BUFFER, vboHandle);
-		glBufferData(GL_ARRAY_BUFFER, 0, GL_STATIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		
-		// Create the index buffer
 		iboHandle = glGenBuffers();
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboHandle);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, GL_STATIC_DRAW);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 	
 	private float[] getVertexData()
@@ -167,7 +159,7 @@ public class Model
 	 */
 	public void addVertex(float x, float y)
 	{
-		addVertex(x, y, 0, 1, 1, 1);
+		addVertex(x, y, 0, 0, 0);
 	}
 	
 	/**
@@ -178,11 +170,11 @@ public class Model
 	 */
 	public void addVertex(float x, float y, float z)
 	{
-		// White by default
-		addVertex(x, y, z, 1, 1, 1);
+		// Top left by default
+		addVertex(x, y, z, 0, 0);
 	}
 	
-	public void addVertex(float x, float y, float z, float r, float g, float b)
+	public void addVertex(float x, float y, float z, float u, float v)
 	{
 		int index = polyCount + polyStart;
 		
@@ -191,10 +183,9 @@ public class Model
 		vertexData.add(y);
 		vertexData.add(z);
 		
-		// Then the colour
-		vertexData.add(r);
-		vertexData.add(g);
-		vertexData.add(b);
+		// Then the texture position
+		vertexData.add(u);
+		vertexData.add(v);
 		
 		// Update the indices
 		polyCount++;
