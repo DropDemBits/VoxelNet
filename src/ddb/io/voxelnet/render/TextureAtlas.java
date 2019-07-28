@@ -33,6 +33,9 @@ public class TextureAtlas
 	
 	public float[] getPositions(int index)
 	{
+		if (index == -1)
+			return EMPTY_COORDS;
+		
 		return getPositions(index % columns, index / columns);
 	}
 	

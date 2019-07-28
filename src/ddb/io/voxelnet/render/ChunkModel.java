@@ -1,7 +1,10 @@
 package ddb.io.voxelnet.render;
 
+import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.Chunk;
+
+import java.util.Arrays;
 
 /**
  * Model of a chunk being rendered
@@ -45,14 +48,8 @@ public class ChunkModel
 		if (chunk.isEmpty())
 			return true;
 		
-		int[][] faceTexIDs = new int[][]{
-				new int[]{1, 1, 1, 1, 0, 2},
-				new int[]{2, 2, 2, 2, 2, 2},
-				new int[]{3, 3, 3, 3, 3, 3},
-		};
-		
 		long now = System.nanoTime();
-		//System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
+		System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
 		
 		// Chunk is not empty, update the things
 		for (int x = 0; x < 16; x++)
@@ -64,6 +61,9 @@ public class ChunkModel
 					byte id = chunk.getData()[x + z * 16 + y * 256];
 					if (id == 0)
 						continue;
+					
+					Block block = Block.idToBlock(id);
+					int[] faceTextures = block.getFaceTextures();
 					
 					for (Facing face : Facing.values())
 					{
@@ -79,13 +79,14 @@ public class ChunkModel
 									chunk.chunkZ * 16 + z + offset[2]);
 						}
 						
-						if (adjacentBlock > 0)
+						Block adjacent = Block.idToBlock(adjacentBlock);
+						if (adjacent.isSolid())
 						{
 							// Don't add the face if the adjacent block is solid
 							continue;
 						}
 						
-						float[] texCoords = atlas.getPositions(faceTexIDs[id - 1][face.ordinal()]);
+						float[] texCoords = atlas.getPositions(faceTextures[face.ordinal()]);
 						BlockRenderer.addCubeFace(
 								model,
 								(float) (chunk.chunkX * 16 + x),
@@ -98,7 +99,7 @@ public class ChunkModel
 			}
 		}
 		
-		//System.out.println("\tGenerate time: " + (System.nanoTime() - now) / 1000000000.0d);
+		System.out.println("\tGenerate time: " + (System.nanoTime() - now) / 1000000000.0d);
 		
 		// Defer the vertex buffer update to the render stage
 		isDirty = true;

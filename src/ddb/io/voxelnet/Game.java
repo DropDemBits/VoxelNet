@@ -1,5 +1,6 @@
 package ddb.io.voxelnet;
 
+import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.render.*;
 import ddb.io.voxelnet.util.Facing;
@@ -183,6 +184,9 @@ public class Game {
 		
 		// Create the texture atlas
 		TextureAtlas atlas = new TextureAtlas(texture, 16, 16);
+		
+		// Initialize the blocks
+		Block.init();
 		
 		// Setup the world and world renderer
 		world = new World();
