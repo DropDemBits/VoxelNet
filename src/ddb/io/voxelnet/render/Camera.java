@@ -13,17 +13,21 @@ public class Camera
 	public float pitch = 0.0f;
 	public float yaw = 0.0f;
 	
-	// Perspective related
-	public float fov = 60.0f;
-	public float zNear = 0.01f;
-	public float zFar = 1000f;
+	// Perspective Matrix
+	public float fov = 0.0f;
+	public float zNear = 0.0f;
+	public float zFar = 0.0f;
 	
 	// Matrices
 	public Matrix4f perspectiveMatrix;
 	public Matrix4f viewMatrix;
 	
-	public Camera()
+	public Camera(float fov, float zNear, float zFar)
 	{
+		this.fov = fov;
+		this.zNear = zNear;
+		this.zFar = zFar;
+		
 		this.perspectiveMatrix = new Matrix4f();
 		this.viewMatrix = new Matrix4f();
 	}
@@ -68,9 +72,9 @@ public class Camera
 	 */
 	public void asPlayer(EntityPlayer player)
 	{
-		this.x = player.xPos;
-		this.y = player.yPos;
-		this.z = player.zPos;
+		this.x = (float) player.xPos;
+		this.y = (float) player.yPos;
+		this.z = (float) player.zPos;
 		
 		this.pitch = player.pitch;
 		this.yaw = player.yaw;

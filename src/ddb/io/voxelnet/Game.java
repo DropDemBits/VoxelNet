@@ -142,7 +142,8 @@ public class Game {
 		// Setup the player and the camera
 		player = new EntityPlayer();
 		player.setPos(0.0f, 68.0f, 0.0f);
-		camera = new Camera();
+		
+		camera = new Camera(FOV, ZNEAR, ZFAR);
 		
 		// Setup the initial projection matrix
 		camera.updatePerspective((float) INITIAL_WIDTH / (float) INITIAL_HEIGHT);
@@ -240,7 +241,7 @@ public class Game {
 			glfwSetWindowShouldClose(window, true);
 		
 		player.speed = speed;
-		player.move(xDir, yDir, zDir);
+		player.move(xDir / 4.0f, yDir, zDir / 4.0f);
 		player.update();
 		
 		camera.asPlayer(player);

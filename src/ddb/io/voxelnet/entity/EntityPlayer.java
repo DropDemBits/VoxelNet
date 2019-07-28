@@ -39,7 +39,7 @@ public class EntityPlayer
 		this.yaw += deltaYaw;
 		
 		// Clamp the pitch to [-90, 90]
-		this.pitch = clampf(this.pitch, -90.0f, 90.0f);
+		this.pitch = clamp(this.pitch, -90.0f, 90.0f);
 		
 		// Keep the yaw between [0, 360]
 		this.yaw %= 360.0f;
@@ -70,14 +70,14 @@ public class EntityPlayer
 		xDir /= mag;
 		zDir /= mag;
 		
-		this.xVel += speed * (float) xDir;
+		this.xVel += speed * xDir;
 		this.yVel += speed * yAccel;
-		this.zVel += speed * (float) zDir;
+		this.zVel += speed * zDir;
 		
 		// Clamp the velocities
-		this.xVel += clampf(this.xVel, -speed, speed);
-		this.yVel += clampf(this.yVel, -speed, speed);
-		this.zVel += clampf(this.zVel, -speed, speed);
+		this.xVel += clamp(this.xVel, -speed, speed);
+		this.yVel += clamp(this.yVel, -speed, speed);
+		this.zVel += clamp(this.zVel, -speed, speed);
 	}
 	
 	public void update()
@@ -86,12 +86,11 @@ public class EntityPlayer
 		xPos += xVel;
 		yPos += yVel;
 		zPos += zVel;
-		System.out.println(yaw);
 		
 		// Apply decay to the velocity
-		xVel = 0.0f;//decay(xVel, 0.5f);
-		yVel = 0.0f;//decay(yVel, 0.5f);
-		zVel = 0.0f;//decay(zVel, 0.5f);
+		xVel = decay(xVel, 0.9f);
+		yVel = 0;
+		zVel = decay(zVel, 0.9f);
 	}
 	
 	/**
@@ -101,7 +100,7 @@ public class EntityPlayer
 	 * @param max The maximum bound for the value
 	 * @return The clamped value
 	 */
-	private float clampf(float value, float min, float max)
+	private float clamp(float value, float min, float max)
 	{
 		if (value > max)
 			return max;
@@ -110,9 +109,12 @@ public class EntityPlayer
 	
 	private float decay(float value, float decayFactor)
 	{
-		if (Math.abs(value) > speed)
+		if (value == 0.0f)
+			return value;
+		
+		if (Math.abs(value) > 0.2f)
 			return value * decayFactor;
 		else
-			return decayFactor;
+			return 0.0f;
 	}
 }
