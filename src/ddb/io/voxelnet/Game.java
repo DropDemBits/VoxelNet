@@ -44,6 +44,7 @@ public class Game {
 	
 	double lastX = 0.0f, lastY = 0.0f;
 	
+	// PlayerController variables
 	float hitX = 0.0f;
 	float hitY = 0.0f;
 	float hitZ = 0.0f;
@@ -52,6 +53,7 @@ public class Game {
 	int blockZ = 0;
 	Facing hitFace = Facing.NORTH;
 	boolean showHit = false;
+	byte placeID = 1;
 	
 	Model hitBox;
 	
@@ -148,7 +150,7 @@ public class Game {
 				if (button == GLFW_MOUSE_BUTTON_LEFT)
 				{
 					int[] off = hitFace.getOffset();
-					world.setBlock(blockX + off[0], blockY + off[1], blockZ + off[2], (byte) 1);
+					world.setBlock(blockX + off[0], blockY + off[1], blockZ + off[2], placeID);
 				}
 				else if (button == GLFW_MOUSE_BUTTON_RIGHT)
 				{
@@ -158,6 +160,14 @@ public class Game {
 				// Update the hitbox position
 				showHit = raycast();
 			}
+		});
+		
+		glfwSetKeyCallback(window, (window, keycode, scancode, action, mods) -> {
+			if (action != GLFW_PRESS)
+				return;
+			
+			if (keycode >= GLFW_KEY_1 && keycode <= GLFW_KEY_3)
+				placeID = (byte) (keycode - GLFW_KEY_0);
 		});
 		
 		// Setup input modes
@@ -180,7 +190,7 @@ public class Game {
 		
 		// Setup the player and the camera
 		player = new EntityPlayer();
-		player.setPos(0.0f, 68.0f, 0.0f);
+		player.setPos(0.0f, 66.0f, 0.0f);
 		
 		camera = new Camera(FOV, ZNEAR, ZFAR);
 		
