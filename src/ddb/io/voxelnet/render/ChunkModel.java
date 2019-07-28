@@ -11,6 +11,7 @@ public class ChunkModel
 	Model model;
 	Chunk chunk;
 	private boolean isDirty = false;
+	private boolean updatePending = false;
 	
 	/**
 	 * Creates a chunk model
@@ -36,6 +37,9 @@ public class ChunkModel
 		// Clear the model if there is data
 		if (model.getIndexCount() > 0)
 			model.reset();
+		
+		// Indicate that the chunk has been updated
+		chunk.makeClean();
 		
 		// Check if the chunk has been made empty
 		if (chunk.isEmpty())
@@ -98,10 +102,6 @@ public class ChunkModel
 		
 		// Defer the vertex buffer update to the render stage
 		isDirty = true;
-		
-		
-		// Indicate that the chunk has been updated
-		chunk.makeClean();
 		return true;
 	}
 	
@@ -122,5 +122,19 @@ public class ChunkModel
 	public void makeClean()
 	{
 		isDirty = false;
+	}
+	
+	/**
+	 * Sees if a model update is pending
+	 * @return True if a model update is pending
+	 */
+	public boolean isUpdatePending()
+	{
+		return updatePending;
+	}
+	
+	public void setUpdatePending(boolean updatePending)
+	{
+		this.updatePending = updatePending;
 	}
 }

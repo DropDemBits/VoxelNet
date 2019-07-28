@@ -15,7 +15,7 @@ public class World
 	
 	public World()
 	{
-		EMPTY_CHUNK = new Chunk(this, 0, 0, 0);
+		EMPTY_CHUNK = new Chunk(this, 0, -64, 0);
 		generate();
 	}
 	
@@ -70,10 +70,10 @@ public class World
 		
 		if (chunk == EMPTY_CHUNK && id != 0)
 		{
-			System.out.println("GEN!");
 			// Add a new chunk if the id is not zero
 			chunk = new Chunk(this, chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
 			loadedChunks.put(chunkPos, chunk);
+			System.out.println("NuChunk " + chunkPos.toString());
 		}
 		
 		// Block positions within the chunk
@@ -83,6 +83,13 @@ public class World
 		
 		// Set the block
 		chunk.setBlock(blockX, blockY, blockZ, id);
+		
+		if (blockX == 0 || blockX == 15)
+			System.out.println("X UPD!");
+		if (blockY == 0 || blockY == 15)
+			System.out.println("Y UPD!");
+		if (blockZ == 0 || blockZ == 15)
+			System.out.println("Z UPD!");
 		
 		// Update the adjacent chunks if the block is at one of the chunk edges
 		if (blockX == 0)

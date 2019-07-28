@@ -261,11 +261,11 @@ public class Game {
 		int x, y, z;
 		
 		// Step for 5 blocks
-		for(int i = 0; i < 5 * 4; i++)
+		for(int i = 0; i < 7 * 4; i++)
 		{
-			x = (int) Math.round(rayX - 0.5f);
-			y = (int) Math.round(rayY - 0.5f);
-			z = (int) Math.round(rayZ - 0.5f);
+			x = Math.round(rayX - 0.5f);
+			y = Math.round(rayY - 0.5f);
+			z = Math.round(rayZ - 0.5f);
 			
 			if (world.getBlock(x, y, z) != 0)
 			{
@@ -384,7 +384,7 @@ public class Game {
 		float speed = 4.0f / 60.0f;
 		
 		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			speed = 1.0f / 60.0f;
+			speed = 8.0f / 60.0f;
 		
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 			zDir += -1.0f;

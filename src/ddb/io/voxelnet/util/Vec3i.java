@@ -56,4 +56,10 @@ public class Vec3i
 	{
 		return Objects.hash(x, y, z);
 	}
+	
+	@Override
+	public String toString()
+	{
+		return "(" + x + ", " + y + ", " + z + ")";
+	}
 }

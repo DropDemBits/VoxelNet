@@ -29,20 +29,32 @@ public class WorldRenderer
 			Vec3i pos = new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ);
 			if (chunk.recentlyGenerated())
 			{
-				renderChunks.put(pos, new ChunkModel(chunk));
+				ChunkModel model = new ChunkModel(chunk);
+				renderChunks.put(pos, model);
 				chunk.setGenerated();
 			}
 			
 			if (chunk.isDirty())
 			{
 				assert(renderChunks.get(pos) != null);
-				generateQueue.push(renderChunks.get(pos));
+				if (!renderChunks.get(pos).isUpdatePending())
+				{
+					// No model update is pending, add it to the generate queue
+					generateQueue.push(renderChunks.get(pos));
+					renderChunks.get(pos).setUpdatePending(true);
+					System.out.println("Pending Add (" + generateQueue.size() + ") " + pos.toString());
+				}
 			}
 		}
 		
-		// Update each chunk
+		// Update the model
 		if(!generateQueue.empty())
-			generateQueue.pop().updateModel(atlas);
+		{
+			ChunkModel model = generateQueue.pop();
+			model.updateModel(atlas);
+			model.setUpdatePending(false);
+			System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
+		}
 	}
 	
 	public void render()
