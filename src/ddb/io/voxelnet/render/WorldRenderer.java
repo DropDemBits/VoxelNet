@@ -1,17 +1,18 @@
 package ddb.io.voxelnet.render;
 
+import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.Chunk;
 import ddb.io.voxelnet.world.World;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static org.lwjgl.opengl.GL11.*;
 
 public class WorldRenderer
 {
 	// List of chunks to render
-	private List<ChunkModel> renderChunks = new ArrayList<>();
+	private Map<Vec3i, ChunkModel> renderChunks = new LinkedHashMap<>();
+	private Stack<ChunkModel> generateQueue = new Stack<>();
 	private TextureAtlas atlas;
 	private World world;
 	
@@ -25,23 +26,28 @@ public class WorldRenderer
 	{
 		for (Chunk chunk : world.loadedChunks.values())
 		{
+			Vec3i pos = new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ);
 			if (chunk.recentlyGenerated())
 			{
-				renderChunks.add(new ChunkModel(chunk));
+				renderChunks.put(pos, new ChunkModel(chunk));
 				chunk.setGenerated();
+			}
+			
+			if (chunk.isDirty())
+			{
+				assert(renderChunks.get(pos) != null);
+				generateQueue.push(renderChunks.get(pos));
 			}
 		}
 		
-		for (ChunkModel chunkModel : renderChunks)
-		{
-			if (chunkModel.updateModel(atlas))
-				break;
-		}
+		// Update each chunk
+		if(!generateQueue.empty())
+			generateQueue.pop().updateModel(atlas);
 	}
 	
 	public void render()
 	{
-		for (ChunkModel chunkModel : renderChunks)
+		for (ChunkModel chunkModel : renderChunks.values())
 		{
 			Model model = chunkModel.getModel();
 			

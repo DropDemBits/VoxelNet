@@ -143,11 +143,19 @@ public class Chunk
 	}
 	
 	/**
-	 * Make the chunk clean
+	 * Makes the chunk clean
 	 */
 	public void makeClean()
 	{
 		isDirty = false;
+	}
+	
+	/**
+	 * Makes the chunk dirty
+	 */
+	public void makeDirty()
+	{
+		isDirty = true;
 	}
 	
 	/**

@@ -21,6 +21,21 @@ public class Vec3i
 		return this;
 	}
 	
+	public int getX()
+	{
+		return x;
+	}
+	
+	public int getY()
+	{
+		return y;
+	}
+	
+	public int getZ()
+	{
+		return z;
+	}
+	
 	public Vec3i add(int xOff, int yOff, int zOff)
 	{
 		return new Vec3i(x + xOff, y + yOff, z + zOff);

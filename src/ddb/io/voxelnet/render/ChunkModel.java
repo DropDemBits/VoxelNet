@@ -30,24 +30,26 @@ public class ChunkModel
 	public boolean updateModel(TextureAtlas atlas)
 	{
 		// Check if the chunk actually needs to be re-rendered
-		if(!chunk.isDirty())
+		if (!chunk.isDirty())
 			return false;
 		
 		// Clear the model if there is data
-		if(model.getIndexCount() > 0)
+		if (model.getIndexCount() > 0)
 			model.reset();
 		
 		// Check if the chunk has been made empty
-		if(chunk.isEmpty())
+		if (chunk.isEmpty())
 			return true;
 		
-		int[][] faceTexIDs = new int[][] {
-				new int[] {1, 1, 1, 1, 0, 2},
-				new int[] {2, 2, 2, 2, 2, 2},
-				new int[] {3, 3, 3, 3, 3, 3},
+		int[][] faceTexIDs = new int[][]{
+				new int[]{1, 1, 1, 1, 0, 2},
+				new int[]{2, 2, 2, 2, 2, 2},
+				new int[]{3, 3, 3, 3, 3, 3},
 		};
 		
-		long now = System.currentTimeMillis();
+		long now = System.nanoTime();
+		//System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
+		
 		// Chunk is not empty, update the things
 		for (int x = 0; x < 16; x++)
 		{
@@ -64,7 +66,7 @@ public class ChunkModel
 						int[] offset = face.getOffset();
 						byte adjacentBlock = chunk.getBlock(x + offset[0], y + offset[1], z + offset[2]);
 						
-						if(adjacentBlock == -1)
+						if (adjacentBlock == -1)
 						{
 							// Check the nearby chunk for the appropriate block id
 							adjacentBlock = chunk.world.getBlock(
@@ -91,13 +93,12 @@ public class ChunkModel
 				}
 			}
 		}
-		System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
-		System.out.println("\tGenerate time: " + (System.currentTimeMillis() - now));
+		
+		//System.out.println("\tGenerate time: " + (System.nanoTime() - now) / 1000000000.0d);
 		
 		// Defer the vertex buffer update to the render stage
 		isDirty = true;
 		
-		System.out.println("\tUpdate time: " + (System.currentTimeMillis() - now));
 		
 		// Indicate that the chunk has been updated
 		chunk.makeClean();

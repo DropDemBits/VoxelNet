@@ -28,6 +28,8 @@ public class Model
 	// Indices
 	private List<Integer> indices;
 	
+	public boolean drawLines = false;
+	
 	// GL *BO Handles
 	private int vboHandle;
 	private int iboHandle;
@@ -138,6 +140,12 @@ public class Model
 		
 		// Terminate the current polygon
 		constructingPolygon = false;
+		
+		if(drawLines)
+		{
+			// Close the final line
+			indices.add(polyStart);
+		}
 	}
 	
 	/**
@@ -177,15 +185,26 @@ public class Model
 		
 		// Update the indices
 		polyCount++;
-		if (polyCount <= 3) {
-			// Less than 3 vertices, just add the index
-			indices.add(index);
+		if (!drawLines)
+		{
+			if (polyCount <= 3)
+			{
+				// Less than 3 vertices, just add the index
+				indices.add(index);
+			} else
+			{
+				// Link the previous, current, and first vertex into a triangle
+				indices.add(index - 1);
+				indices.add(index);
+				indices.add(polyStart);
+			}
 		}
-		else {
-			// Link the previous, current, and first vertex into a triangle
-			indices.add(index - 1);
+		else
+		{
 			indices.add(index);
-			indices.add(polyStart);
+			// Double the index for the other points
+			if (polyCount > 1)
+				indices.add(index);
 		}
 	}
 	
