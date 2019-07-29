@@ -160,8 +160,8 @@ public class EntityPlayer
 		xVel = decay(xVel, 0.5f);
 		zVel = decay(zVel, 0.5f);
 		
-		  System.out.print("(" + xPos + ", " + yPos + ", " + zPos + ") - ");
-		System.out.println("(" + xVel + ", " + yVel + ", " + zVel + ")");
+		//  System.out.print("(" + xPos + ", " + yPos + ", " + zPos + ") - ");
+		//System.out.println("(" + xVel + ", " + yVel + ", " + zVel + ")");
 	}
 	
 	private boolean testForCollision(int xOff, int yOff, int zOff)

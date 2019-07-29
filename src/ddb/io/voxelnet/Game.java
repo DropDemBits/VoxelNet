@@ -150,12 +150,21 @@ public class Game {
 				
 				if (button == GLFW_MOUSE_BUTTON_LEFT)
 				{
+					Block block = Block.idToBlock(placeID);
+					
 					int[] off = hitFace.getOffset();
+					// If the block can't be placed, don't place if
+					if(!block.canPlaceBlock(world, blockX + off[0], blockY + off[1], blockZ + off[2]))
+						return;
+					
 					world.setBlock(blockX + off[0], blockY + off[1], blockZ + off[2], placeID);
+					block.onBlockPlaced(world, blockX + off[0], blockY + off[1], blockZ + off[2]);
 				}
 				else if (button == GLFW_MOUSE_BUTTON_RIGHT)
 				{
-					world.setBlock(blockX, blockY, blockZ, (byte) 0 );
+					Block block = Block.idToBlock(world.getBlock(blockX, blockY, blockZ));
+					block.onBlockBroken(world, blockX, blockY, blockZ);
+					world.setBlock(blockX, blockY, blockZ, (byte) 0);
 				}
 				
 				// Update the hitbox position
@@ -167,7 +176,7 @@ public class Game {
 			if (action != GLFW_PRESS)
 				return;
 			
-			if (keycode >= GLFW_KEY_1 && keycode <= GLFW_KEY_3)
+			if (keycode >= GLFW_KEY_1 && keycode <= GLFW_KEY_7)
 				placeID = (byte) (keycode - GLFW_KEY_0);
 		});
 		
@@ -444,9 +453,13 @@ public class Game {
 		
 		glClearColor(0f, 0f, 0f, 1f);
 		glEnable(GL_CULL_FACE);
-		glEnable(GL_DEPTH_TEST);
 		glCullFace(GL_BACK);
+		
+		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
+		
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		

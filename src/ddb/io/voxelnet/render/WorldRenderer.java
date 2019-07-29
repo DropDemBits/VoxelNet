@@ -42,7 +42,7 @@ public class WorldRenderer
 					// No model update is pending, add it to the generate queue
 					generateQueue.push(renderChunks.get(pos));
 					renderChunks.get(pos).setUpdatePending(true);
-					System.out.println("Pending Add (" + generateQueue.size() + ") " + pos.toString());
+					//System.out.println("Pending Add (" + generateQueue.size() + ") " + pos.toString());
 				}
 			}
 		}
@@ -53,7 +53,7 @@ public class WorldRenderer
 			ChunkModel model = generateQueue.pop();
 			model.updateModel(atlas);
 			model.setUpdatePending(false);
-			System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
+			//System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
 		}
 	}
 	

@@ -49,7 +49,7 @@ public class ChunkModel
 			return true;
 		
 		long now = System.nanoTime();
-		System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
+		//System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
 		
 		// Chunk is not empty, update the things
 		for (int x = 0; x < 16; x++)
@@ -67,6 +67,10 @@ public class ChunkModel
 					
 					for (Facing face : Facing.values())
 					{
+						// If the specified face is -1, the face isn't supposed to be rendered
+						if(faceTextures[face.ordinal()] == -1)
+							continue;
+						
 						int[] offset = face.getOffset();
 						byte adjacentBlock = chunk.getBlock(x + offset[0], y + offset[1], z + offset[2]);
 						
@@ -99,7 +103,7 @@ public class ChunkModel
 			}
 		}
 		
-		System.out.println("\tGenerate time: " + (System.nanoTime() - now) / 1000000000.0d);
+		//System.out.println("\tGenerate time: " + (System.nanoTime() - now) / 1000000000.0d);
 		
 		// Defer the vertex buffer update to the render stage
 		isDirty = true;

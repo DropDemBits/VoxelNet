@@ -1,6 +1,7 @@
 package ddb.io.voxelnet.block;
 
 import ddb.io.voxelnet.util.AABBCollider;
+import ddb.io.voxelnet.world.World;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,14 +13,20 @@ public class Block
 	
 	public static void init()
 	{
-		Blocks.AIR      = addBlock(0, new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}));
-		Blocks.GRASS    = addBlock(1, new Block().setSolid(true).setFaceTextures(new int[] {1, 1, 1, 1, 0, 2}));
-		Blocks.DIRT     = addBlock(2, new Block().setSolid(true).setFaceTextures(new int[] {2, 2, 2, 2, 2, 2}));
-		Blocks.STONE    = addBlock(3, new Block().setSolid(true).setFaceTextures(new int[] {3, 3, 3, 3, 3, 3}));
+		Blocks.AIR          = addBlock(0, new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}));
+		Blocks.GRASS        = addBlock(1, new Block().setSolid(true).setFaceTextures(new int[] {1, 1, 1, 1, 0, 2}));
+		Blocks.DIRT         = addBlock(2, new Block().setSolid(true).setFaceTextures(new int[] {2, 2, 2, 2, 2, 2}));
+		Blocks.STONE        = addBlock(3, new Block().setSolid(true).setFaceTextures(new int[] {3, 3, 3, 3, 3, 3}));
+		Blocks.PLANKS       = addBlock(4, new Block().setSolid(true).setFaceTextures(new int[] {4, 4, 4, 4, 4, 4}));
+		Blocks.STONE_BRICKS = addBlock(5, new Block().setSolid(true).setFaceTextures(new int[] {5, 5, 5, 5, 5, 5}));
+		Blocks.CLAY_BRICKS  = addBlock(6, new Block().setSolid(true).setFaceTextures(new int[] {6, 6, 6, 6, 6, 6}));
+		Blocks.DOOR_LOWER   = addBlock(7, new BlockDoor().setUpper(false));
+		Blocks.DOOR_UPPER   = addBlock(8, new BlockDoor().setUpper(true));
 	}
 	
 	private static Block addBlock(int id, Block instance)
 	{
+		instance.setId((byte) id);
 		idToBlockMap.add(id, instance);
 		return instance;
 	}
@@ -36,10 +43,17 @@ public class Block
 	private static AABBCollider DEFAULT_COLLIDER = new AABBCollider(0f, 0f, 0f, 1f, 1f, 1f);
 	private int[] faceTextures;
 	private boolean isSolid;
+	private byte id;
 	
 	protected Block() {}
 	
 	/// Local setters
+	private void setId(byte id)
+	{
+		this.id = id;
+	}
+	
+	/// Global setters
 	/**
 	 * Sets the face textures used for rendering
 	 * @param faceTextures The new set of face textures
@@ -89,5 +103,47 @@ public class Block
 	public AABBCollider getCollisionBox()
 	{
 		return DEFAULT_COLLIDER;
+	}
+	
+	/**
+	 * Gets the ID of the block
+	 * @return The block id
+	 */
+	public byte getId()
+	{
+		return id;
+	}
+	
+	// Event responses
+	/**
+	 * Called whenever a block is placed by a player
+	 * @param world The world the new block was placed in
+	 * @param x The x coordinate of the block
+	 * @param y The y coordinate of the block
+	 * @param z The z coordinate of the block
+	 */
+	public void onBlockPlaced(World world, int x, int y, int z) {}
+	
+	/**
+	 * Called whenever a block is broken by a player
+	 * @param world The world the block was destroyed in
+	 * @param x The x coordinate of the block
+	 * @param y The y coordinate of the block
+	 * @param z The z coordinate of the block
+	 */
+	public void onBlockBroken(World world, int x, int y, int z) {}
+	
+	/**
+	 * Checks if a player can place a block in the specified location
+	 * @param world The world that the block will be placed in
+	 * @param x The x coordinate of the block
+	 * @param y The y coordinate of the block
+	 * @param z The z coordinate of the block
+	 * @return True if the block can be placed in the specified location
+	 */
+	public boolean canPlaceBlock(World world, int x, int y, int z)
+	{
+		// By default, the block can only be placed if there is air
+		return world.getBlock(x, y, z) == Blocks.AIR.getId();
 	}
 }
