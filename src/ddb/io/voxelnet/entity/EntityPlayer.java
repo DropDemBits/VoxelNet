@@ -1,5 +1,9 @@
 package ddb.io.voxelnet.entity;
 
+import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.util.AABBCollider;
+import ddb.io.voxelnet.world.World;
+
 public class EntityPlayer
 {
 	// The position of the player
@@ -8,18 +12,47 @@ public class EntityPlayer
 	// The velocity of the player
 	public float xVel = 0.0f, yVel = 0.0f, zVel = 0.0f;
 	
+	// The acceleration of the player
+	public float xAccel = 0.0f, yAccel = 0.0f, zAccel = 0.0f;
+	
 	// Movement speed
 	public float speed = 4.0f / 60.0f;
 	
 	// The orientation of the player
 	public float pitch = 0.0f, yaw = 0.0f;
 	
+	private float targetHeight = 1.5f;
+	private float targetTime = 4f / 60.0f;
+	
+	private float jumpVelocity = ((2.0f * targetHeight) * targetTime);
+	private float jumpGravity  = ((2.0f * targetHeight) * (targetTime * targetTime));
+	public float gravity = jumpGravity;
+	
+	// If the player is on the ground
+	public boolean onGround = false;
+	
+	// If the player is currently jumping
+	public boolean isJumping = false;
+	
+	/**
+	 * The world the player is currently in
+	 */
+	public World world;
+	
+	public AABBCollider collisionBox = new AABBCollider(0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f);
+	
 	public EntityPlayer()
 	{
-	
+		// By default, the y acceleration is just gravity
+		yAccel = -gravity;
 	}
 	
 	/// Helpers ///
+	public void setWorld(World world)
+	{
+		this.world = world;
+	}
+	
 	public void setPos(float x, float y, float z)
 	{
 		this.xPos = x;
@@ -52,10 +85,9 @@ public class EntityPlayer
 	 * Pushes the player to the specified direction
 	 * The acceleration is relative to the current direction
 	 * @param xAccel The acceleration in the x direction
-	 * @param yAccel The acceleration in the y direction
 	 * @param zAccel The acceleration in the z direction
 	 */
-	public void move(float xAccel, float yAccel, float zAccel)
+	public void move(float xAccel, float zAccel)
 	{
 		double phi = Math.toRadians(yaw);
 		double xDir =  xAccel * Math.cos(phi) + zAccel * Math.sin(phi);
@@ -70,27 +102,85 @@ public class EntityPlayer
 		xDir /= mag;
 		zDir /= mag;
 		
-		this.xVel += speed * xDir;
-		this.yVel += speed * yAccel;
-		this.zVel += speed * zDir;
+		this.xAccel = (float) (speed * xDir);
+		this.zAccel = (float) (speed * zDir);
+	}
+	
+	public void jump()
+	{
+		if(!onGround)
+			return;
 		
-		// Clamp the velocities
-		this.xVel += clamp(this.xVel, -speed, speed);
-		this.yVel += clamp(this.yVel, -speed, speed);
-		this.zVel += clamp(this.zVel, -speed, speed);
+		this.yVel = jumpVelocity;
+		onGround = false;
+		isJumping = true;
 	}
 	
 	public void update()
 	{
+		if (isJumping)
+			yAccel = -jumpGravity;
+		else
+			yAccel = -gravity;
+		
+		// Apply the acceleration
+		xVel += xAccel;
+		yVel += yAccel;
+		zVel += zAccel;
+		
+		// Clamp the velocities
+		xVel = clamp(xVel, -speed, speed);
+		//yVel = clamp(yVel, yAccel, yVel);
+		zVel = clamp(zVel, -speed, speed);
+		
+		
+		// Update the collision status
+		int blockX, blockY, blockZ;
+		blockX = Math.round(xPos - 0.5f);
+		blockY = Math.round(yPos - 0.5f);
+		blockZ = Math.round(zPos - 0.5f);
+		
+		// Move the collision box relative to the block position
+		collisionBox.setPosition(xPos - blockX, yPos - blockY, zPos - blockZ);
+		
+		// Test for y-axis collision
+		if((onGround = testForCollision(0, 0, 0)) && yVel < 0)
+		{
+			// Zero y velocity on collision
+			yVel = 0;
+			isJumping = false;
+		}
+		
 		// Apply the velocity
 		xPos += xVel;
 		yPos += yVel;
 		zPos += zVel;
 		
 		// Apply decay to the velocity
-		xVel = decay(xVel, 0.9f);
-		yVel = 0;
-		zVel = decay(zVel, 0.9f);
+		xVel = decay(xVel, 0.5f);
+		zVel = decay(zVel, 0.5f);
+		
+		  System.out.print("(" + xPos + ", " + yPos + ", " + zPos + ") - ");
+		System.out.println("(" + xVel + ", " + yVel + ", " + zVel + ")");
+	}
+	
+	private boolean testForCollision(int xOff, int yOff, int zOff)
+	{
+		int blockX, blockY, blockZ;
+		blockX = Math.round(xPos - 0.5f) + xOff;
+		blockY = Math.round(yPos - 0.5f) + yOff;
+		blockZ = Math.round(zPos - 0.5f) + zOff;
+		
+		Block block = Block.idToBlock(world.getBlock(blockX, blockY, blockZ));
+		
+		// Check if the colliding block is solid
+		if (!block.isSolid())
+			return false;
+		
+		collisionBox.add(xOff, yOff, zOff);
+		boolean doesCollide = block.getCollisionBox().intersectsWith(collisionBox);
+		collisionBox.add(-xOff, -yOff, -zOff);
+		return doesCollide;
 	}
 	
 	/**

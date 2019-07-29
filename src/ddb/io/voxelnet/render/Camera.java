@@ -13,6 +13,11 @@ public class Camera
 	public float pitch = 0.0f;
 	public float yaw = 0.0f;
 	
+	// Camera offset
+	public float xOff = 0.0f;
+	public float yOff = 0.0f;
+	public float zOff = 0.0f;
+	
 	// Perspective Matrix
 	public float fov = 0.0f;
 	public float zNear = 0.0f;
@@ -39,6 +44,13 @@ public class Camera
 		this.z = z;
 	}
 	
+	public void setOffset(float x, float y, float z)
+	{
+		this.xOff = x;
+		this.yOff = y;
+		this.zOff = z;
+	}
+	
 	public void setOrientaion(float pitch, float yaw)
 	{
 		this.pitch = pitch;
@@ -63,7 +75,7 @@ public class Camera
 		this.viewMatrix.identity();
 		this.viewMatrix.rotate((float) -Math.toRadians(pitch), 1.0f, 0.0f, 0.0f);
 		this.viewMatrix.rotate((float) -Math.toRadians(yaw), 0.0f, 1.0f, 0.0f);
-		this.viewMatrix.translate(-x, -y, -z);
+		this.viewMatrix.translate(-x, -(y + yOff), -z);
 	}
 	
 	/**

@@ -192,11 +192,14 @@ public class Game {
 		world = new World();
 		worldRenderer = new WorldRenderer(world, atlas);
 		
-		// Setup the player and the camera
+		// Setup the player
 		player = new EntityPlayer();
-		player.setPos(0.0f, 66.0f, 0.0f);
+		player.setPos(0.0f, 64.0f, 0.0f);
+		player.setWorld(world);
 		
+		// Setup the camera
 		camera = new Camera(FOV, ZNEAR, ZFAR);
+		camera.setOffset(0, 2, 0);
 		
 		// Setup the hitbox & shader
 		blackShader = new Shader("assets/shaders/blackShader.glsl");
@@ -268,9 +271,9 @@ public class Game {
 		point.rotateAxis((float) -Math.toRadians(player.yaw),   0f, 1f, 0f);
 		point.mul(0.25f);
 		
-		float rayX = player.xPos;
-		float rayY = player.yPos;
-		float rayZ = player.zPos;
+		float rayX = player.xPos + camera.xOff;
+		float rayY = player.yPos + camera.yOff;
+		float rayZ = player.zPos + camera.zOff;
 		
 		int x, y, z;
 		
@@ -395,10 +398,12 @@ public class Game {
 	private void update()
 	{
 		float xDir = 0.0f, yDir = 0.0f, zDir = 0.0f;
-		float speed = 4.0f / 60.0f;
+		float speed = 6.0f / 60.0f;
 		
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+			speed *= 0.25f;
 		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			speed = 8.0f / 60.0f;
+			speed *= 1.5f;
 		
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 			zDir += -1.0f;
@@ -410,15 +415,13 @@ public class Game {
 			xDir +=  1.0f;
 		
 		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-			yDir +=  1.0f;
-		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-			yDir -=  1.0f;
+			player.jump();
 		
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 			glfwSetWindowShouldClose(window, true);
 		
 		player.speed = speed;
-		player.move(xDir, yDir, zDir);
+		player.move(xDir, zDir);
 		player.update();
 		
 		camera.asPlayer(player);
