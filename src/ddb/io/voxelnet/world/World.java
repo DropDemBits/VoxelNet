@@ -1,11 +1,9 @@
 package ddb.io.voxelnet.world;
 
-import ddb.io.voxelnet.util.Facing;
+import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.util.Vec3i;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 public class World
@@ -40,14 +38,17 @@ public class World
 	 * @param x The x position of the block
 	 * @param y The y position of the block
 	 * @param z The z position of the block
-	 * @return The block id of the specified block, or 0 if the position is
-	 * out of bounds
+	 * @return The block id of the specified block, or Blocks.AIR.getId() if
+	 * the position is out of bounds
 	 */
 	public byte getBlock (int x, int y, int z)
 	{
+		if (y < 0)
+			return Blocks.AIR.getId();
+		
 		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
 		if (!loadedChunks.containsKey(chunkPos))
-			return 0;
+			return Blocks.AIR.getId();
 		
 		return loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK).getBlock(x & 0xF, y & 0xF, z & 0xF);
 	}
