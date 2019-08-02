@@ -23,7 +23,7 @@ public class EntityPlayer
 	// The orientation of the player
 	public float pitch = 0.0f, yaw = 0.0f;
 	
-	private float targetHeight = 1.5f;
+	private float targetHeight = 1.25f;
 	private float targetTime = 3f / 60.0f;
 	
 	private float jumpVelocity = ((2.0f * targetHeight) * targetTime);
@@ -40,7 +40,7 @@ public class EntityPlayer
 	 */
 	public World world;
 	
-	public AABBCollider collisionBox = new AABBCollider(0.0f, 0.0f, 0.0f, 0.5f, 2.0f, 0.5f);
+	public AABBCollider collisionBox = new AABBCollider(0.0f, 0.0f, 0.0f, 0.5f, 2f, 0.5f);
 	
 	public EntityPlayer()
 	{
@@ -128,31 +128,29 @@ public class EntityPlayer
 		xVel = clamp(xVel, -speed, speed);
 		zVel = clamp(zVel, -speed, speed);
 		
+		int zDir, xDir;
+		if ((zDir = testForCollisionZ()) != 0)
+			zVel = 0;
+		
+		if ((xDir = testForCollisionX()) != 0)
+			xVel = 0;
+		
 		// Update the collision status
 		// Test for y-axis collision
 		int yCollision = testForCollisionY();
 		
 		onGround = yCollision == -1;
 		
-		if(onGround && yVel < 0)
+		if((onGround && yVel < 0) || (yCollision == 1 && yVel > 0))
 		{
 			yVel = 0;
+			
+			// Round to the nearest block position
+			//yPos = (float) Math.round(yPos) + (0.25f / 16f);
 			
 			// Reset jumping status
 			isJumping = false;
 		}
-		else if (!onGround && yCollision == 1 && yVel > 0)
-		{
-			yVel = 0;
-			isJumping = false;
-			System.out.println("heyhey");
-		}
-		
-		int horizontalCollision = testForCollisionHorizontal();
-		if ((horizontalCollision & 0x0F) != 0)
-			xVel = 0;
-		if ((horizontalCollision & 0xF0) != 0)
-			zVel = 0;
 		
 		// Apply the velocity
 		xPos += xVel;
@@ -165,12 +163,13 @@ public class EntityPlayer
 			int blockY = Math.round(yPos);
 			int blockZ = Math.round(zPos - 0.5f);
 			
-			//System.out.println("(" + xPos + ", " + yPos + ", " + zPos + ") B ");
+			System.out.println("(" + xPos + ", " + yPos + ", " + zPos + ") B ");
 			System.out.println("(" + blockX + ", " + blockY + ", " + blockZ + ") V ");
 			/*System.out.println("(" + xVel + ", " + yVel + ", " + zVel + ")");*/
 			/*System.out.println(Block.idToBlock(world.getBlock(blockX, blockY - 1, blockZ)).isSolid());
 			System.out.println(Block.idToBlock(world.getBlock(blockX, blockY + 1, blockZ)).isSolid());
 			System.out.println(Block.idToBlock(world.getBlock(blockX, blockY + 2, blockZ)).isSolid());*/
+			System.out.println("-----------------------------------");
 		}
 		
 		// Apply decay to the velocity
@@ -179,11 +178,6 @@ public class EntityPlayer
 		//System.out.println("NoMove " + noMove + ", NotSolid " + notSolid + ", NotBelow" + notBelow + ", EarlyExit " + earlyExit + ", NotFineBelow " + notFineBelow);
 	}
 	
-	int noMove = 0;
-	int notSolid = 0;
-	int notBelow = 0;
-	int earlyExit = 0;
-	int notFineBelow = 0;
 	private int testForCollisionY()
 	{
 		int yDir = (int)Math.signum(yVel);
@@ -191,11 +185,9 @@ public class EntityPlayer
 		
 		// If the player is not moving, no collision will happen
 		if (yDir == 0)
-		{
-			noMove++;
 			return 0;
-		}
 		
+		// Setup the block delta
 		if (yDir == -1)
 			blockDelta = -1;
 		else if (yDir == 1)
@@ -208,56 +200,58 @@ public class EntityPlayer
 		blockZ = Math.round(zPos - 0.5f);
 		
 		// Move the collision box relative to the block position
-		collisionBox.setPosition(xPos - blockX, yPos - blockY, zPos - blockZ);
+		collisionBox.setPosition(xPos, yPos, zPos);
 		collisionBox.add(-collisionBox.width / 2f, 0, -collisionBox.depth / 2f);
 		
-		Block block = Block.idToBlock(world.getBlock(blockX, blockY + blockDelta, blockZ));
-		
-		// Check if the colliding block is solid
-		if (!block.isSolid())
+		// Check the 3x3 area around the player
+		for (int xOff = -1; xOff <= 1; xOff++)
 		{
-			notSolid++;
-			return 0;
-		}
-		
-		
-		collisionBox.add(0, -blockDelta, 0);
-		collisionBox.add(0, yVel, 0);
-		boolean collides = collisionBox.intersectsWith(block.getCollisionBox());
-		collisionBox.add(0, -yVel, 0);
-		
-		// If no collision will happen, don't check for it
-		if(!collides)
-		{
-			notBelow++;
-			return 0;
-		}
-		
-		// Do fine stepping
-		float stepY = yVel / 16f;
-		for(int step = 0; step <= 16; step++)
-		{
-			if(collisionBox.intersectsWith(block.getCollisionBox()))
+			for (int zOff = -1; zOff <= 1; zOff++)
 			{
-				earlyExit++;
-				return yDir;
+				Block block = Block.idToBlock(world.getBlock(blockX + xOff, blockY + blockDelta, blockZ + zOff));
+				
+				// Check if the colliding block is solid
+				if (!block.isSolid())
+					continue;
+				
+				// Setup the collision box
+				AABBCollider blockCollider = new AABBCollider(block.getCollisionBox());
+				blockCollider.setPosition(blockX + xOff, blockY + blockDelta, blockZ + zOff);
+				
+				collisionBox.add(0, yVel, 0);
+				boolean collides = collisionBox.intersectsWith(blockCollider);
+				collisionBox.add(0, -yVel, 0);
+				
+				// If no collision will happen, don't check for it
+				if (!collides)
+					continue;
+				
+				// Do fine stepping
+				float stepY = yVel / 16f;
+				for (int step = 0; step <= 16; step++)
+				{
+					if (collisionBox.intersectsWith(blockCollider))
+					{
+						yPos -= stepY;
+						return yDir;
+					}
+					
+					collisionBox.add(0, stepY, 0);
+					yPos += stepY;
+					
+					if (step == 16)
+						// No collision, even with optimizations
+						System.out.println("HOY! Something's wrong here");
+				}
 			}
-			collisionBox.add(0, stepY, 0);
-			yPos += stepY;
 		}
 		
-		notFineBelow++;
-		
-		// No collision, even with optimizations
-		System.out.println("HOY! Something's wrong here");
+		// No collisions found
 		return 0;
 	}
 	
-	// Was: Working on collision
-	// Return is a bitmap of which ones to zero out
-	// Bit 0-3 - XVel Direction
-	// Bit 4-7 - ZVel Direction
-	private int testForCollisionHorizontal()
+	// Return is a signed direction of the collision
+	private int testForCollisionZ()
 	{
 		int zDir = (int)Math.signum(zVel);
 		
@@ -270,17 +264,10 @@ public class EntityPlayer
 		blockZ = Math.round(zPos - 0.5f);
 		
 		// Move the collision box relative to the block position
-		//collisionBox.setPosition(xPos - blockX, yPos - blockY, zPos - blockZ);
 		collisionBox.setPosition(xPos, yPos, zPos);
 		collisionBox.add(-collisionBox.width / 2f, 0, -collisionBox.depth / 2f);
 		
-		/*System.out.println("P (" + collisionBox.x + ", " + collisionBox.y + ", " + collisionBox.z + ")");
-		System.out.println("B (" + collisionBox.x + ", " + collisionBox.y + ", " + collisionBox.z + ")");*/
-		
-		//collisionBox.add(0, 0, 0.0f);
-		//System.out.println(zDir);
-		
-		for(int yOff = 0; yOff <= 1; yOff++)
+		for(int yOff = -1; yOff <= 1; yOff++)
 		{
 			for (int xOff = -1; xOff <= 1; xOff++)
 			{
@@ -298,12 +285,10 @@ public class EntityPlayer
 				System.out.println("B (" + blockCollider.x + ", " + blockCollider.y + ", " + blockCollider.z + ") - ("
 						+ (blockCollider.x + blockCollider.width) + ", " + (blockCollider.y + blockCollider.height) + ", " + (blockCollider.z + blockCollider.depth) + ")");
 				
-				//collisionBox.add(xOff, 0, 0);
-				
 				collisionBox.add(0, 0, zVel);
-				System.out.println(
+				/*System.out.println(
 						"D (" + collisionBox.x + ", " + collisionBox.y + ", " + collisionBox.z + ") - ("
-								+ (collisionBox.x + collisionBox.width) + ", " + (collisionBox.y + collisionBox.height) + ", " + (collisionBox.z + collisionBox.depth) + ")");
+								+ (collisionBox.x + collisionBox.width) + ", " + (collisionBox.y + collisionBox.height) + ", " + (collisionBox.z + collisionBox.depth) + ")");*/
 				
 				boolean collidesZ = collisionBox.intersectsWith(blockCollider);
 				collisionBox.add(0, 0, -zVel);
@@ -317,20 +302,85 @@ public class EntityPlayer
 				{
 					if (collisionBox.intersectsWith(blockCollider))
 					{
-						int bitmap = 0;
-						// Return the appropriate bitmap
-						bitmap |= (zDir & 0xF) << 4;
-						
-						System.out.println("Hey!");
-						return bitmap;
+						// Collision found, reverse last step
+						zPos -= stepZ;
+						return zDir;
 					}
 					
 					// Only step on the colliding axis
-					if(collidesZ)
+					collisionBox.add(0, 0, stepZ);
+					zPos += stepZ;
+					
+					if (step == 16)
+						System.out.println("HOYZ! Somethings wrong here!");
+				}
+			}
+		}
+		
+		// No collision detected
+		return 0;
+	}
+	
+	// Return is a signed direction of the collision
+	private int testForCollisionX()
+	{
+		int xDir = (int)Math.signum(xVel);
+		
+		if (xDir == 0)
+			return 0;
+		
+		int blockX, blockY, blockZ;
+		blockX = Math.round(xPos - 0.5f);
+		blockY = Math.round(yPos);
+		blockZ = Math.round(zPos - 0.5f);
+		
+		// Move the collision box relative to the block position
+		collisionBox.setPosition(xPos, yPos, zPos);
+		collisionBox.add(-collisionBox.width / 2f, 0, -collisionBox.depth / 2f);
+		
+		for(int yOff = -1; yOff <= 1; yOff++)
+		{
+			for (int zOff = -1; zOff <= 1; zOff++)
+			{
+				Block block = Block.idToBlock(world.getBlock(blockX + xDir, blockY + yOff, blockZ + zOff));
+				
+				if (!block.isSolid())
+					continue;
+				
+				AABBCollider blockCollider = new AABBCollider(block.getCollisionBox());
+				blockCollider.setPosition(blockX + xDir, blockY + yOff, blockZ + zOff);
+				
+				System.out.println(
+						"P (" + collisionBox.x + ", " + collisionBox.y + ", " + collisionBox.z + ") - ("
+								+ (collisionBox.x + collisionBox.width) + ", " + (collisionBox.y + collisionBox.height) + ", " + (collisionBox.z + collisionBox.depth) + ")");
+				System.out.println("B (" + blockCollider.x + ", " + blockCollider.y + ", " + blockCollider.z + ") - ("
+						+ (blockCollider.x + blockCollider.width) + ", " + (blockCollider.y + blockCollider.height) + ", " + (blockCollider.z + blockCollider.depth) + ")");
+				
+				collisionBox.add(xVel, 0, 0);
+				/*System.out.println(
+						"D (" + collisionBox.x + ", " + collisionBox.y + ", " + collisionBox.z + ") - ("
+								+ (collisionBox.x + collisionBox.width) + ", " + (collisionBox.y + collisionBox.height) + ", " + (collisionBox.z + collisionBox.depth) + ")");*/
+				
+				boolean collidesX = collisionBox.intersectsWith(blockCollider);
+				collisionBox.add(-xVel, 0, 0);
+				
+				if (!collidesX)
+					continue;
+				
+				// Collision will happen, do fine stepping
+				float stepX = xVel / 16f;
+				for (int step = 0; step <= 16; step++)
+				{
+					if (collisionBox.intersectsWith(blockCollider))
 					{
-						collisionBox.add(0, 0, stepZ);
-						zPos += stepZ;
+						// Collision found, reverse last step
+						xPos -= stepX;
+						return xDir;
 					}
+					
+					// Only step on the colliding axis
+					collisionBox.add(stepX, 0, 0);
+					xPos += stepX;
 					
 					if (step == 16)
 						System.out.println("HOYZ! Somethings wrong here!");
