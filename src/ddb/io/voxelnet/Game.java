@@ -1,6 +1,7 @@
 package ddb.io.voxelnet;
 
 import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.render.*;
 import ddb.io.voxelnet.util.Facing;
@@ -148,7 +149,7 @@ public class Game {
 				if(!raycast())
 					return;
 				
-				if (button == GLFW_MOUSE_BUTTON_LEFT)
+				if (button == GLFW_MOUSE_BUTTON_RIGHT)
 				{
 					Block block = Block.idToBlock(placeID);
 					
@@ -160,7 +161,7 @@ public class Game {
 					world.setBlock(blockX + off[0], blockY + off[1], blockZ + off[2], placeID);
 					block.onBlockPlaced(world, blockX + off[0], blockY + off[1], blockZ + off[2]);
 				}
-				else if (button == GLFW_MOUSE_BUTTON_RIGHT)
+				else if (button == GLFW_MOUSE_BUTTON_LEFT)
 				{
 					Block block = Block.idToBlock(world.getBlock(blockX, blockY, blockZ));
 					block.onBlockBroken(world, blockX, blockY, blockZ);
@@ -178,6 +179,19 @@ public class Game {
 			
 			if (keycode >= GLFW_KEY_1 && keycode <= GLFW_KEY_7)
 				placeID = (byte) (keycode - GLFW_KEY_0);
+			
+			if (keycode == GLFW_KEY_E)
+			{
+				int blockX = Math.round(player.xPos - 0.5f);
+				int blockY = Math.round(player.yPos);
+				int blockZ = Math.round(player.zPos - 0.5f);
+				
+				world.setBlock(blockX + 1, blockY - 1, blockZ + 0, Blocks.STONE.getId());
+				world.setBlock(blockX - 1, blockY - 1, blockZ + 0, Blocks.STONE.getId());
+				world.setBlock(blockX + 0, blockY - 1, blockZ + 0, Blocks.PLANKS.getId());
+				world.setBlock(blockX + 0, blockY - 1, blockZ + 1, Blocks.STONE.getId());
+				world.setBlock(blockX + 0, blockY - 1, blockZ - 1, Blocks.STONE.getId());
+			}
 		});
 		
 		// Setup input modes
@@ -208,7 +222,7 @@ public class Game {
 		
 		// Setup the camera
 		camera = new Camera(FOV, ZNEAR, ZFAR);
-		camera.setOffset(0, 2, 0);
+		camera.setOffset(0, 1.75f, 0);
 		
 		// Setup the hitbox & shader
 		blackShader = new Shader("assets/shaders/blackShader.glsl");
@@ -412,7 +426,7 @@ public class Game {
 		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 			speed *= 0.25f;
 		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			speed *= 1.5f;
+			speed *= 1.75f;
 		
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 			zDir += -1.0f;
@@ -495,6 +509,12 @@ public class Game {
 		glBegin(GL_POINTS);
 		glVertex2f(toof.x, toof.y);
 		glEnd();*/
+		
+		glPointSize(5.0f);
+		glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
+		glBegin(GL_POINTS);
+		glVertex2f(0, 0);
+		glEnd();
 	}
 	
 	private void parseArgs(String[] args) {}
