@@ -128,25 +128,47 @@ public class EntityPlayer
 		xVel = clamp(xVel, -speed, speed);
 		zVel = clamp(zVel, -speed, speed);
 		
-		int zDir, xDir;
-		if ((zDir = testForCollisionZ()) != 0)
-			zVel = 0;
-		
-		if ((xDir = testForCollisionX()) != 0)
-			xVel = 0;
-		
 		// Update the collision status
-		// Test for y-axis collision
-		int yCollision = testForCollisionY();
-		
-		onGround = yCollision == -1;
-		
-		if((onGround && yVel < 0) || (yCollision == 1 && yVel > 0))
+		// Apply the response in the event of a collision
+		int zResponse, xResponse;
+		if ((zResponse = testForCollisionZ()) != 0)
 		{
-			yVel = 0;
+			System.out.println("HAI " + onGround);
+			//if ((Math.abs(zResponse) - 1) != 0)
+				zPos += ((Math.abs(zResponse) - 2) / 16f) * zVel;
+			zVel = 0;
+			zAccel = 0;
+		}
+		
+		if ((xResponse = testForCollisionX()) != 0)
+		{
+			//if ((Math.abs(xResponse) - 1) != 0)
+				xPos += ((Math.abs(xResponse) - 2) / 16f) * xVel;
+			xVel = 0;
+			xAccel = 0;
+		}
+		float yResponse = testForCollisionY();
+		
+		onGround = yResponse < 0;
+		
+		if((onGround && yVel < 0) || (yResponse > 0 && yVel > 0))
+		{
+			// Apply the response
+			if ((Math.abs(yResponse) - 2) != 0)
+				System.out.println("yR " + (Math.abs(yResponse) - 2));
 			
-			// Round to the nearest block position
-			//yPos = (float) Math.round(yPos) + (0.25f / 16f);
+			if ((Math.abs(yResponse) - 2) == -1)
+			{
+				// Snap to the nearest Y position, plus a bit
+				yPos = Math.round(yPos) - (1 / 16f) * yVel;
+			}
+			else
+			{
+				// Do the normal response
+				yPos += ((Math.abs(yResponse) - 2) / 16f) * yVel;
+			}
+			
+			yVel = 0;
 			
 			// Reset jumping status
 			isJumping = false;
@@ -163,19 +185,15 @@ public class EntityPlayer
 			int blockY = Math.round(yPos);
 			int blockZ = Math.round(zPos - 0.5f);
 			
-			System.out.println("(" + xPos + ", " + yPos + ", " + zPos + ") B ");
-			System.out.println("(" + blockX + ", " + blockY + ", " + blockZ + ") V ");
-			/*System.out.println("(" + xVel + ", " + yVel + ", " + zVel + ")");*/
-			/*System.out.println(Block.idToBlock(world.getBlock(blockX, blockY - 1, blockZ)).isSolid());
-			System.out.println(Block.idToBlock(world.getBlock(blockX, blockY + 1, blockZ)).isSolid());
-			System.out.println(Block.idToBlock(world.getBlock(blockX, blockY + 2, blockZ)).isSolid());*/
+			System.out.println("P (" + xPos + ", " + yPos + ", " + zPos + ")");
+			System.out.println("B (" + blockX + ", " + blockY + ", " + blockZ + ")");
+			System.out.println("V (" + xVel + ", " + yVel + ", " + zVel + ")");
 			System.out.println("-----------------------------------");
 		}
 		
 		// Apply decay to the velocity
 		xVel = decay(xVel, 0.5f);
 		zVel = decay(zVel, 0.5f);
-		//System.out.println("NoMove " + noMove + ", NotSolid " + notSolid + ", NotBelow" + notBelow + ", EarlyExit " + earlyExit + ", NotFineBelow " + notFineBelow);
 	}
 	
 	private int testForCollisionY()
@@ -231,13 +249,9 @@ public class EntityPlayer
 				for (int step = 0; step <= 16; step++)
 				{
 					if (collisionBox.intersectsWith(blockCollider))
-					{
-						yPos -= stepY;
-						return yDir;
-					}
+						return yDir * (step + 1);
 					
 					collisionBox.add(0, stepY, 0);
-					yPos += stepY;
 					
 					if (step == 16)
 						// No collision, even with optimizations
@@ -250,7 +264,7 @@ public class EntityPlayer
 		return 0;
 	}
 	
-	// Return is a signed direction of the collision
+	// Return is a signed number of steps to the collision
 	private int testForCollisionZ()
 	{
 		int zDir = (int)Math.signum(zVel);
@@ -279,17 +293,7 @@ public class EntityPlayer
 				AABBCollider blockCollider = new AABBCollider(block.getCollisionBox());
 				blockCollider.setPosition(blockX + xOff, blockY + yOff, blockZ + zDir);
 				
-				System.out.println(
-						"P (" + collisionBox.x + ", " + collisionBox.y + ", " + collisionBox.z + ") - ("
-								+ (collisionBox.x + collisionBox.width) + ", " + (collisionBox.y + collisionBox.height) + ", " + (collisionBox.z + collisionBox.depth) + ")");
-				System.out.println("B (" + blockCollider.x + ", " + blockCollider.y + ", " + blockCollider.z + ") - ("
-						+ (blockCollider.x + blockCollider.width) + ", " + (blockCollider.y + blockCollider.height) + ", " + (blockCollider.z + blockCollider.depth) + ")");
-				
 				collisionBox.add(0, 0, zVel);
-				/*System.out.println(
-						"D (" + collisionBox.x + ", " + collisionBox.y + ", " + collisionBox.z + ") - ("
-								+ (collisionBox.x + collisionBox.width) + ", " + (collisionBox.y + collisionBox.height) + ", " + (collisionBox.z + collisionBox.depth) + ")");*/
-				
 				boolean collidesZ = collisionBox.intersectsWith(blockCollider);
 				collisionBox.add(0, 0, -zVel);
 				
@@ -300,16 +304,12 @@ public class EntityPlayer
 				float stepZ = zVel / 16f;
 				for (int step = 0; step <= 16; step++)
 				{
+					// Check for collision
 					if (collisionBox.intersectsWith(blockCollider))
-					{
-						// Collision found, reverse last step
-						zPos -= stepZ;
-						return zDir;
-					}
+						return zDir * (step + 1);
 					
 					// Only step on the colliding axis
 					collisionBox.add(0, 0, stepZ);
-					zPos += stepZ;
 					
 					if (step == 16)
 						System.out.println("HOYZ! Somethings wrong here!");
@@ -321,7 +321,7 @@ public class EntityPlayer
 		return 0;
 	}
 	
-	// Return is a signed direction of the collision
+	// Return is a signed number of steps to the collision
 	private int testForCollisionX()
 	{
 		int xDir = (int)Math.signum(xVel);
@@ -350,17 +350,7 @@ public class EntityPlayer
 				AABBCollider blockCollider = new AABBCollider(block.getCollisionBox());
 				blockCollider.setPosition(blockX + xDir, blockY + yOff, blockZ + zOff);
 				
-				System.out.println(
-						"P (" + collisionBox.x + ", " + collisionBox.y + ", " + collisionBox.z + ") - ("
-								+ (collisionBox.x + collisionBox.width) + ", " + (collisionBox.y + collisionBox.height) + ", " + (collisionBox.z + collisionBox.depth) + ")");
-				System.out.println("B (" + blockCollider.x + ", " + blockCollider.y + ", " + blockCollider.z + ") - ("
-						+ (blockCollider.x + blockCollider.width) + ", " + (blockCollider.y + blockCollider.height) + ", " + (blockCollider.z + blockCollider.depth) + ")");
-				
 				collisionBox.add(xVel, 0, 0);
-				/*System.out.println(
-						"D (" + collisionBox.x + ", " + collisionBox.y + ", " + collisionBox.z + ") - ("
-								+ (collisionBox.x + collisionBox.width) + ", " + (collisionBox.y + collisionBox.height) + ", " + (collisionBox.z + collisionBox.depth) + ")");*/
-				
 				boolean collidesX = collisionBox.intersectsWith(blockCollider);
 				collisionBox.add(-xVel, 0, 0);
 				
@@ -371,16 +361,12 @@ public class EntityPlayer
 				float stepX = xVel / 16f;
 				for (int step = 0; step <= 16; step++)
 				{
+					// Check for collision
 					if (collisionBox.intersectsWith(blockCollider))
-					{
-						// Collision found, reverse last step
-						xPos -= stepX;
-						return xDir;
-					}
+						return xDir * (step + 1);
 					
 					// Only step on the colliding axis
 					collisionBox.add(stepX, 0, 0);
-					xPos += stepX;
 					
 					if (step == 16)
 						System.out.println("HOYZ! Somethings wrong here!");
