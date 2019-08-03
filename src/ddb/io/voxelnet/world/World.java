@@ -62,6 +62,10 @@ public class World
 	 */
 	public void setBlock (int x, int y, int z, byte id)
 	{
+		// Don't set block below the world
+		if (y < 0)
+			return;
+		
 		// Do nothing for this id
 		if (id == -1)
 			return;
@@ -84,13 +88,6 @@ public class World
 		
 		// Set the block
 		chunk.setBlock(blockX, blockY, blockZ, id);
-		
-		if (blockX == 0 || blockX == 15)
-			System.out.println("X UPD!");
-		if (blockY == 0 || blockY == 15)
-			System.out.println("Y UPD!");
-		if (blockZ == 0 || blockZ == 15)
-			System.out.println("Z UPD!");
 		
 		// Update the adjacent chunks if the block is at one of the chunk edges
 		if (blockX == 0)
