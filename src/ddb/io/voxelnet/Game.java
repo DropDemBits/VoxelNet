@@ -177,21 +177,13 @@ public class Game {
 			if (action != GLFW_PRESS)
 				return;
 			
+			// Select block to place
 			if (keycode >= GLFW_KEY_1 && keycode <= GLFW_KEY_7)
 				placeID = (byte) (keycode - GLFW_KEY_0);
 			
-			if (keycode == GLFW_KEY_E)
-			{
-				int blockX = Math.round(player.xPos - 0.5f);
-				int blockY = Math.round(player.yPos);
-				int blockZ = Math.round(player.zPos - 0.5f);
-				
-				world.setBlock(blockX + 1, blockY - 1, blockZ + 0, Blocks.STONE.getId());
-				world.setBlock(blockX - 1, blockY - 1, blockZ + 0, Blocks.STONE.getId());
-				world.setBlock(blockX + 0, blockY - 1, blockZ + 0, Blocks.PLANKS.getId());
-				world.setBlock(blockX + 0, blockY - 1, blockZ + 1, Blocks.STONE.getId());
-				world.setBlock(blockX + 0, blockY - 1, blockZ - 1, Blocks.STONE.getId());
-			}
+			// Toggle flying
+			if (keycode == GLFW_KEY_F)
+				player.isFlying = !player.isFlying;
 		});
 		
 		// Setup input modes
@@ -442,6 +434,8 @@ public class Game {
 		
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 			glfwSetWindowShouldClose(window, true);
+		
+		player.isSneaking = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
 		
 		player.speed = speed;
 		player.move(xDir, zDir);

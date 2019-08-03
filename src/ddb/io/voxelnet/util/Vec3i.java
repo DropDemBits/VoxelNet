@@ -48,7 +48,7 @@ public class Vec3i
 			return false;
 		
 		Vec3i other = (Vec3i)obj;
-		return other.hashCode() == hashCode();
+		return x == other.x && y == other.y && z == other.z;
 	}
 	
 	@Override

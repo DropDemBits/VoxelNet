@@ -35,6 +35,12 @@ public class EntityPlayer
 	// If the player is currently jumping
 	public boolean isJumping = false;
 	
+	// If the player is sneaking
+	public boolean isSneaking = false;
+	
+	// If the player is flying
+	public boolean isFlying = false;
+	
 	/**
 	 * The world the player is currently in
 	 */
@@ -109,7 +115,7 @@ public class EntityPlayer
 	
 	public void jump()
 	{
-		if(!onGround)
+		if(!onGround && !isFlying)
 			return;
 		
 		this.yVel = jumpVelocity;
@@ -119,6 +125,12 @@ public class EntityPlayer
 	
 	public void update()
 	{
+		// Change the yAccel if the player is flying or not
+		if (isFlying)
+			yAccel = 0f;
+		else
+			yAccel = -gravity;
+		
 		// Apply the acceleration
 		xVel += xAccel;
 		yVel += yAccel;
@@ -127,6 +139,13 @@ public class EntityPlayer
 		// Clamp the horizontal velocities
 		xVel = clamp(xVel, -speed, speed);
 		zVel = clamp(zVel, -speed, speed);
+		
+		// Clamp the vertical velocity if flying
+		if (isFlying)
+			yVel = clamp(yVel, -jumpVelocity, jumpVelocity);
+		
+		if (isFlying && isSneaking)
+			yVel = -jumpVelocity;
 		
 		// Update the collision status
 		// Apply the response in the event of a collision
@@ -194,6 +213,9 @@ public class EntityPlayer
 		// Apply decay to the velocity
 		xVel = decay(xVel, 0.5f);
 		zVel = decay(zVel, 0.5f);
+		
+		if (isFlying)
+			yVel = decay(yVel, 0.5f);
 	}
 	
 	private int testForCollisionY()
