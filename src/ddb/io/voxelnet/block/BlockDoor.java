@@ -11,6 +11,7 @@ public class BlockDoor extends Block
 	BlockDoor()
 	{
 		setSolid(false);
+		setTransparent(true);
 	}
 	
 	/**

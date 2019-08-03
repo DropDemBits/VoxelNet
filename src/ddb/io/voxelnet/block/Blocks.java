@@ -15,4 +15,5 @@ public class Blocks
 	public static Block CLAY_BRICKS;
 	public static Block DOOR_LOWER;
 	public static Block DOOR_UPPER;
+	public static Block GLASS;
 }

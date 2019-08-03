@@ -13,6 +13,8 @@ public class Chunk
 	// Highest block height for each column. -1 indicates that the column is
 	// empty
 	private byte[] blockColumns = new byte[16 * 16];
+	// Number of solid blocks on each layer
+	private short[] blockLayers = new short[16];
 	// The number of columns that are not empty
 	private byte filledColumns = 0;
 	// Actual chunk data
@@ -39,6 +41,7 @@ public class Chunk
 		this.chunkZ = z;
 		
 		Arrays.fill(blockColumns, (byte)-1);
+		Arrays.fill(blockLayers, (byte)0);
 	}
 	
 	/**

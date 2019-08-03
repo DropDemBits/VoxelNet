@@ -22,6 +22,7 @@ public class Block
 		Blocks.CLAY_BRICKS  = addBlock(6, new Block().setSolid(true).setFaceTextures(new int[] {6, 6, 6, 6, 6, 6}));
 		Blocks.DOOR_LOWER   = addBlock(7, new BlockDoor().setUpper(false));
 		Blocks.DOOR_UPPER   = addBlock(8, new BlockDoor().setUpper(true));
+		Blocks.GLASS        = addBlock(9, new Block().setSolid(true).setFaceTextures(new int[] {10, 10, 10, 10, 10, 10}).setTransparent(true));
 	}
 	
 	private static Block addBlock(int id, Block instance)
@@ -43,6 +44,7 @@ public class Block
 	private static AABBCollider DEFAULT_COLLIDER = new AABBCollider(0f, 0f, 0f, 1f, 1f, 1f);
 	private int[] faceTextures;
 	private boolean isSolid;
+	private boolean isTransparent;
 	private byte id;
 	
 	protected Block() {}
@@ -77,6 +79,17 @@ public class Block
 		return this;
 	}
 	
+	/**
+	 * Sets the transparent state of the block
+	 * @param isTransparent The new transparent state of the block
+	 * @return Instance of this to allow for chaining
+	 */
+	public Block setTransparent(boolean isTransparent)
+	{
+		this.isTransparent = isTransparent;
+		return this;
+	}
+	
 	/// Public Getters ///
 	/**
 	 * Gets the face textures associated with this block
@@ -94,6 +107,15 @@ public class Block
 	public boolean isSolid()
 	{
 		return isSolid;
+	}
+	
+	/**
+	 * Gets if the block is transparent
+	 * @return True if the block is transparent
+	 */
+	public boolean isTransparent()
+	{
+		return isTransparent;
 	}
 	
 	/**

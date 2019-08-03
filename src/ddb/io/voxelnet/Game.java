@@ -178,8 +178,14 @@ public class Game {
 				return;
 			
 			// Select block to place
-			if (keycode >= GLFW_KEY_1 && keycode <= GLFW_KEY_7)
-				placeID = (byte) (keycode - GLFW_KEY_0);
+			final Block[] placeBlocks = new Block[] {
+					Blocks.GRASS, Blocks.DIRT, Blocks.STONE,
+					Blocks.PLANKS, Blocks.STONE_BRICKS, Blocks.CLAY_BRICKS,
+					Blocks.DOOR_LOWER, Blocks.GLASS,
+			};
+			
+			if (keycode >= GLFW_KEY_1 && keycode <= (GLFW_KEY_0 + placeBlocks.length))
+				placeID = placeBlocks[keycode - GLFW_KEY_1].getId();
 			
 			// Toggle flying
 			if (keycode == GLFW_KEY_F)

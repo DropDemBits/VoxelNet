@@ -2,9 +2,12 @@ package ddb.io.voxelnet.render;
 
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.util.Facing;
+import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.Chunk;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Model of a chunk being rendered
@@ -51,6 +54,10 @@ public class ChunkModel
 		long now = System.nanoTime();
 		//System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
 		
+		// List of transparent blocks to add on to the end
+		// Lazily allocate it
+		List<Vec3i> transparentBlocks = null;
+		
 		// Chunk is not empty, update the things
 		for (int x = 0; x < 16; x++)
 		{
@@ -63,43 +70,38 @@ public class ChunkModel
 						continue;
 					
 					Block block = Block.idToBlock(id);
-					int[] faceTextures = block.getFaceTextures();
 					
-					for (Facing face : Facing.values())
+					if (block.isTransparent())
 					{
-						// If the specified face is -1, the face isn't supposed to be rendered
-						if(faceTextures[face.ordinal()] == -1)
-							continue;
+						// If the block is transparent, add coord on to the
+						// transparent layer list
 						
-						int[] offset = face.getOffset();
-						byte adjacentBlock = chunk.getBlock(x + offset[0], y + offset[1], z + offset[2]);
+						if (transparentBlocks == null)
+							transparentBlocks = new ArrayList<>();
 						
-						if (adjacentBlock == -1)
-						{
-							// Check the nearby chunk for the appropriate block id
-							adjacentBlock = chunk.world.getBlock(
-									chunk.chunkX * 16 + x + offset[0],
-									chunk.chunkY * 16 + y + offset[1],
-									chunk.chunkZ * 16 + z + offset[2]);
-						}
+						transparentBlocks.add(new Vec3i(x, y, z));
 						
-						Block adjacent = Block.idToBlock(adjacentBlock);
-						if (adjacent.isSolid())
-						{
-							// Don't add the face if the adjacent block is solid
-							continue;
-						}
-						
-						float[] texCoords = atlas.getPositions(faceTextures[face.ordinal()]);
-						BlockRenderer.addCubeFace(
-								model,
-								(float) (chunk.chunkX * 16 + x),
-								(float) (chunk.chunkY * 16 + y),
-								(float) (chunk.chunkZ * 16 + z),
-								face,
-								texCoords);
+						// Move on to the next block
+						continue;
 					}
+					
+					int[] faceTextures = block.getFaceTextures();
+					BlockRenderer.addCube(model, chunk, block, x, y, z, faceTextures, atlas);
 				}
+			}
+		}
+		
+		if (transparentBlocks != null)
+		{
+			// Add all the transparent blocks, if they exist
+			for (Vec3i pos : transparentBlocks)
+			{
+				// Block will not be air, so don't check for it
+				byte id = chunk.getData()[pos.getX() + pos.getZ() * 16 + pos.getY() * 256];
+				Block block = Block.idToBlock(id);
+				
+				int[] faceTextures = block.getFaceTextures();
+				BlockRenderer.addCube(model, chunk, block, pos.getX(), pos.getY(), pos.getZ(), faceTextures, atlas);
 			}
 		}
 		
@@ -111,8 +113,8 @@ public class ChunkModel
 	}
 	
 	/**
-	 * Gets the model associated with this chunk
-	 * @return The model associated with this chunk
+	 * Gets the model associated with this chunk model
+	 * @return The model associated with this chunk model
 	 */
 	public Model getModel()
 	{
