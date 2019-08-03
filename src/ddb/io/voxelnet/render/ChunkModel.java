@@ -15,9 +15,11 @@ import java.util.List;
 public class ChunkModel
 {
 	Model model;
+	Model transparentLayer;
 	Chunk chunk;
 	private boolean isDirty = false;
 	private boolean updatePending = false;
+	private boolean hasTransparency = false;
 	
 	/**
 	 * Creates a chunk model
@@ -27,6 +29,7 @@ public class ChunkModel
 	{
 		this.chunk = chunk;
 		this.model = new Model();
+		this.transparentLayer = new Model();
 	}
 	
 	/**
@@ -44,6 +47,9 @@ public class ChunkModel
 		if (model.getIndexCount() > 0)
 			model.reset();
 		
+		if (transparentLayer.getIndexCount() > 0)
+			transparentLayer.reset();
+		
 		// Indicate that the chunk has been updated
 		chunk.makeClean();
 		
@@ -54,9 +60,8 @@ public class ChunkModel
 		long now = System.nanoTime();
 		//System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
 		
-		// List of transparent blocks to add on to the end
-		// Lazily allocate it
-		List<Vec3i> transparentBlocks = null;
+		// Reset transparency status
+		hasTransparency = false;
 		
 		// Chunk is not empty, update the things
 		for (int x = 0; x < 16; x++)
@@ -70,38 +75,18 @@ public class ChunkModel
 						continue;
 					
 					Block block = Block.idToBlock(id);
+					Model targetModel = model;
 					
 					if (block.isTransparent())
 					{
-						// If the block is transparent, add coord on to the
-						// transparent layer list
-						
-						if (transparentBlocks == null)
-							transparentBlocks = new ArrayList<>();
-						
-						transparentBlocks.add(new Vec3i(x, y, z));
-						
-						// Move on to the next block
-						continue;
+						// Change the vertex target
+						targetModel = transparentLayer;
+						hasTransparency = true;
 					}
 					
 					int[] faceTextures = block.getFaceTextures();
-					BlockRenderer.addCube(model, chunk, block, x, y, z, faceTextures, atlas);
+					BlockRenderer.addCube(targetModel, chunk, block, x, y, z, faceTextures, atlas);
 				}
-			}
-		}
-		
-		if (transparentBlocks != null)
-		{
-			// Add all the transparent blocks, if they exist
-			for (Vec3i pos : transparentBlocks)
-			{
-				// Block will not be air, so don't check for it
-				byte id = chunk.getData()[pos.getX() + pos.getZ() * 16 + pos.getY() * 256];
-				Block block = Block.idToBlock(id);
-				
-				int[] faceTextures = block.getFaceTextures();
-				BlockRenderer.addCube(model, chunk, block, pos.getX(), pos.getY(), pos.getZ(), faceTextures, atlas);
 			}
 		}
 		
@@ -119,6 +104,15 @@ public class ChunkModel
 	public Model getModel()
 	{
 		return model;
+	}
+	
+	/**
+	 * Gets the model holding all of the transparent blocks for this chunk
+	 * @return The model holding the transparent blocks
+	 */
+	public Model getTransparentModel()
+	{
+		return transparentLayer;
 	}
 	
 	public boolean isDirty()
@@ -143,5 +137,14 @@ public class ChunkModel
 	public void setUpdatePending(boolean updatePending)
 	{
 		this.updatePending = updatePending;
+	}
+	
+	/**
+	 * Sees if the chunk model has transparent blocks
+	 * @return True if there are transparent blocks to render
+	 */
+	public boolean hasTransparency()
+	{
+		return hasTransparency;
 	}
 }

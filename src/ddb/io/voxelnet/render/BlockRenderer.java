@@ -48,6 +48,10 @@ public class BlockRenderer
 				continue;
 			}
 			
+			// Don't show the face if it's the same block
+			if (adjacent == block)
+				continue;
+			
 			float[] texCoords = atlas.getPositions(faceTextures[face.ordinal()]);
 			BlockRenderer.addCubeFace(
 					model,

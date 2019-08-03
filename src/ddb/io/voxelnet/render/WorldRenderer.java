@@ -59,14 +59,40 @@ public class WorldRenderer
 	
 	public void render()
 	{
+		// List of chunks that have transparent blocks
+		List<ChunkModel> transparentChunks = new ArrayList<>();
+		
 		for (ChunkModel chunkModel : renderChunks.values())
 		{
+			if (chunkModel.hasTransparency())
+				transparentChunks.add(chunkModel);
+			
 			Model model = chunkModel.getModel();
 			
 			model.bind();
 			// Update the vertices
 			if (chunkModel.isDirty())
 			{
+				model.updateVertices();
+				
+				// Only update the dirty status if there is no transparency
+				if (!chunkModel.hasTransparency())
+					chunkModel.makeClean();
+			}
+			
+			glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
+			model.unbind();
+		}
+		
+		for (ChunkModel chunkModel : transparentChunks)
+		{
+			Model model = chunkModel.getTransparentModel();
+			
+			// Update the vertices (have not been updated above)
+			model.bind();
+			if (chunkModel.isDirty())
+			{
+				// Update transparency model
 				model.updateVertices();
 				chunkModel.makeClean();
 			}
