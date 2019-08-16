@@ -12,6 +12,8 @@ public class WorldRenderer
 {
 	// List of chunks to render
 	private Map<Vec3i, ChunkModel> renderChunks = new LinkedHashMap<>();
+	// List of chunks that need model updates
+	// TODO: Add threads for chunk model generation
 	private Stack<ChunkModel> generateQueue = new Stack<>();
 	private TextureAtlas atlas;
 	private World world;

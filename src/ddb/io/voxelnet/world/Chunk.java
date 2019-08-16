@@ -1,7 +1,6 @@
 package ddb.io.voxelnet.world;
 
 import ddb.io.voxelnet.Game;
-import ddb.io.voxelnet.block.Block;
 
 import java.util.Arrays;
 
@@ -13,16 +12,13 @@ public class Chunk
 	public final int chunkX, chunkY, chunkZ;
 	public final World world;
 	
-	// Highest opaque block height for each column. -1 indicates that the
-	// column is empty
-	private byte[] blockColumns = new byte[16 * 16];
 	// Number of solid blocks on each layer
 	private short[] blockLayers = new short[16];
 	// Light levels of each block
 	// Right now, x-axis is crushed down into 8 block clusters
 	private byte[] blockLights = new byte[2 * 16 * 16];
-	// The number of columns that are not empty
-	private byte filledColumns = 0;
+	// The number of blocks in the chunk
+	private short blockCount = 0;
 	// Actual chunk data
 	private byte[] blockData = new byte[16 * 16 * 16];
 	// If the chunk holds data (by default, they are empty)
@@ -46,7 +42,6 @@ public class Chunk
 		this.chunkY = y;
 		this.chunkZ = z;
 		
-		Arrays.fill(blockColumns, (byte)-1);
 		Arrays.fill(blockLayers, (byte)0);
 		Arrays.fill(blockLights, (byte)0);
 	}
@@ -64,15 +59,6 @@ public class Chunk
 	}
 	
 	/**
-	 * Gets the array which holds the highest blocks for each block column
-	 * @return An array holding the specified data
-	 */
-	public byte[] getColumns()
-	{
-		return blockColumns;
-	}
-	
-	/**
 	 * Sets the block at the specified block position to the specified id
 	 * If the id is equal to -1, nothing occurs
 	 * @param x The x position of the block, in blocks
@@ -86,6 +72,7 @@ public class Chunk
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16 || id == -1)
 			return;
 		
+		byte lastBlock = blockData[x + z * 16 + y * 256];
 		blockData[x + z * 16 + y * 256] = id;
 		
 		// Update the dirty state
@@ -94,44 +81,22 @@ public class Chunk
 		if(Game.showThings)
 			System.out.println("block ("+x+", "+y+", "+z+") "+id);
 		
-		// Update the block column
-		byte lastColumnHeight = blockColumns[x + z * 16];
-		
-		if (blockColumns[x + z * 16] == (byte)y && (id == 0 || Block.idToBlock(id).isTransparent()))
-		{
-			System.out.print("colupd: " + blockColumns[x + z * 16] + " -> ");
-			// If the block being placed is air and the block replaced is the
-			// tallest block, search for the next lowest opaque block
-			byte height = (byte) (y - 1);
-			
-			for(; height >= 0; height--)
-			{
-				byte block = blockData[x + z * 16 + height * 256];
-				if (block != 0 && !Block.idToBlock(block).isTransparent())
-					break;
-			}
-			
-			blockColumns[x + z * 16] = height;
-			System.out.println(height);
-		}
-		else if (blockColumns[x + z * 16] < (byte)y)
-		{
-			if(Game.showThings)
-				System.out.println("colupd-replace: " + blockColumns[x + z * 16] + " -> " + y);
-			blockColumns[x + z * 16] = (byte) y;
-		}
+		// Update the block count
 		
 		// Update the filled column count and isEmpty
-		if (lastColumnHeight == -1 && blockColumns[x + z * 16] != -1)
+		if (lastBlock == 0 && id != 0)
 		{
-			filledColumns++;
+			++blockCount;
 			isEmpty = false;
 		}
-		else if (lastColumnHeight != -1 && blockColumns[x + z * 16] == -1)
+		else if (lastBlock != 0 && id == 0)
 		{
-			filledColumns--;
+			--blockCount;
 			
-			if (filledColumns == 0)
+			if (blockCount < 0)
+				blockCount = 0;
+			
+			if (blockCount == 0)
 				isEmpty = true;
 		}
 	}
@@ -176,7 +141,7 @@ public class Chunk
 		// Block light will be in the range of 0-15, but only handling 0 & 15 & no skylight
 		byte baseLevel = (byte)((blockLights[(x >> 3) + z * 2 + y * 2 * 16] >> (x & 0x7)) & 1);
 		
-		return baseLevel == 0 ? (byte)3 : (byte)15;
+		return baseLevel == 0 ? (byte)0 : (byte)15;
 	}
 	
 	/**

@@ -4,8 +4,6 @@ import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.util.AABBCollider;
 import ddb.io.voxelnet.world.World;
 
-import java.util.Arrays;
-
 public class EntityPlayer
 {
 	// The position of the player
@@ -123,7 +121,6 @@ public class EntityPlayer
 		isJumping = true;
 	}
 	
-	int lbx = 0, lby = 0, lbz = 0;
 	public void update()
 	{
 		// Change the yAccel if the player is flying or not
@@ -199,15 +196,10 @@ public class EntityPlayer
 			int blockY = Math.round(yPos);
 			int blockZ = Math.round(zPos - 0.5f);
 			
-			if (blockX != lbx || blockY != lby || blockZ != lbz)
 			//System.out.println("P (" + xPos + ", " + yPos + ", " + zPos + ")");
-				System.out.println("B (" + blockX + ", " + blockY + ", " + blockZ + ")");
-			/*System.out.println("V (" + xVel + ", " + yVel + ", " + zVel + ")");*/
+			//System.out.println("B (" + blockX + ", " + blockY + ", " + blockZ + ")");
+			//System.out.println("V (" + xVel + ", " + yVel + ", " + zVel + ")");
 			//System.out.println("-----------------------------------");
-			
-			lbx = blockX;
-			lby = blockY;
-			lbz = blockZ;
 		}
 		
 		// Apply decay to the velocity

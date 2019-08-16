@@ -15,6 +15,7 @@ public class World
 	public final Map<Vec3i, Chunk> loadedChunks = new LinkedHashMap<>();
 	// Highest, opaque block in each chunk column (vertical group of chunks)
 	// Accessed by index = x + z * 16
+	// TODO: Add Vec2i
 	private final Map<Vec3i, ChunkColumn> chunkColumns = new LinkedHashMap<>();
 	private final Chunk EMPTY_CHUNK;
 	
@@ -38,11 +39,19 @@ public class World
 		}
 	}
 	
-	// Working on: Lighting
+	/**
+	 * Gets the block light at the given position, accounting for sky light
+	 * @param x The x position to fetch
+	 * @param y The y position to fetch
+	 * @param z The z position to fetch
+	 * @return The combined block light and sky light values
+	 */
 	public byte getBlockLight(int x, int y, int z)
 	{
 		if (y < 0)
 			return 0;
+		if (y >= 256)
+			return 15;
 		
 		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
 		byte baseLight = 0;
@@ -52,13 +61,10 @@ public class World
 		
 		// Check the ChunkColumn for access to the sky
 		ChunkColumn column = chunkColumns.getOrDefault(new Vec3i(x >> 4, 0, z >> 4), null);
-		boolean canSeeSky = false;
+		boolean canSeeSky;
 		
 		if (column == null)
-		{
-			// If a column is missing, the blocks can definitely see the sky
-			canSeeSky = true;
-		}
+			canSeeSky = true; // If a column is missing, the blocks can definitely see the sky
 		else
 			canSeeSky = y >= Byte.toUnsignedInt(column.opaqueColumns[(x & 0xF) + (z & 0xF) * 16]);
 		
@@ -115,7 +121,6 @@ public class World
 			// Add a new chunk if the id is not zero
 			chunk = new Chunk(this, chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
 			loadedChunks.put(chunkPos, chunk);
-			System.out.println("NuChunk " + chunkPos.toString());
 		}
 		
 		// Block positions within the chunk
@@ -138,12 +143,10 @@ public class World
 			// Add a new chunk column if the block isn't air
 			chunkColumn = new ChunkColumn(columnPos.getX(), columnPos.getZ());
 			chunkColumns.put(columnPos, chunkColumn);
-			System.out.println("NuColumn " + columnPos.toString());
 		}
 		
 		// Update the appropriate column
 		int columnIdx = blockX + blockZ * 16;
-		//int tallestBlock  = Byte.toUnsignedInt(chunkColumn.blockColumns[columnIdx]);
 		int tallestOpaque = Byte.toUnsignedInt(chunkColumn.opaqueColumns[columnIdx]);
 		
 		// 3 Main Groups for Column placement
@@ -163,21 +166,16 @@ public class World
 		boolean performSearch = false;
 		boolean lightingUpdate = false;
 		
-		if (y < tallestOpaque) {} // Do nothing, will never become the tallest opaque
-		else if (y > tallestOpaque)
+		if (y > tallestOpaque)
 		{
 			// Only do update for opaque blocks
 			if(!block.isTransparent())
 			{
-				if (Game.showThings)
-					System.out.println("Tallest block: " + y + " @ (" + x + ", " + z + ")");
 				chunkColumn.opaqueColumns[columnIdx] = (byte) y;
 				lightingUpdate = true;
 			}
 			else
 			{
-				if(Game.showThings)
-					System.out.println("Searching...");
 				performSearch = true;
 			}
 		}
@@ -200,9 +198,6 @@ public class World
 			// If the height is the same, make the column empty
 			if (height == y)
 				height = 0;
-			
-			if (Game.showThings)
-				System.out.println("Tallest block: " + height + " @ (" + x + ", " + z + ")");
 			
 			chunkColumn.opaqueColumns[columnIdx] = (byte)height;
 			lightingUpdate = true;
@@ -247,7 +242,7 @@ public class World
 	 * @param cx The x position of the new chunk column
 	 * @param cz The z position of the new chunk column
 	 */
-	public void generateChunk (int cx, int cz)
+	private void generateChunk (int cx, int cz)
 	{
 		// Make the chunk columns
 		chunkColumns.put(new Vec3i(cx, 0, cz), new ChunkColumn(cx, cz));
