@@ -225,7 +225,7 @@ public class Game {
 		
 		// Setup the camera
 		camera = new Camera(FOV, ZNEAR, ZFAR);
-		camera.setOffset(0, 1.75f, 0);
+		camera.setOffset(0, player.eyeHeight, 0);
 		
 		// Setup the hitbox & shader
 		blackShader = new Shader("assets/shaders/blackShader.glsl");
@@ -297,9 +297,9 @@ public class Game {
 		point.rotateAxis((float) -Math.toRadians(player.yaw),   0f, 1f, 0f);
 		point.mul(0.25f);
 		
-		float rayX = player.xPos + camera.xOff;
-		float rayY = player.yPos + camera.yOff;
-		float rayZ = player.zPos + camera.zOff;
+		float rayX = player.xPos;
+		float rayY = player.yPos + player.eyeHeight;
+		float rayZ = player.zPos;
 		
 		int x, y, z;
 		
@@ -396,7 +396,7 @@ public class Game {
 			
 			if (now - secondTimer > 1)
 			{
-				//System.out.println("FPS: " + fps + ", " + " UPS: " + ups);
+				System.out.println("FPS: " + fps + ", " + " UPS: " + ups);
 				
 				// Update the things
 				ups = 0;

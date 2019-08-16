@@ -2,7 +2,7 @@
 #version 110
 attribute vec3 position;
 attribute vec2 texCoord;
-attribute vec4 color;
+attribute float color;
 
 uniform mat4 PVMatrix;
 uniform mat4 ModelMatrix;

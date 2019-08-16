@@ -8,6 +8,7 @@ import ddb.io.voxelnet.util.Vec3i;
 import java.nio.IntBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Random;
 
 public class World
 {
@@ -18,10 +19,12 @@ public class World
 	// TODO: Add Vec2i
 	private final Map<Vec3i, ChunkColumn> chunkColumns = new LinkedHashMap<>();
 	private final Chunk EMPTY_CHUNK;
+	private Random worldRandom;
 	
 	public World()
 	{
 		EMPTY_CHUNK = new Chunk(this, 0, -64, 0);
+		worldRandom = new Random(System.currentTimeMillis());
 		generate();
 	}
 	
@@ -30,9 +33,9 @@ public class World
 	 */
 	private void generate()
 	{
-		for (int cx = -2; cx <= 2; cx++)
+		for (int cx = -8; cx <= 7; cx++)
 		{
-			for (int cz = -2; cz <= 2; cz++)
+			for (int cz = -8; cz <= 7; cz++)
 			{
 				generateChunk(cx, cz);
 			}
@@ -53,23 +56,33 @@ public class World
 		if (y >= 256)
 			return 15;
 		
-		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
-		byte baseLight = 0;
+		int chunkX = x >> 4;
+		int chunkY = y >> 4;
+		int chunkZ = z >> 4;
 		
-		if (loadedChunks.containsKey(chunkPos))
-			baseLight = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK).getBlockLight(x & 0xF, y & 0xF, z & 0xF);
+		int blockX = x & 0xF;
+		int blockY = y & 0xF;
+		int blockZ = z & 0xF;
+		
+		Vec3i chunkPos = new Vec3i(chunkX, chunkY, chunkZ);
+		byte baseLight;
+		
+		baseLight = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK).getBlockLight(blockX, blockY, blockZ);
 		
 		// Check the ChunkColumn for access to the sky
-		ChunkColumn column = chunkColumns.getOrDefault(new Vec3i(x >> 4, 0, z >> 4), null);
+		ChunkColumn column = chunkColumns.getOrDefault(new Vec3i(chunkX, 0, chunkZ), null);
 		boolean canSeeSky;
 		
 		if (column == null)
 			canSeeSky = true; // If a column is missing, the blocks can definitely see the sky
 		else
-			canSeeSky = y >= Byte.toUnsignedInt(column.opaqueColumns[(x & 0xF) + (z & 0xF) * 16]);
+			canSeeSky = y >= Byte.toUnsignedInt(column.opaqueColumns[blockX + blockZ * 16]);
 		
 		if (canSeeSky)
 			baseLight = 15;
+		
+		/*if (baseLight < 15)
+			baseLight = 3;*/
 		
 		return baseLight;
 	}
@@ -247,31 +260,46 @@ public class World
 		// Make the chunk columns
 		chunkColumns.put(new Vec3i(cx, 0, cz), new ChunkColumn(cx, cz));
 		
-		for(int cy = 0; cy < 8; cy++)
+		for(int cy = 3; cy >= 0; cy--)
 		{
 			Chunk chunk = new Chunk(this, cx, cy, cz);
+			loadedChunks.put(new Vec3i(cx, cy, cz), chunk);
 			
 			// Fill the chunk
 			for (int i = 0; i < chunk.getData().length; i++)
 			{
 				int x = i & 0xF;
-				int y = i >> 8;
+				int y = 15 - (i >> 8);
 				int z = (i >> 4) & 0xF;
 				
-				if (cy == 7 && y == 15)
+				int blockY = (cy << 4) + y;
+				
+				if (blockY == 63)
 					chunk.setBlock(x, y, z, (byte) 1);
-				else if (cy == 7 && y >= 12)
+				else if (blockY >= 60)
 					chunk.setBlock(x, y, z, (byte) 2);
-				else
+				else if (blockY >= 4)
 					chunk.setBlock(x, y, z, (byte) 3);
+				else if (worldRandom.nextInt(4) == 0)
+					chunk.setBlock(x, y, z, (byte) 3);
+				else
+					chunk.setBlock(x, y, z, Blocks.PLANKS.getId());
 			}
-			
-			loadedChunks.put(new Vec3i(cx, cy, cz), chunk);
 		}
 	}
 	
 	public void update()
 	{
+		int dirtyCount = 0;
+		
+		// TODO: REM TO REMOVE THIS FROM TESTING
 		// Go through all of the chunks
+		/*for(Chunk chunk : loadedChunks.values())
+		{
+			if (worldRandom.nextInt(4) == 0)
+				chunk.makeDirty();
+			if(++dirtyCount >= 8)
+				break;
+		}*/
 	}
 }

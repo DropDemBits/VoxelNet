@@ -2,9 +2,9 @@
 #version 110
 attribute vec3 position;
 attribute vec2 texCoord;
-attribute vec4 lightColor;
+attribute float lightIntensity;
 
-varying vec4 frag_lightColor;
+varying float frag_lightIntensity;
 varying vec2 frag_texCoord;
 
 uniform mat4 pvm;
@@ -12,23 +12,25 @@ uniform mat4 pvm;
 void main (void) {
     gl_Position = pvm * vec4(position, 1);
     frag_texCoord = texCoord;
-    frag_lightColor = lightColor;
+    frag_lightIntensity = lightIntensity;
 }
 
 #fragment
 #version 110
 
-varying vec4 frag_lightColor;
+varying float frag_lightIntensity;
 varying vec2 frag_texCoord;
 
 uniform sampler2D texture0;
 
+const vec3 BLACK = vec3 (0);
+
 void main (void) {
     vec4 clr = texture2D(texture0, frag_texCoord);
-    gl_FragColor = vec4(mix(frag_lightColor.rgb, clr.rgb, frag_lightColor.a), clr.a);
+    gl_FragColor = vec4(mix(BLACK, clr.rgb, frag_lightIntensity), clr.a);
 }
 
 #vertexlayout
 // 0 position
 // 1 texCoord
-// 2 lightColor
+// 2 lightIntensity

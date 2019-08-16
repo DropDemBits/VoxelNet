@@ -11,7 +11,7 @@ import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 public class Model
 {
 	// Size of a vertex, in floats
-	private static final int VERTEX_SIZE = 9;
+	private static final int VERTEX_SIZE = 6;
 	
 	/// Polygon State ///
 	// Current starting index for the polygon
@@ -22,12 +22,12 @@ public class Model
 	private boolean constructingPolygon = false;
 	
 	// Vertex Data
-	// Vertex position (by 3)
+	// Vertex position (by VERTEX_SIZE)
 	private List<Float> vertexData;
 	
 	// Indices
+	// Note: Could be Shorts
 	private List<Integer> indices;
-	private int lastIndicesCount = 0;
 	
 	public boolean drawLines = false;
 	
@@ -82,15 +82,15 @@ public class Model
 		
 		// position
 		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 9 * 4, 0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, VERTEX_SIZE * 4, 0);
 		
 		// texCoord
 		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, false, 9 * 4, 3 * 4);
+		glVertexAttribPointer(1, 2, GL_FLOAT, false, VERTEX_SIZE * 4, 3 * 4);
 		
 		// lightColor
 		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 4, GL_FLOAT, false, 9 * 4, 5 * 4);
+		glVertexAttribPointer(2, 1, GL_FLOAT, false, VERTEX_SIZE * 4, 5 * 4);
 	}
 	
 	/**
@@ -203,9 +203,9 @@ public class Model
 		vertexData.add(v);
 		
 		// Then the light colour + intensity
-		vertexData.add(r);
-		vertexData.add(g);
-		vertexData.add(b);
+		//vertexData.add(r);
+		//vertexData.add(g);
+		//vertexData.add(b);
 		vertexData.add(amt);
 		
 		// Update the indices

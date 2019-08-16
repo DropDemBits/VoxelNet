@@ -14,6 +14,10 @@ import java.util.List;
  */
 public class ChunkModel
 {
+	// Worst case scenario model size: 2064384 B / 2016 KiB / ~ 2 MiB
+	public static long generateAccum = 0;
+	public static long generateCount = 0;
+	
 	Model model;
 	Model transparentLayer;
 	Chunk chunk;
@@ -56,18 +60,21 @@ public class ChunkModel
 		// Check if the chunk has been made empty
 		if (chunk.isEmpty())
 			return true;
-		
-		long now = System.nanoTime();
 		//System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
 		
 		// Reset transparency status
 		hasTransparency = false;
 		
 		// Chunk is not empty, update the things
+		long blockGenAccum = 0;
+		long blockGenCount = 0;
+		
+		long start = System.nanoTime();
 		for (int x = 0; x < 16; x++)
 		{
 			for (int z = 0; z < 16; z++)
 			{
+				long blockNow = System.nanoTime();
 				for (int y = 0; y < 16; y++)
 				{
 					byte id = chunk.getData()[x + z * 16 + y * 256];
@@ -87,10 +94,23 @@ public class ChunkModel
 					int[] faceTextures = block.getFaceTextures();
 					BlockRenderer.addCube(targetModel, chunk, block, x, y, z, faceTextures, atlas);
 				}
+				blockGenAccum += System.nanoTime() - blockNow;
+				blockGenCount += 16;
 			}
 		}
 		
-		//System.out.println("\tGenerate time: " + (System.nanoTime() - now) / 1000000000.0d);
+		long currentGenerate = System.nanoTime() - start;
+		generateAccum += currentGenerate;
+		generateCount += 1;
+		
+		if ((generateCount % 8) == 0)
+		{
+			System.out.print("\tAvg Generate Time: " + (((double) generateAccum / (double) generateCount) / 1000000.0d) + "ms");
+			System.out.println(", Current Generate Time: " + (currentGenerate) / 1000000.0d);
+			System.out.println("\tAvg Block Gen Time: " + (((double) blockGenAccum / (double) blockGenCount) / 1000.0d) + "us");
+			System.out.println("\tExtrapolate BlockGen Time: " + (((double) blockGenAccum / (double) blockGenCount) / 1000.0d) * 256.0d + "us");
+			System.out.println("---------------------------------");
+		}
 		
 		// Defer the vertex buffer update to the render stage
 		isDirty = true;

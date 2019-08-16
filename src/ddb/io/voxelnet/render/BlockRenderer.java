@@ -55,6 +55,7 @@ public class BlockRenderer
 				continue;
 			
 			float[] texCoords = atlas.getPositions(faceTextures[face.ordinal()]);
+			final float[] faceIntensities = new float[] { 0.85f, 0.85f, 0.85f, 0.85f, 0.95f, 0.75f };
 			BlockRenderer.addCubeFace(
 					model,
 					(float) (chunk.chunkX * 16 + x),
@@ -62,7 +63,7 @@ public class BlockRenderer
 					(float) (chunk.chunkZ * 16 + z),
 					face,
 					texCoords,
-					((float)(faceLight + 1) / 16f));
+					((float)(faceLight + 1) / 16f) * faceIntensities[face.ordinal()]);
 		}
 	}
 	

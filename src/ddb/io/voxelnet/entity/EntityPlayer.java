@@ -27,6 +27,9 @@ public class EntityPlayer
 	private float jumpVelocity = ((2.0f * targetHeight) * targetTime);
 	public float gravity = ((2.0f * targetHeight) * (targetTime * targetTime));
 	
+	// Eye height of the player
+	public float eyeHeight = 1.45f;
+	
 	// If the player is on the ground
 	public boolean onGround = false;
 	
@@ -44,7 +47,7 @@ public class EntityPlayer
 	 */
 	public World world;
 	
-	public AABBCollider collisionBox = new AABBCollider(0.0f, 0.0f, 0.0f, 0.5f, 2f, 0.5f);
+	public AABBCollider collisionBox = new AABBCollider(0.0f, 0.0f, 0.0f, 0.5f, 1.7f, 0.5f);
 	
 	public EntityPlayer()
 	{

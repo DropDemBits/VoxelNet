@@ -141,7 +141,7 @@ public class Chunk
 		// Block light will be in the range of 0-15, but only handling 0 & 15 & no skylight
 		byte baseLevel = (byte)((blockLights[(x >> 3) + z * 2 + y * 2 * 16] >> (x & 0x7)) & 1);
 		
-		return baseLevel == 0 ? (byte)0 : (byte)15;
+		return baseLevel == 0 ? (byte)3 : (byte)15;
 	}
 	
 	/**
