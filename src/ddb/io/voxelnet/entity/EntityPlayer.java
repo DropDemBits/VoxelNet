@@ -123,6 +123,7 @@ public class EntityPlayer
 		isJumping = true;
 	}
 	
+	int lbx = 0, lby = 0, lbz = 0;
 	public void update()
 	{
 		// Change the yAccel if the player is flying or not
@@ -152,17 +153,14 @@ public class EntityPlayer
 		int zResponse, xResponse;
 		if ((zResponse = testForCollisionZ()) != 0)
 		{
-			System.out.println("HAI " + onGround);
-			//if ((Math.abs(zResponse) - 1) != 0)
-				zPos += ((Math.abs(zResponse) - 2) / 16f) * zVel;
+			zPos += ((Math.abs(zResponse) - 2) / 16f) * zVel;
 			zVel = 0;
 			zAccel = 0;
 		}
 		
 		if ((xResponse = testForCollisionX()) != 0)
 		{
-			//if ((Math.abs(xResponse) - 1) != 0)
-				xPos += ((Math.abs(xResponse) - 2) / 16f) * xVel;
+			xPos += ((Math.abs(xResponse) - 2) / 16f) * xVel;
 			xVel = 0;
 			xAccel = 0;
 		}
@@ -173,9 +171,6 @@ public class EntityPlayer
 		if((onGround && yVel < 0) || (yResponse > 0 && yVel > 0))
 		{
 			// Apply the response
-			if ((Math.abs(yResponse) - 2) != 0)
-				System.out.println("yR " + (Math.abs(yResponse) - 2));
-			
 			if ((Math.abs(yResponse) - 2) == -1)
 			{
 				// Snap to the nearest Y position, plus a bit
@@ -204,10 +199,15 @@ public class EntityPlayer
 			int blockY = Math.round(yPos);
 			int blockZ = Math.round(zPos - 0.5f);
 			
-			System.out.println("P (" + xPos + ", " + yPos + ", " + zPos + ")");
-			System.out.println("B (" + blockX + ", " + blockY + ", " + blockZ + ")");
-			System.out.println("V (" + xVel + ", " + yVel + ", " + zVel + ")");
-			System.out.println("-----------------------------------");
+			if (blockX != lbx || blockY != lby || blockZ != lbz)
+			//System.out.println("P (" + xPos + ", " + yPos + ", " + zPos + ")");
+				System.out.println("B (" + blockX + ", " + blockY + ", " + blockZ + ")");
+			/*System.out.println("V (" + xVel + ", " + yVel + ", " + zVel + ")");*/
+			//System.out.println("-----------------------------------");
+			
+			lbx = blockX;
+			lby = blockY;
+			lbz = blockZ;
 		}
 		
 		// Apply decay to the velocity

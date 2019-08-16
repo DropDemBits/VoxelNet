@@ -29,15 +29,17 @@ public class BlockRenderer
 				continue;
 			
 			int[] offset = face.getOffset();
+			int adjacentX = chunk.chunkX * 16 + x + offset[0];
+			int adjacentY = chunk.chunkY * 16 + y + offset[1];
+			int adjacentZ = chunk.chunkZ * 16 + z + offset[2];
+			
+			byte faceLight = chunk.world.getBlockLight(adjacentX, adjacentY, adjacentZ);
 			byte adjacentBlock = chunk.getBlock(x + offset[0], y + offset[1], z + offset[2]);
 			
 			if (adjacentBlock == -1)
 			{
-				// Check the nearby chunk for the appropriate block id
-				adjacentBlock = chunk.world.getBlock(
-						chunk.chunkX * 16 + x + offset[0],
-						chunk.chunkY * 16 + y + offset[1],
-						chunk.chunkZ * 16 + z + offset[2]);
+				// Check the nearby chunk for the appropriate block id & lighting
+				adjacentBlock = chunk.world.getBlock(adjacentX, adjacentY, adjacentZ);
 			}
 			
 			Block adjacent = Block.idToBlock(adjacentBlock);
@@ -59,7 +61,8 @@ public class BlockRenderer
 					(float) (chunk.chunkY * 16 + y),
 					(float) (chunk.chunkZ * 16 + z),
 					face,
-					texCoords);
+					texCoords,
+					((float)(faceLight + 1) / 16f));
 		}
 	}
 	
@@ -72,52 +75,52 @@ public class BlockRenderer
 	 * @param face The specific face to draw.
 	 * @param texCoords The texture coordinates of the face
 	 */
-	public static void addCubeFace(Model model, float x, float y, float z, Facing face, float[] texCoords)
+	public static void addCubeFace(Model model, float x, float y, float z, Facing face, float[] texCoords, float intensity)
 	{
 		model.beginPoly();
 		switch (face)
 		{
 			case NORTH:
 				// North Face
-				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[0], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1]);
+				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3], intensity);
+				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[0], texCoords[3], intensity);
+				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1], intensity);
+				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1], intensity);
 				break;
 			case WEST:
 				// West Face
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1]);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[2], texCoords[3]);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[0], texCoords[3]);
+				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1], intensity);
+				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1], intensity);
+				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[2], texCoords[3], intensity);
+				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[0], texCoords[3], intensity);
 				break;
 			case SOUTH:
 				// South Face
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1]);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[2], texCoords[3]);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3]);
+				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1], intensity);
+				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1], intensity);
+				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[2], texCoords[3], intensity);
+				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3], intensity);
 				break;
 			case EAST:
 				// East Face
-				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1]);
+				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3], intensity);
+				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3], intensity);
+				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1], intensity);
+				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1], intensity);
 				break;
 			case UP:
 				// Up/Top Face
-				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[1]);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3]);
+				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[1], intensity);
+				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[1], intensity);
+				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3], intensity);
+				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3], intensity);
 				break;
 			case DOWN:
 				// Down/Bottom Face
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[3]);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[3]);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1]);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1]);
+				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[3], intensity);
+				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[3], intensity);
+				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1], intensity);
+				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1], intensity);
 				break;
 		}
 		model.endPoly();

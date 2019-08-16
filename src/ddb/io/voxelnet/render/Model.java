@@ -11,7 +11,7 @@ import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 public class Model
 {
 	// Size of a vertex, in floats
-	private static final int VERTEX_SIZE = 5;
+	private static final int VERTEX_SIZE = 9;
 	
 	/// Polygon State ///
 	// Current starting index for the polygon
@@ -27,6 +27,7 @@ public class Model
 	
 	// Indices
 	private List<Integer> indices;
+	private int lastIndicesCount = 0;
 	
 	public boolean drawLines = false;
 	
@@ -81,11 +82,15 @@ public class Model
 		
 		// position
 		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * 4, 0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 9 * 4, 0);
 		
 		// texCoord
 		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * 4, 3 * 4);
+		glVertexAttribPointer(1, 2, GL_FLOAT, false, 9 * 4, 3 * 4);
+		
+		// lightColor
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(2, 4, GL_FLOAT, false, 9 * 4, 5 * 4);
 	}
 	
 	/**
@@ -112,8 +117,12 @@ public class Model
 		polyCount = 0;
 		polyStart = 0;
 		constructingPolygon = false;
-		vertexData.clear();
 		indices.clear();
+	}
+	
+	public void freeData()
+	{
+		vertexData.clear();
 	}
 	
 	public void beginPoly()
@@ -172,6 +181,16 @@ public class Model
 	
 	public void addVertex(float x, float y, float z, float u, float v)
 	{
+		addVertex(x, y, z, u, v, 0f, 0f, 0f, 1f);
+	}
+	
+	public void addVertex(float x, float y, float z, float u, float v, float amt)
+	{
+		addVertex(x, y, z, u, v, 0f, 0f, 0f, amt);
+	}
+	
+	public void addVertex(float x, float y, float z, float u, float v, float r, float g, float b, float amt)
+	{
 		int index = polyCount + polyStart;
 		
 		// Add position first...
@@ -179,9 +198,15 @@ public class Model
 		vertexData.add(y);
 		vertexData.add(z);
 		
-		// Then the texture position
+		// Then the texture position...
 		vertexData.add(u);
 		vertexData.add(v);
+		
+		// Then the light colour + intensity
+		vertexData.add(r);
+		vertexData.add(g);
+		vertexData.add(b);
+		vertexData.add(amt);
 		
 		// Update the indices
 		polyCount++;

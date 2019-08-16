@@ -8,7 +8,6 @@ import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.World;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
@@ -30,11 +29,12 @@ public class Game {
 	private static final float ZFAR  = 1000.0f;
 	
 	private static final float MOUSE_SENSITIVITY = 0.5f;
+	public static boolean showThings = false;
 	
 	/** Current window associated with this game instance */
 	long window;
 	/** Current shader program */
-	Shader shader;
+	Shader chunkShader;
 	Shader blackShader;
 	/** List of chunks to render */
 	Texture texture;
@@ -121,6 +121,7 @@ public class Game {
 		});
 		
 		// Add mouse movement callback
+		// TODO: Shove into a player controller class \/
 		glfwSetCursorPosCallback(window, (window, x, y) -> {
 			double deltaX = x - lastX;
 			double deltaY = y - lastY;
@@ -190,14 +191,18 @@ public class Game {
 			// Toggle flying
 			if (keycode == GLFW_KEY_F)
 				player.isFlying = !player.isFlying;
+			
+			if (keycode == GLFW_KEY_F3)
+				showThings = !showThings;
 		});
+		// TODO: Shove into a player controller class /\
 		
 		// Setup input modes
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
 		
 		// Create the shader
-		shader = new Shader("assets/shaders/default.glsl");
+		chunkShader = new Shader("assets/shaders/default.glsl");
 		
 		// Load the texture
 		texture = new Texture("assets/textures/atlas.png");
@@ -215,7 +220,7 @@ public class Game {
 		
 		// Setup the player
 		player = new EntityPlayer();
-		player.setPos(0.0f, 64.0f, 0.0f);
+		player.setPos(0.0f, 256.0f, 0.0f);
 		player.setWorld(world);
 		
 		// Setup the camera
@@ -279,9 +284,9 @@ public class Game {
 		camera.asPlayer(player);
 		camera.updateView();
 		
-		shader.bind();
-		shader.setUniform1i("texture0", 0);
-		shader.unbind();
+		chunkShader.bind();
+		chunkShader.setUniform1i("texture0", 0);
+		chunkShader.unbind();
 	}
 	
 	private boolean raycast()
@@ -463,7 +468,7 @@ public class Game {
 		Matrix4f pvm = camera.getTransform();
 		final Matrix4f modelMatrix = new Matrix4f();
 		float[] mat = new float[4 * 4];
-		shader.setUniformMatrix4fv("pvm", false, pvm.get(mat));
+		chunkShader.setUniformMatrix4fv("pvm", false, pvm.get(mat));
 		
 		glClearColor(0f, 0f, 0f, 1f);
 		glEnable(GL_CULL_FACE);
@@ -478,11 +483,11 @@ public class Game {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		// Draw the chunks
-		shader.bind();
+		chunkShader.bind();
 		
 		worldRenderer.render();
 		
-		shader.unbind();
+		chunkShader.unbind();
 		
 		if (showHit)
 		{

@@ -13,7 +13,7 @@ public class Block
 	
 	public static void init()
 	{
-		Blocks.AIR          = addBlock(0, new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}));
+		Blocks.AIR          = addBlock(0, new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}).setTransparent(true));
 		Blocks.GRASS        = addBlock(1, new Block().setSolid(true).setFaceTextures(new int[] {1, 1, 1, 1, 0, 2}));
 		Blocks.DIRT         = addBlock(2, new Block().setSolid(true).setFaceTextures(new int[] {2, 2, 2, 2, 2, 2}));
 		Blocks.STONE        = addBlock(3, new Block().setSolid(true).setFaceTextures(new int[] {3, 3, 3, 3, 3, 3}));

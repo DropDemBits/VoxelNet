@@ -2,6 +2,7 @@
 #version 110
 attribute vec3 position;
 attribute vec2 texCoord;
+attribute vec4 color;
 
 uniform mat4 PVMatrix;
 uniform mat4 ModelMatrix;
@@ -21,4 +22,5 @@ void main (void) {
 
 #vertexlayout
 // 0 position
-// 1 color
+// 1 texCoord
+// 2 color

@@ -43,7 +43,7 @@ public class ChunkModel
 		if (!chunk.isDirty())
 			return false;
 		
-		// Clear the model if there is data
+		// Reset the models
 		if (model.getIndexCount() > 0)
 			model.reset();
 		
@@ -123,6 +123,10 @@ public class ChunkModel
 	public void makeClean()
 	{
 		isDirty = false;
+		
+		// Free the excess vertex data
+		model.freeData();
+		transparentLayer.freeData();
 	}
 	
 	/**
