@@ -38,6 +38,18 @@ public class World
 				generateChunk(cx, cz);
 			}
 		}
+		
+		// Create tiny explosions in the world
+		int explosionCount = worldRandom.nextInt(100) + 50;
+		for (int i = 0; i < explosionCount; i++)
+		{
+			int x = worldRandom.nextInt(256) - 128;
+			int y = worldRandom.nextInt(64);
+			int z = worldRandom.nextInt(256) - 128;
+			int radius = worldRandom.nextInt(14) + 2;
+			
+			explode(x, y, z, radius);
+		}
 	}
 	
 	/**
@@ -284,6 +296,24 @@ public class World
 				int colIdx = x + (z << 4);
 				if (!block.isTransparent() && column.opaqueColumns[colIdx] < blockY)
 					column.opaqueColumns[colIdx] = (byte)blockY;
+			}
+		}
+	}
+	
+	public void explode(int centreX, int centreY, int centreZ, int radius)
+	{
+		for (int x = -radius; x <= radius; x++)
+		{
+			for (int y = -radius; y <= radius; y++)
+			{
+				for (int z = -radius; z <= radius; z++)
+				{
+					int dist = x*x + y*y + z*z;
+					if (dist > radius*radius)
+						continue;
+					
+					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId());
+				}
 			}
 		}
 	}

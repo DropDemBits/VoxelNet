@@ -199,26 +199,7 @@ public class Game {
 			{
 				final int radius = 20;
 				// BOOM!
-				for (int x = -radius; x <= radius; x++)
-				{
-					for (int y = -radius; y <= radius; y++)
-					{
-						for (int z = -radius; z <= radius; z++)
-						{
-							int dist = x*x + y*y + z*z;
-							if (dist > radius*radius)
-								continue;
-							
-							world.setBlock(
-									(int)player.xPos + x,
-									(int)player.yPos + y,
-									(int)player.zPos + z,
-									Blocks.AIR.getId()
-							);
-						}
-					}
-				}
-				
+				world.explode((int)player.xPos, (int)player.yPos, (int)player.zPos, radius);
 			}
 		});
 		// TODO: Shove into a player controller class /\
