@@ -194,6 +194,32 @@ public class Game {
 			
 			if (keycode == GLFW_KEY_F3)
 				showThings = !showThings;
+			
+			if (keycode == GLFW_KEY_B)
+			{
+				final int radius = 20;
+				// BOOM!
+				for (int x = -radius; x <= radius; x++)
+				{
+					for (int y = -radius; y <= radius; y++)
+					{
+						for (int z = -radius; z <= radius; z++)
+						{
+							int dist = x*x + y*y + z*z;
+							if (dist > radius*radius)
+								continue;
+							
+							world.setBlock(
+									(int)player.xPos + x,
+									(int)player.yPos + y,
+									(int)player.zPos + z,
+									Blocks.AIR.getId()
+							);
+						}
+					}
+				}
+				
+			}
 		});
 		// TODO: Shove into a player controller class /\
 		
@@ -419,17 +445,22 @@ public class Game {
 		glfwDestroyWindow(window);
 		glfwTerminate();
 		glfwSetErrorCallback(null).free();
+		
+		// Stop the generator threads
+		worldRenderer.stop();
 	}
 	
 	private void update()
 	{
+		// TODO: Shove into a player controller class \/
 		float xDir = 0.0f, yDir = 0.0f, zDir = 0.0f;
-		float speed = 6.0f / 60.0f;
+		//float speed = 6.0f / 60.0f;
 		
+		player.speedCoef = 1f;
 		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-			speed *= 0.25f;
+			player.speedCoef = 0.25f;
 		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			speed *= 1.75f;
+			player.speedCoef = 1.75f;
 		
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 			zDir += -1.0f;
@@ -448,9 +479,9 @@ public class Game {
 		
 		player.isSneaking = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
 		
-		player.speed = speed;
 		player.move(xDir, zDir);
 		player.update();
+		// TODO: Shove into a player controller class /\
 		
 		camera.asPlayer(player);
 		camera.updateView();

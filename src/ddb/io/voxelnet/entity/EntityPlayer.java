@@ -16,10 +16,12 @@ public class EntityPlayer
 	public float xAccel = 0.0f, yAccel = 0.0f, zAccel = 0.0f;
 	
 	// Movement speed
-	public float speed = 4.0f / 60.0f;
+	public float speed = 6.0f / 60.0f;
+	// Speed Coefficient
+	public float speedCoef = 1f;
 	
 	// The orientation of the player
-	public float pitch = 0.0f, yaw = 0.0f;
+	public float pitch = -90.0f, yaw = 0.0f;
 	
 	private float targetHeight = 1.25f;
 	private float targetTime = 3f / 60.0f;
@@ -110,8 +112,8 @@ public class EntityPlayer
 		xDir /= mag;
 		zDir /= mag;
 		
-		this.xAccel = (float) (speed * xDir) / 2.0f;
-		this.zAccel = (float) (speed * zDir) / 2.0f;
+		this.xAccel = (float) ((speed * speedCoef) * xDir) / 2.0f;
+		this.zAccel = (float) ((speed * speedCoef) * zDir) / 2.0f;
 	}
 	
 	public void jump()
@@ -138,8 +140,8 @@ public class EntityPlayer
 		zVel += zAccel;
 		
 		// Clamp the horizontal velocities
-		xVel = clamp(xVel, -speed, speed);
-		zVel = clamp(zVel, -speed, speed);
+		xVel = clamp(xVel, -(speed * speedCoef), (speed * speedCoef));
+		zVel = clamp(zVel, -(speed * speedCoef), (speed * speedCoef));
 		
 		// Clamp the vertical velocity if flying
 		if (isFlying)
@@ -200,7 +202,7 @@ public class EntityPlayer
 			int blockZ = Math.round(zPos - 0.5f);
 			
 			//System.out.println("P (" + xPos + ", " + yPos + ", " + zPos + ")");
-			//System.out.println("B (" + blockX + ", " + blockY + ", " + blockZ + ")");
+			System.out.println("B (" + blockX + ", " + blockY + ", " + blockZ + ")");
 			//System.out.println("V (" + xVel + ", " + yVel + ", " + zVel + ")");
 			//System.out.println("-----------------------------------");
 		}
