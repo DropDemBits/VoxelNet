@@ -1,11 +1,9 @@
 package ddb.io.voxelnet.world;
 
-import ddb.io.voxelnet.Game;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.util.Vec3i;
 
-import java.nio.IntBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Random;
@@ -187,20 +185,12 @@ public class World
 				chunkColumn.opaqueColumns[columnIdx] = (byte) y;
 				lightingUpdate = true;
 			}
-			else
-			{
-				performSearch = true;
-			}
 		}
 		
-		if (y == tallestOpaque && block.isTransparent() || performSearch)
+		if (y == tallestOpaque && block.isTransparent())
 		{
 			// Only update on same height if the block is not opaque or a search should be performed
 			int height = y - 1;
-			
-			// If a search was requested, start from the top
-			if (performSearch)
-				height = 255;
 			
 			for (; height != y; height = (--height) & 0xFF)
 			{
@@ -258,7 +248,8 @@ public class World
 	private void generateChunk (int cx, int cz)
 	{
 		// Make the chunk columns
-		chunkColumns.put(new Vec3i(cx, 0, cz), new ChunkColumn(cx, cz));
+		ChunkColumn column = new ChunkColumn(cx, cz);
+		chunkColumns.put(new Vec3i(cx, 0, cz), column);
 		
 		for(int cy = 3; cy >= 0; cy--)
 		{
@@ -274,16 +265,25 @@ public class World
 				
 				int blockY = (cy << 4) + y;
 				
+				Block block = Blocks.PLANKS;
+				
 				if (blockY == 63)
-					chunk.setBlock(x, y, z, (byte) 1);
+					block = Blocks.GRASS;
 				else if (blockY >= 60)
-					chunk.setBlock(x, y, z, (byte) 2);
+					block = Blocks.DIRT;
 				else if (blockY >= 4)
-					chunk.setBlock(x, y, z, (byte) 3);
+					block = Blocks.STONE;
 				else if (worldRandom.nextInt(4) == 0)
-					chunk.setBlock(x, y, z, (byte) 3);
+					block = Blocks.PLANKS;
 				else
-					chunk.setBlock(x, y, z, Blocks.PLANKS.getId());
+					block = Blocks.STONE;
+				
+				chunk.setBlock(x, y, z, block.getId());
+				
+				// Update the respective column so that the lighting is correct
+				int colIdx = x + (z << 4);
+				if (!block.isTransparent() && column.opaqueColumns[colIdx] < blockY)
+					column.opaqueColumns[colIdx] = (byte)blockY;
 			}
 		}
 	}
