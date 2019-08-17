@@ -47,6 +47,9 @@ public class ChunkModel
 		if (!chunk.isDirty())
 			return false;
 		
+		// Defer the vertex buffer update to the render stage
+		isDirty = true;
+		
 		// Reset the models
 		if (model.getIndexCount() > 0)
 			model.reset();
@@ -111,9 +114,6 @@ public class ChunkModel
 			System.out.println("\tExtrapolate BlockGen Time: " + (((double) blockGenAccum / (double) blockGenCount) / 1000.0d) * 256.0d + "us");
 			System.out.println("---------------------------------");
 		}
-		
-		// Defer the vertex buffer update to the render stage
-		isDirty = true;
 		return true;
 	}
 	

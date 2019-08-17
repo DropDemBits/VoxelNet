@@ -274,7 +274,7 @@ public class EntityPlayer
 					
 					if (step == 16)
 						// No collision, even with optimizations
-						System.out.println("HOY! Something's wrong here");
+						System.out.println("HOYY! Something's wrong w/ collision");
 				}
 			}
 		}
@@ -388,7 +388,7 @@ public class EntityPlayer
 					collisionBox.add(stepX, 0, 0);
 					
 					if (step == 16)
-						System.out.println("HOYZ! Somethings wrong here!");
+						System.out.println("HOYX! Somethings wrong here!");
 				}
 			}
 		}

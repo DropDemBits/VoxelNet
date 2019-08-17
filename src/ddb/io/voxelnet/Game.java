@@ -447,7 +447,7 @@ public class Game {
 		glfwSetErrorCallback(null).free();
 		
 		// Stop the generator threads
-		worldRenderer.stop();
+		//worldRenderer.stop();
 	}
 	
 	private void update()

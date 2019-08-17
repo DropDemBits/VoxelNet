@@ -14,6 +14,8 @@ public class Model
 	private static final int VERTEX_SIZE = 6;
 	
 	/// Polygon State ///
+	// Whether a vertex update is happening or not
+	private boolean isUpdating = false;
 	// Current starting index for the polygon
 	private int polyStart = 0;
 	// Number of vertices for the current polygon
@@ -28,6 +30,7 @@ public class Model
 	// Indices
 	// Note: Could be Shorts
 	private List<Integer> indices;
+	private int indiciesCount = 0;
 	
 	public boolean drawLines = false;
 	
@@ -70,6 +73,7 @@ public class Model
 	{
 		glBufferData(GL_ARRAY_BUFFER, getVertexData(), GL_STATIC_DRAW);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, getIndexData(), GL_STATIC_DRAW);
+		indiciesCount = indices.size();
 	}
 	
 	/**
@@ -109,7 +113,7 @@ public class Model
  	 */
 	public int getIndexCount()
 	{
-		return indices.size();
+		return indiciesCount;
 	}
 	
 	public void reset()
@@ -117,12 +121,14 @@ public class Model
 		polyCount = 0;
 		polyStart = 0;
 		constructingPolygon = false;
+		vertexData.clear();
 		indices.clear();
 	}
 	
 	public void freeData()
 	{
 		vertexData.clear();
+		indices.clear();
 	}
 	
 	public void beginPoly()
