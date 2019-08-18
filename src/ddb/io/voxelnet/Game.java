@@ -3,6 +3,7 @@ package ddb.io.voxelnet;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.EntityPlayer;
+import ddb.io.voxelnet.input.PlayerController;
 import ddb.io.voxelnet.render.*;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.World;
@@ -28,7 +29,6 @@ public class Game {
 	private static final float ZNEAR = 0.01f;
 	private static final float ZFAR  = 1000.0f;
 	
-	private static final float MOUSE_SENSITIVITY = 0.5f;
 	public static boolean showThings = false;
 	
 	/** Current window associated with this game instance */
@@ -41,21 +41,9 @@ public class Game {
 	World world;
 	WorldRenderer worldRenderer;
 	
+	PlayerController controller;
 	EntityPlayer player;
 	Camera camera;
-	
-	double lastX = 0.0f, lastY = 0.0f;
-	
-	// PlayerController variables
-	float hitX = 0.0f;
-	float hitY = 0.0f;
-	float hitZ = 0.0f;
-	int blockX = 0;
-	int blockY = 0;
-	int blockZ = 0;
-	Facing hitFace = Facing.NORTH;
-	boolean showHit = false;
-	byte placeID = 1;
 	
 	Model hitBox;
 	
@@ -122,85 +110,7 @@ public class Game {
 		
 		// Add mouse movement callback
 		// TODO: Shove into a player controller class \/
-		glfwSetCursorPosCallback(window, (window, x, y) -> {
-			double deltaX = x - lastX;
-			double deltaY = y - lastY;
-			lastX = x;
-			lastY = y;
-			
-			if(Math.abs(deltaX) > 50.0 || Math.abs(deltaY) > 50.0)
-				return;
-			
-			player.rotate(
-					(float) -deltaY * MOUSE_SENSITIVITY,
-					 (float) -deltaX * MOUSE_SENSITIVITY
-			);
-			
-			showHit = raycast();
-		});
 		
-		glfwSetMouseButtonCallback(window, (window, button, action, mods) -> {
-			if (action == GLFW_PRESS)
-			{
-				// Ignore all other mouse buttons
-				if (button != GLFW_MOUSE_BUTTON_LEFT && button != GLFW_MOUSE_BUTTON_RIGHT)
-					return;
-				
-				// No block was found in range
-				if(!raycast())
-					return;
-				
-				if (button == GLFW_MOUSE_BUTTON_RIGHT)
-				{
-					Block block = Block.idToBlock(placeID);
-					
-					int[] off = hitFace.getOffset();
-					// If the block can't be placed, don't place if
-					if(!block.canPlaceBlock(world, blockX + off[0], blockY + off[1], blockZ + off[2]))
-						return;
-					
-					world.setBlock(blockX + off[0], blockY + off[1], blockZ + off[2], placeID);
-					block.onBlockPlaced(world, blockX + off[0], blockY + off[1], blockZ + off[2]);
-				}
-				else if (button == GLFW_MOUSE_BUTTON_LEFT)
-				{
-					Block block = Block.idToBlock(world.getBlock(blockX, blockY, blockZ));
-					block.onBlockBroken(world, blockX, blockY, blockZ);
-					world.setBlock(blockX, blockY, blockZ, (byte) 0);
-				}
-				
-				// Update the hitbox position
-				showHit = raycast();
-			}
-		});
-		
-		glfwSetKeyCallback(window, (window, keycode, scancode, action, mods) -> {
-			if (action != GLFW_PRESS)
-				return;
-			
-			// Select block to place
-			final Block[] placeBlocks = new Block[] {
-					Blocks.GRASS, Blocks.DIRT, Blocks.STONE,
-					Blocks.PLANKS, Blocks.STONE_BRICKS, Blocks.CLAY_BRICKS,
-					Blocks.DOOR_LOWER, Blocks.GLASS,
-			};
-			
-			if (keycode >= GLFW_KEY_1 && keycode <= (GLFW_KEY_0 + placeBlocks.length))
-				placeID = placeBlocks[keycode - GLFW_KEY_1].getId();
-			
-			// Toggle flying
-			if (keycode == GLFW_KEY_F)
-				player.isFlying = !player.isFlying;
-			
-			if (keycode == GLFW_KEY_F3)
-				showThings = !showThings;
-			
-			if (keycode == GLFW_KEY_B)
-			{
-				// BOOM!
-				world.explode((int)player.xPos, (int)player.yPos, (int)player.zPos, 20);
-			}
-		});
 		// TODO: Shove into a player controller class /\
 		
 		// Setup input modes
@@ -228,6 +138,9 @@ public class Game {
 		player = new EntityPlayer();
 		player.setPos(0.0f, 256.0f, 0.0f);
 		player.setWorld(world);
+		
+		// Setup the controller
+		controller = new PlayerController(window, player);
 		
 		// Setup the camera
 		camera = new Camera(FOV, ZNEAR, ZFAR);
@@ -295,80 +208,6 @@ public class Game {
 		chunkShader.unbind();
 	}
 	
-	private boolean raycast()
-	{
-		// Calculate the pointing vector
-		Vector3f point = new Vector3f(0.0f, 0.0f, 1.0f);
-		point.rotateAxis((float) -Math.toRadians(player.pitch), 1f, 0f, 0f);
-		point.rotateAxis((float) -Math.toRadians(player.yaw),   0f, 1f, 0f);
-		point.mul(0.25f);
-		
-		float rayX = player.xPos;
-		float rayY = player.yPos + player.eyeHeight;
-		float rayZ = player.zPos;
-		
-		int x, y, z;
-		
-		// Step for 5 blocks
-		for(int i = 0; i < 7 * 4; i++)
-		{
-			x = Math.round(rayX - 0.5f);
-			y = Math.round(rayY - 0.5f);
-			z = Math.round(rayZ - 0.5f);
-			
-			if (world.getBlock(x, y, z) != 0)
-			{
-				rayX -= point.x;
-				rayY -= point.y;
-				rayZ += point.z;
-				
-				hitX = rayX;
-				hitY = rayY;
-				hitZ = rayZ;
-				
-				// Block found, get the specific face
-				Vector3f hit = new Vector3f(rayX - x - 0.5f, rayY - y - 0.5f, rayZ - z - 0.5f);
-				final Vector3f xAxis = new Vector3f(0.5f, 0.0f, 0.0f);
-				final Vector3f yAxis = new Vector3f(0.0f, 0.5f, 0.0f);
-				final Vector3f zAxis = new Vector3f(0.0f, 0.0f, 0.5f);
-				
-				float dotX = hit.dot(xAxis);
-				float dotY = hit.dot(yAxis);
-				float dotZ = hit.dot(zAxis);
-				
-				if (Math.abs(dotZ) > Math.abs(dotY) && Math.abs(dotZ) > Math.abs(dotX))
-				{
-					if (dotZ > 0) hitFace = Facing.SOUTH;
-					else          hitFace = Facing.NORTH;
-				}
-				else if (Math.abs(dotX) > Math.abs(dotY) && Math.abs(dotX) > Math.abs(dotZ))
-				{
-					if (dotX > 0) hitFace = Facing.EAST;
-					else          hitFace = Facing.WEST;
-				}
-				else if (Math.abs(dotY) >= Math.abs(dotX) && Math.abs(dotY) >= Math.abs(dotZ))
-				{
-					if (dotY > 0) hitFace = Facing.UP;
-					else          hitFace = Facing.DOWN;
-				}
-				
-				blockX = x;
-				blockY = y;
-				blockZ = z;
-				return true;
-			}
-			
-			rayX += point.x;
-			rayY += point.y;
-			rayZ -= point.z;
-		}
-		
-		blockX = -1;
-		blockY = -1;
-		blockZ = -1;
-		return false;
-	}
-	
 	private void loop()
 	{
 		int fps = 0, ups = 0;
@@ -433,41 +272,13 @@ public class Game {
 	private void update()
 	{
 		// TODO: Shove into a player controller class \/
-		float xDir = 0.0f, yDir = 0.0f, zDir = 0.0f;
-		//float speed = 6.0f / 60.0f;
-		
-		player.speedCoef = 1f;
-		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-			player.speedCoef = 0.25f;
-		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			player.speedCoef = 1.75f;
-		
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			zDir += -1.0f;
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			zDir +=  1.0f;
-		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			xDir += -1.0f;
-		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			xDir +=  1.0f;
-		
-		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-			player.jump();
-		
-		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-			glfwSetWindowShouldClose(window, true);
-		
-		player.isSneaking = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
-		
-		player.move(xDir, zDir);
-		player.update();
 		// TODO: Shove into a player controller class /\
+		
+		controller.update();
+		player.update();
 		
 		camera.asPlayer(player);
 		camera.updateView();
-		
-		if (xDir != 0.0f || yDir != 0.0f || zDir != 0.0f)
-			showHit = raycast();
 		
 		world.update();
 		worldRenderer.update();
@@ -500,10 +311,10 @@ public class Game {
 		
 		chunkShader.unbind();
 		
-		if (showHit)
+		if (controller.showHit)
 		{
 			final float scale = 0.00390625f;
-			modelMatrix.translate(blockX - scale / 2, blockY - scale / 2, blockZ - scale / 2);
+			modelMatrix.translate(controller.blockX - scale / 2, controller.blockY - scale / 2, controller.blockZ - scale / 2);
 			modelMatrix.scale(1.0f + scale);
 			
 			blackShader.setUniformMatrix4fv("PVMatrix", false, pvm.get(mat));
