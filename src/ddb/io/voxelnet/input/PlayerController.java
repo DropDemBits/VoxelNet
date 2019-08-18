@@ -33,8 +33,8 @@ public class PlayerController
 	public boolean showHit = false;
 	byte placeID = 1;
 	
-	final float boxRad = 2.f / 16f;
-	AABBCollider rayBox = new AABBCollider(0, 0, 0, boxRad, boxRad, boxRad);
+	private final float boxRad = 1.5f / 16f;
+	private AABBCollider rayBox = new AABBCollider(0, 0, 0, boxRad, boxRad, boxRad);
 	
 	public PlayerController(long win, EntityPlayer player)
 	{
@@ -175,17 +175,14 @@ public class PlayerController
 		// Step for 5 blocks
 		for(int i = 0; i < 7 * 8; i++)
 		{
-			x = Math.round(rayX - 0.5f);
-			y = Math.round(rayY - 0.5f);
-			z = Math.round(rayZ - 0.5f);
-			
 			rayBB.setPosition(rayX - (rayBox.width / 2f), rayY - (rayBox.height / 2f), rayZ - (rayBox.depth / 2f));
+			
 			// Go through the 8 corners
 			for (int c = 7; c >= 0; --c)
 			{
-				float offX = rayBB.width * ((c >> 0) & 1);
+				float offX = rayBB.width  * ((c >> 0) & 1);
 				float offY = rayBB.height * ((c >> 2) & 1);
-				float offZ = rayBB.depth * ((c >> 1) & 1);
+				float offZ = rayBB.depth  * ((c >> 1) & 1);
 				
 				x = Math.round((rayBB.x + offX) - 0.5f);
 				y = Math.round((rayBB.y + offY) - 0.5f);
