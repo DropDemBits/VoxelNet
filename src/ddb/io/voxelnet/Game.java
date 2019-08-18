@@ -197,9 +197,8 @@ public class Game {
 			
 			if (keycode == GLFW_KEY_B)
 			{
-				final int radius = 20;
 				// BOOM!
-				world.explode((int)player.xPos, (int)player.yPos, (int)player.zPos, radius);
+				world.explode((int)player.xPos, (int)player.yPos, (int)player.zPos, 20);
 			}
 		});
 		// TODO: Shove into a player controller class /\
@@ -428,7 +427,7 @@ public class Game {
 		glfwSetErrorCallback(null).free();
 		
 		// Stop the generator threads
-		//worldRenderer.stop();
+		worldRenderer.stop();
 	}
 	
 	private void update()

@@ -21,9 +21,12 @@ public class ChunkModel
 	Model model;
 	Model transparentLayer;
 	Chunk chunk;
-	private boolean isDirty = false;
-	private boolean updatePending = false;
+	private volatile boolean isDirty = false;
+	private volatile boolean updatePending = false;
+	private volatile boolean updateInProgress = false;
 	private boolean hasTransparency = false;
+	public Thread updatingThread = null;
+	public final Object criticalSection = new Object();
 	
 	/**
 	 * Creates a chunk model
@@ -47,9 +50,6 @@ public class ChunkModel
 		if (!chunk.isDirty())
 			return false;
 		
-		// Defer the vertex buffer update to the render stage
-		isDirty = true;
-		
 		// Reset the models
 		if (model.getIndexCount() > 0)
 			model.reset();
@@ -62,7 +62,12 @@ public class ChunkModel
 		
 		// Check if the chunk has been made empty
 		if (chunk.isEmpty())
+		{
+			// Defer the vertex buffer update to the render stage
+			isDirty = true;
 			return true;
+		}
+		
 		//System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
 		
 		// Reset transparency status
@@ -108,12 +113,15 @@ public class ChunkModel
 		
 		if ((generateCount % 8) == 0)
 		{
-			System.out.print("\tAvg Generate Time: " + (((double) generateAccum / (double) generateCount) / 1000000.0d) + "ms");
+			/*System.out.print("\tAvg Generate Time: " + (((double) generateAccum / (double) generateCount) / 1000000.0d) + "ms");
 			System.out.println(", Current Generate Time: " + (currentGenerate) / 1000000.0d);
 			System.out.println("\tAvg Block Gen Time: " + (((double) blockGenAccum / (double) blockGenCount) / 1000.0d) + "us");
 			System.out.println("\tExtrapolate BlockGen Time: " + (((double) blockGenAccum / (double) blockGenCount) / 1000.0d) * 256.0d + "us");
-			System.out.println("---------------------------------");
+			System.out.println("---------------------------------");*/
 		}
+		
+		// Defer the vertex buffer update to the render stage
+		isDirty = true;
 		return true;
 	}
 	
@@ -140,13 +148,16 @@ public class ChunkModel
 		return isDirty;
 	}
 	
-	public void makeClean()
+	public synchronized void makeClean()
 	{
-		isDirty = false;
+		if(!isDirty)
+			return;
 		
 		// Free the excess vertex data
 		model.freeData();
 		transparentLayer.freeData();
+		
+		isDirty = false;
 	}
 	
 	/**
@@ -158,9 +169,31 @@ public class ChunkModel
 		return updatePending;
 	}
 	
-	public void setUpdatePending(boolean updatePending)
+	/**
+	 * Sets the pending update state
+	 * @param updatePending The new pending update state
+	 */
+	public synchronized void setUpdatePending(boolean updatePending)
 	{
 		this.updatePending = updatePending;
+	}
+	
+	/**
+	 * Sees if a model update is in progress
+	 * @return True if a model update is in progress
+	 */
+	public boolean isUpdateInProgress()
+	{
+		return updateInProgress;
+	}
+	
+	/**
+	 * Sets the update progress state
+	 * @param updateProgressing The new update progress state
+	 */
+	public synchronized void setUpdateProgress(boolean updateProgressing)
+	{
+		this.updateInProgress = updateProgressing;
 	}
 	
 	/**

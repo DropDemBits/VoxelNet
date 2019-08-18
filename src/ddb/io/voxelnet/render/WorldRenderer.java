@@ -5,6 +5,8 @@ import ddb.io.voxelnet.world.Chunk;
 import ddb.io.voxelnet.world.World;
 
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.lwjgl.opengl.GL11.*;
 
@@ -15,6 +17,7 @@ public class WorldRenderer
 	// List of chunks that need model updates
 	// TODO: Add threads for chunk model generation
 	private Stack<ChunkModel> generateQueue = new Stack<>();
+	private ExecutorService generatePool = Executors.newFixedThreadPool(16);
 	private TextureAtlas atlas;
 	private World world;
 	
@@ -49,12 +52,10 @@ public class WorldRenderer
 			}
 		}
 		
-		// Update the model
-		if(!generateQueue.empty())
+		// Enqueue more updates
+		for(int upd = 0; upd < 16 && !generateQueue.empty(); upd++)
 		{
-			ChunkModel model = generateQueue.pop();
-			model.updateModel(atlas);
-			model.setUpdatePending(false);
+			generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
 			//System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
 		}
 	}
@@ -64,16 +65,26 @@ public class WorldRenderer
 		// List of chunks that have transparent blocks
 		List<ChunkModel> transparentChunks = new ArrayList<>();
 		
+		long opaqueCount = 0;
+		long opaqueAccum = 0;
+		long updProgressCount = 0;
 		for (ChunkModel chunkModel : renderChunks.values())
 		{
+			long opaqueStart = System.nanoTime();
+			// Allow a chunk to be rendered between model updates
+			boolean isUpdating = chunkModel.isUpdateInProgress();
+			
+			if (isUpdating)
+				++updProgressCount;
+			
 			if (chunkModel.hasTransparency())
 				transparentChunks.add(chunkModel);
 			
 			Model model = chunkModel.getModel();
 			
 			model.bind();
-			// Update the vertices
-			if (chunkModel.isDirty())
+			// Update the vertices if an update is not in progress
+			if (!isUpdating && chunkModel.isDirty())
 			{
 				model.updateVertices();
 				
@@ -84,23 +95,74 @@ public class WorldRenderer
 			
 			glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
 			model.unbind();
+			
+			++opaqueCount;
+			opaqueAccum += System.nanoTime() - opaqueStart;
 		}
 		
+		long transparentAccum = 0;
+		long transparentCount = transparentChunks.size();
 		for (ChunkModel chunkModel : transparentChunks)
 		{
+			long transparentStart = System.nanoTime();
+			boolean isUpdating = chunkModel.isUpdateInProgress();
 			Model model = chunkModel.getTransparentModel();
 			
-			// Update the vertices (have not been updated above)
+			// Update the vertices if a model update is not in progress (have
+			// not been updated above)
 			model.bind();
-			if (chunkModel.isDirty())
+			if (!chunkModel.isUpdateInProgress() && chunkModel.isDirty())
 			{
-				// Update transparency model
+				// Update both models
+				// Done just in case the update status has changed between the loops
+				chunkModel.getModel().updateVertices();
 				model.updateVertices();
 				chunkModel.makeClean();
 			}
 			
 			glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
 			model.unbind();
+			
+			transparentAccum += System.nanoTime() - transparentStart;
+		}
+		
+		/*System.out.println("-----------------------------");
+		System.out.println(
+				"OpqC " + (float)opaqueAccum / ((float)opaqueCount * 1000f) + " us, " +
+				"TrnC " + (float)transparentAccum / ((float) transparentCount * 1000f) + " us"
+		);
+		System.out.println(
+				"OpqT " + (float)opaqueAccum / 1000f + " us, " +
+				"TrnT " + (float)transparentAccum / 1000f + " us"
+		);
+		System.out.println(
+				"OpqA " + opaqueCount + ", " +
+				"TrnA " + transparentCount + ", " +
+				"UpdA " + updProgressCount
+		);*/
+	}
+	
+	public void stop()
+	{
+		generatePool.shutdown();
+	}
+	
+	private class ThreadedChunkGenerator implements Runnable
+	{
+		final ChunkModel model;
+		
+		ThreadedChunkGenerator(ChunkModel model)
+		{
+			this.model = model;
+		}
+		
+		@Override
+		public void run()
+		{
+			model.setUpdatePending(false);
+			model.setUpdateProgress(true);
+			model.updateModel(atlas);
+			model.setUpdateProgress(false);
 		}
 	}
 }
