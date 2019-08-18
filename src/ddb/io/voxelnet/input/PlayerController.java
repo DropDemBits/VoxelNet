@@ -3,6 +3,7 @@ package ddb.io.voxelnet.input;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.EntityPlayer;
+import ddb.io.voxelnet.util.AABBCollider;
 import ddb.io.voxelnet.util.Facing;
 import org.joml.Vector3f;
 
@@ -31,6 +32,9 @@ public class PlayerController
 	Facing hitFace = Facing.NORTH;
 	public boolean showHit = false;
 	byte placeID = 1;
+	
+	final float boxRad = 2.f / 16f;
+	AABBCollider rayBox = new AABBCollider(0, 0, 0, boxRad, boxRad, boxRad);
 	
 	public PlayerController(long win, EntityPlayer player)
 	{
@@ -121,7 +125,6 @@ public class PlayerController
 	public void update()
 	{
 		float xDir = 0.0f, yDir = 0.0f, zDir = 0.0f;
-		//float speed = 6.0f / 60.0f;
 		
 		player.speedCoef = 1f;
 		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
@@ -158,7 +161,8 @@ public class PlayerController
 		Vector3f point = new Vector3f(0.0f, 0.0f, 1.0f);
 		point.rotateAxis((float) -Math.toRadians(player.pitch), 1f, 0f, 0f);
 		point.rotateAxis((float) -Math.toRadians(player.yaw),   0f, 1f, 0f);
-		point.mul(0.25f);
+		
+		point.mul(0.125f);
 		
 		float rayX = player.xPos;
 		float rayY = player.yPos + player.eyeHeight;
@@ -166,53 +170,69 @@ public class PlayerController
 		
 		int x, y, z;
 		
+		AABBCollider rayBB = new AABBCollider(rayBox);
+		
 		// Step for 5 blocks
-		for(int i = 0; i < 7 * 4; i++)
+		for(int i = 0; i < 7 * 8; i++)
 		{
 			x = Math.round(rayX - 0.5f);
 			y = Math.round(rayY - 0.5f);
 			z = Math.round(rayZ - 0.5f);
 			
-			if (player.world.getBlock(x, y, z) != 0)
+			rayBB.setPosition(rayX - (rayBox.width / 2f), rayY - (rayBox.height / 2f), rayZ - (rayBox.depth / 2f));
+			// Go through the 8 corners
+			for (int c = 7; c >= 0; --c)
 			{
-				rayX -= point.x;
-				rayY -= point.y;
-				rayZ += point.z;
+				float offX = rayBB.width * ((c >> 0) & 1);
+				float offY = rayBB.height * ((c >> 2) & 1);
+				float offZ = rayBB.depth * ((c >> 1) & 1);
 				
-				hitX = rayX;
-				hitY = rayY;
-				hitZ = rayZ;
+				x = Math.round((rayBB.x + offX) - 0.5f);
+				y = Math.round((rayBB.y + offY) - 0.5f);
+				z = Math.round((rayBB.z + offZ) - 0.5f);
 				
-				// Block found, get the specific face
-				Vector3f hit = new Vector3f(rayX - x - 0.5f, rayY - y - 0.5f, rayZ - z - 0.5f);
-				final Vector3f xAxis = new Vector3f(0.5f, 0.0f, 0.0f);
-				final Vector3f yAxis = new Vector3f(0.0f, 0.5f, 0.0f);
-				final Vector3f zAxis = new Vector3f(0.0f, 0.0f, 0.5f);
 				
-				float dotX = hit.dot(xAxis);
-				float dotY = hit.dot(yAxis);
-				float dotZ = hit.dot(zAxis);
+				byte id = player.world.getBlock(x, y, z);
 				
-				if (Math.abs(dotZ) > Math.abs(dotY) && Math.abs(dotZ) > Math.abs(dotX))
+				if (id != 0)
 				{
-					if (dotZ > 0) hitFace = Facing.SOUTH;
-					else          hitFace = Facing.NORTH;
+					rayX -= point.x;
+					rayY -= point.y;
+					rayZ += point.z;
+					
+					hitX = rayX;
+					hitY = rayY;
+					hitZ = rayZ;
+					
+					// Block found, get the specific face
+					Vector3f hit = new Vector3f(rayX - x - 0.5f, rayY - y - 0.5f, rayZ - z - 0.5f);
+					final Vector3f xAxis = new Vector3f(0.5f, 0.0f, 0.0f);
+					final Vector3f yAxis = new Vector3f(0.0f, 0.5f, 0.0f);
+					final Vector3f zAxis = new Vector3f(0.0f, 0.0f, 0.5f);
+					
+					float dotX = hit.dot(xAxis);
+					float dotY = hit.dot(yAxis);
+					float dotZ = hit.dot(zAxis);
+					
+					if (Math.abs(dotZ) > Math.abs(dotY) && Math.abs(dotZ) > Math.abs(dotX))
+					{
+						if (dotZ > 0) hitFace = Facing.SOUTH;
+						else hitFace = Facing.NORTH;
+					} else if (Math.abs(dotX) > Math.abs(dotY) && Math.abs(dotX) > Math.abs(dotZ))
+					{
+						if (dotX > 0) hitFace = Facing.EAST;
+						else hitFace = Facing.WEST;
+					} else if (Math.abs(dotY) >= Math.abs(dotX) && Math.abs(dotY) >= Math.abs(dotZ))
+					{
+						if (dotY > 0) hitFace = Facing.UP;
+						else hitFace = Facing.DOWN;
+					}
+					
+					blockX = x;
+					blockY = y;
+					blockZ = z;
+					return true;
 				}
-				else if (Math.abs(dotX) > Math.abs(dotY) && Math.abs(dotX) > Math.abs(dotZ))
-				{
-					if (dotX > 0) hitFace = Facing.EAST;
-					else          hitFace = Facing.WEST;
-				}
-				else if (Math.abs(dotY) >= Math.abs(dotX) && Math.abs(dotY) >= Math.abs(dotZ))
-				{
-					if (dotY > 0) hitFace = Facing.UP;
-					else          hitFace = Facing.DOWN;
-				}
-				
-				blockX = x;
-				blockY = y;
-				blockZ = z;
-				return true;
 			}
 			
 			rayX += point.x;
@@ -225,4 +245,5 @@ public class PlayerController
 		blockZ = -1;
 		return false;
 	}
+	
 }
