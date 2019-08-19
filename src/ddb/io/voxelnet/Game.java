@@ -145,7 +145,11 @@ public class Game {
 		
 		// Setup the hitbox & shader
 		blackShader = new Shader("assets/shaders/blackShader.glsl");
-		hitBox = new Model();
+		
+		BufferLayout simpleLayout = new BufferLayout();
+		simpleLayout.addAttribute(BufferLayout.EnumAttribType.FLOAT, 3, false);
+		
+		hitBox = new Model(simpleLayout);
 		hitBox.drawLines = true;
 		hitBox.beginPoly();
 		hitBox.addVertex(0f, 0f, 0f);

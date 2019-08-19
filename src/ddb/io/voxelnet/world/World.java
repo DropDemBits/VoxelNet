@@ -91,9 +91,6 @@ public class World
 		if (canSeeSky)
 			baseLight = 15;
 		
-		/*if (baseLight < 15)
-			baseLight = 3;*/
-		
 		return baseLight;
 	}
 	
@@ -277,7 +274,7 @@ public class World
 				
 				int blockY = (cy << 4) + y;
 				
-				Block block = Blocks.PLANKS;
+				Block block;
 				
 				if (blockY == 63)
 					block = Blocks.GRASS;

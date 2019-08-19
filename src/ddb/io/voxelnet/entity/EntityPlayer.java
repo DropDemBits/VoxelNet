@@ -112,8 +112,8 @@ public class EntityPlayer
 		xDir /= mag;
 		zDir /= mag;
 		
-		this.xAccel = (float) ((speed * speedCoef) * xDir) / 10.0f;
-		this.zAccel = (float) ((speed * speedCoef) * zDir) / 10.0f;
+		this.xAccel = (float) ((speed * speedCoef) * xDir) / 2.0f;
+		this.zAccel = (float) ((speed * speedCoef) * zDir) / 2.0f;
 	}
 	
 	public void jump()
@@ -208,11 +208,8 @@ public class EntityPlayer
 		}
 		
 		// Apply decay to the velocity
-		if (xAccel != 0 && zAccel != 0)
-		{
-			xVel = decay(xVel, 0.9f);
-			zVel = decay(zVel, 0.9f);
-		}
+		xVel = decay(xVel, 0.9f);
+		zVel = decay(zVel, 0.9f);
 		
 		if (isFlying)
 			yVel = decay(yVel, 0.5f);

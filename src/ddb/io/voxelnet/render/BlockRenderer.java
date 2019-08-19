@@ -62,7 +62,7 @@ public class BlockRenderer
 					(float) (chunk.chunkZ * 16 + z),
 					face,
 					texCoords,
-					((float)(faceLight + 1) / 16f) * faceIntensities[face.ordinal()]);
+					((faceLight + 1f) / 16f) * faceIntensities[face.ordinal()]);
 		}
 	}
 	

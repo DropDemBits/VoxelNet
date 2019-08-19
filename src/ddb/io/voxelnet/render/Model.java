@@ -1,45 +1,61 @@
 package ddb.io.voxelnet.render;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
-import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
+import static org.lwjgl.opengl.GL20.*;
 
 public class Model
 {
-	// Size of a vertex, in floats
-	private static final int VERTEX_SIZE = 6;
+	// Memory savings
+	// - Use GL_UNSIGNED_BYTE for vtexcoords
+	// - Use GL_UNSIGNED_BYTE or GL_UNSIGNED_SHORT for texcoords
+	// - Use GL_UNSIGNED_BYTE for intensity & calc on GPU (no, but still use for
+	//   normalization post-mapping)
 	
+	/// Tesselator ///
 	/// Polygon State ///
-	// Whether a vertex update is happening or not
-	private boolean isUpdating = false;
 	// Current starting index for the polygon
 	private int polyStart = 0;
 	// Number of vertices for the current polygon
 	private int polyCount = 0;
 	// Whether a polygon is being constructed or not
 	private boolean constructingPolygon = false;
+	// Whether to create lines or not
+	public boolean drawLines = false;
 	
+	/// Model Data ///
 	// Vertex Data
-	// Vertex position (by VERTEX_SIZE)
-	private List<Float> vertexData;
+	// Vertex position (in byte[])
+	private List<byte[]> vertexData;
 	
 	// Indices
-	// Note: Could be Shorts
 	private List<Integer> indices;
 	private int indiciesCount = 0;
-	
-	public boolean drawLines = false;
 	
 	// GL *BO Handles
 	private int vboHandle;
 	private int iboHandle;
 	
-	public Model()
+	// Layout of the vertex buffer
+	private final BufferLayout layout;
+	// Temporary buffer holding a single vertex's data, in bytes
+	private final ByteBuffer vertex;
+	
+	/**
+	 * Creates a new model with the specified vertex layout
+	 * @param layout The layout of the model's vertex buffer
+	 */
+	public Model(BufferLayout layout)
 	{
+		this.layout = layout;
+		vertex = ByteBuffer.allocate(layout.getStride());
+		vertex.order(ByteOrder.nativeOrder());
+		
 		vertexData = new ArrayList<>();
 		indices = new ArrayList<>();
 		
@@ -49,16 +65,6 @@ public class Model
 		
 		GLContext.INSTANCE.addBuffer(vboHandle);
 		GLContext.INSTANCE.addBuffer(iboHandle);
-	}
-	
-	private float[] getVertexData()
-	{
-		float[] array = new float[vertexData.size()];
-		
-		for (int i = 0; i < array.length; i++)
-			array[i] = vertexData.get(i);
-		
-		return array;
 	}
 	
 	private int[] getIndexData()
@@ -71,7 +77,14 @@ public class Model
 	 */
 	public void updateVertices()
 	{
-		glBufferData(GL_ARRAY_BUFFER, getVertexData(), GL_STATIC_DRAW);
+		// Fetch the vertex data
+		ByteBuffer buf = ByteBuffer.allocateDirect(vertexData.size() * layout.getStride());
+		buf.order(ByteOrder.nativeOrder());
+		
+		vertexData.iterator().forEachRemaining(buf::put);
+		buf.flip();
+		
+		glBufferData(GL_ARRAY_BUFFER, buf, GL_STATIC_DRAW);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, getIndexData(), GL_STATIC_DRAW);
 		indiciesCount = indices.size();
 	}
@@ -84,17 +97,13 @@ public class Model
 		glBindBuffer(GL_ARRAY_BUFFER, vboHandle);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboHandle);
 		
-		// position
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, VERTEX_SIZE * 4, 0);
-		
-		// texCoord
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, false, VERTEX_SIZE * 4, 3 * 4);
-		
-		// lightColor
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 1, GL_FLOAT, false, VERTEX_SIZE * 4, 5 * 4);
+		// Load the buffer layout
+		// TODO: Don't do this if we have VAOs
+		for (BufferLayout.BufferAttrib attrib : layout.getLayout())
+		{
+			glEnableVertexAttribArray(attrib.index);
+			glVertexAttribPointer(attrib.index, attrib.count, attrib.type.toGLType(), attrib.normalized, layout.getStride(), attrib.offset);
+		}
 	}
 	
 	/**
@@ -105,6 +114,13 @@ public class Model
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		
+		// Unload the buffer layout
+		// TODO: Don't do this if we have VAOs
+		for (BufferLayout.BufferAttrib attrib : layout.getLayout())
+		{
+			glDisableVertexAttribArray(attrib.index);
+		}
 	}
 	
 	/**
@@ -116,6 +132,10 @@ public class Model
 		return indiciesCount;
 	}
 	
+	/**
+	 * Reset the construction state
+	 * Used to regenerate models
+	 */
 	public void reset()
 	{
 		polyCount = 0;
@@ -125,12 +145,19 @@ public class Model
 		indices.clear();
 	}
 	
+	/**
+	 * Frees the construction data
+	 * Done after the vertices have been updated
+	 */
 	public void freeData()
 	{
 		vertexData.clear();
 		indices.clear();
 	}
 	
+	/**
+	 * Begins constructing a polygon
+	 */
 	public void beginPoly()
 	{
 		if (constructingPolygon)
@@ -144,9 +171,12 @@ public class Model
 		// Update state
 		constructingPolygon = true;
 		polyCount = 0;
-		polyStart = vertexData.size() / VERTEX_SIZE;
+		polyStart = vertexData.size();
 	}
 	
+	/**
+	 * Finishes the construction of a polygon
+	 */
 	public void endPoly()
 	{
 		if (!constructingPolygon)
@@ -164,58 +194,52 @@ public class Model
 	}
 	
 	/**
-	 * Adds a 2d point to the current polygon
-	 * @param x The x coordinate of the point
-	 * @param y The y coordinate of the point
+	 * Adds a single vertex, in the specified buffer layout
+	 * @param values The values of the vertex
 	 */
-	public void addVertex(float x, float y)
+	public void addVertex(Number... values)
 	{
-		addVertex(x, y, 0, 0, 0);
-	}
-	
-	/**
-	 * Adds a 3d point to the current polygon
-	 * @param x The x coordinate of the point
-	 * @param y The y coordinate of the point
-	 * @param z The z coordinate of the point
-	 */
-	public void addVertex(float x, float y, float z)
-	{
-		// Top left by default
-		addVertex(x, y, z, 0, 0);
-	}
-	
-	public void addVertex(float x, float y, float z, float u, float v)
-	{
-		addVertex(x, y, z, u, v, 0f, 0f, 0f, 1f);
-	}
-	
-	public void addVertex(float x, float y, float z, float u, float v, float amt)
-	{
-		addVertex(x, y, z, u, v, 0f, 0f, 0f, amt);
-	}
-	
-	public void addVertex(float x, float y, float z, float u, float v, float r, float g, float b, float amt)
-	{
-		int index = polyCount + polyStart;
+		// Build the vertex data
+		int valuePointer = 0;
+		for (BufferLayout.BufferAttrib attrib : layout.getLayout())
+		{
+			for (int count = 1; count <= attrib.count; count++, valuePointer++)
+			{
+				switch (attrib.type)
+				{
+					case BYTE:
+					case UBYTE:
+						vertex.put(values[valuePointer].byteValue());
+						break;
+					case SHORT:
+					case USHORT:
+						vertex.putShort(values[valuePointer].shortValue());
+						break;
+					case INT:
+					case UINT:
+						vertex.putInt(values[valuePointer].intValue());
+						break;
+					case FLOAT:
+						vertex.putFloat(values[valuePointer].floatValue());
+						break;
+					case DOUBLE:
+						vertex.putDouble(values[valuePointer].doubleValue());
+						break;
+				}
+			}
+		}
 		
-		// Add position first...
-		vertexData.add(x);
-		vertexData.add(y);
-		vertexData.add(z);
-		
-		// Then the texture position...
-		vertexData.add(u);
-		vertexData.add(v);
-		
-		// Then the light colour + intensity
-		//vertexData.add(r);
-		//vertexData.add(g);
-		//vertexData.add(b);
-		vertexData.add(amt);
+		// Add the vertex data
+		byte[] data = new byte[layout.getStride()];
+		vertex.flip();
+		vertex.get(data);
+		vertex.flip();
+		vertexData.add(data);
 		
 		// Update the indices
+		int index = polyCount + polyStart;
 		polyCount++;
+		
 		if (!drawLines)
 		{
 			if (polyCount <= 3)

@@ -81,9 +81,7 @@ public class Chunk
 		if(Game.showThings)
 			System.out.println("block ("+x+", "+y+", "+z+") "+id);
 		
-		// Update the block count
-		
-		// Update the filled column count and isEmpty
+		// Update the block count & isEmpty
 		if (lastBlock == 0 && id != 0)
 		{
 			++blockCount;

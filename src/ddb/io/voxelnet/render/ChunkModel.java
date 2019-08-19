@@ -12,6 +12,19 @@ public class ChunkModel
 	public static long generateAccum = 0;
 	public static long generateCount = 0;
 	
+	private static final BufferLayout CHUNK_LAYOUT = new BufferLayout();
+	
+	static {
+		// Setup the buffer layout
+		
+		// Vertex position
+		CHUNK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.FLOAT, 3, false);
+		// TexCoord
+		CHUNK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.FLOAT, 2, false);
+		// Intensity
+		CHUNK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.FLOAT, 1, false);
+	}
+	
 	Model model;
 	Model transparentLayer;
 	Chunk chunk;
@@ -19,6 +32,7 @@ public class ChunkModel
 	private boolean updatePending = false;
 	private boolean updateInProgress = false;
 	private boolean hasTransparency = false;
+	
 	/**
 	 * Creates a chunk model
 	 * @param chunk The chunk to be based off from
@@ -26,8 +40,8 @@ public class ChunkModel
 	public ChunkModel(Chunk chunk)
 	{
 		this.chunk = chunk;
-		this.model = new Model();
-		this.transparentLayer = new Model();
+		this.model = new Model(CHUNK_LAYOUT);
+		this.transparentLayer = new Model(CHUNK_LAYOUT);
 	}
 	
 	/**
