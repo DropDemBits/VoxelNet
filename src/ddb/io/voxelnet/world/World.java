@@ -39,7 +39,7 @@ public class World
 			}
 		}
 		
-		// Create tiny explosions in the world
+		// Create tiny explosions in the world (worldgen test)
 		int explosionCount = worldRandom.nextInt(100) + 50;
 		for (int i = 0; i < explosionCount; i++)
 		{

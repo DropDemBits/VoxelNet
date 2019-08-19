@@ -20,8 +20,23 @@ public enum Facing
 		this.zOff = zOff;
 	}
 	
-	public int[] getOffset()
+	public int[] getOffsets()
 	{
 		return new int[] {xOff, yOff, zOff};
+	}
+	
+	public int getOffsetX()
+	{
+		return xOff;
+	}
+	
+	public int getOffsetY()
+	{
+		return yOff;
+	}
+	
+	public int getOffsetZ()
+	{
+		return zOff;
 	}
 }

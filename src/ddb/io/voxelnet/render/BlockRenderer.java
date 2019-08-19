@@ -28,13 +28,12 @@ public class BlockRenderer
 			if(faceTextures[face.ordinal()] == -1)
 				continue;
 			
-			int[] offset = face.getOffset();
-			int adjacentX = chunk.chunkX * 16 + x + offset[0];
-			int adjacentY = chunk.chunkY * 16 + y + offset[1];
-			int adjacentZ = chunk.chunkZ * 16 + z + offset[2];
+			int adjacentX = chunk.chunkX * 16 + x + face.getOffsetX();
+			int adjacentY = chunk.chunkY * 16 + y + face.getOffsetY();
+			int adjacentZ = chunk.chunkZ * 16 + z + face.getOffsetZ();
 			
 			byte faceLight = chunk.world.getBlockLight(adjacentX, adjacentY, adjacentZ);
-			byte adjacentBlock = chunk.getBlock(x + offset[0], y + offset[1], z + offset[2]);
+			byte adjacentBlock = chunk.getBlock(x + face.getOffsetX(), y + face.getOffsetY(), z + face.getOffsetZ());
 			
 			if (adjacentBlock == -1)
 			{

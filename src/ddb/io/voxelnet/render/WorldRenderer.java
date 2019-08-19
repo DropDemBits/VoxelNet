@@ -17,7 +17,7 @@ public class WorldRenderer
 	// List of chunks that need model updates
 	// TODO: Add threads for chunk model generation
 	private Stack<ChunkModel> generateQueue = new Stack<>();
-	private ExecutorService generatePool = Executors.newFixedThreadPool(16);
+	private ExecutorService generatePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
 	private TextureAtlas atlas;
 	private World world;
 	
@@ -58,9 +58,12 @@ public class WorldRenderer
 			generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
 			//System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
 		}
+		
+		/*if (!generateQueue.isEmpty())
+			new ThreadedChunkGenerator(generateQueue.pop()).run();*/
 	}
 	
-	public void render()
+	public void render(Camera camera)
 	{
 		// List of chunks that have transparent blocks
 		List<ChunkModel> transparentChunks = new ArrayList<>();
@@ -70,6 +73,15 @@ public class WorldRenderer
 		long updProgressCount = 0;
 		for (ChunkModel chunkModel : renderChunks.values())
 		{
+			// Perform frustum culling
+			if (!camera.getViewFrustum().isSphereInside(
+					(chunkModel.chunk.chunkX << 4) + 8.5f,
+					(chunkModel.chunk.chunkY << 4) + 8.5f,
+					(chunkModel.chunk.chunkZ << 4) + 8.5f,
+					22.627416998f))
+				continue;
+				
+			
 			long opaqueStart = System.nanoTime();
 			// Allow a chunk to be rendered between model updates
 			boolean isUpdating = chunkModel.isUpdateInProgress();

@@ -1,6 +1,7 @@
 package ddb.io.voxelnet.render;
 
 import ddb.io.voxelnet.entity.EntityPlayer;
+import ddb.io.voxelnet.util.Frustum;
 import org.joml.Matrix4f;
 
 public class Camera
@@ -27,6 +28,9 @@ public class Camera
 	public Matrix4f perspectiveMatrix;
 	public Matrix4f viewMatrix;
 	
+	// View frustum
+	public Frustum viewFrustum;
+	
 	public Camera(float fov, float zNear, float zFar)
 	{
 		this.fov = fov;
@@ -35,6 +39,7 @@ public class Camera
 		
 		this.perspectiveMatrix = new Matrix4f();
 		this.viewMatrix = new Matrix4f();
+		viewFrustum = new Frustum();
 	}
 	
 	public void setPosition(float x, float y, float z)
@@ -65,17 +70,20 @@ public class Camera
 	{
 		this.perspectiveMatrix.identity();
 		this.perspectiveMatrix.perspective((float) Math.toRadians(fov), aspect, zNear, zFar);
+		this.viewFrustum.updateShape((float) Math.toRadians(fov), aspect, zNear, zFar);
 	}
 	
 	/**
 	 * Updates the view matrix
+	 * Also updates the view frustum
 	 */
 	public void updateView()
 	{
 		this.viewMatrix.identity();
 		this.viewMatrix.rotate((float) -Math.toRadians(pitch), 1.0f, 0.0f, 0.0f);
 		this.viewMatrix.rotate((float) -Math.toRadians(yaw), 0.0f, 1.0f, 0.0f);
-		this.viewMatrix.translate(-x, -(y + yOff), -z);
+		this.viewMatrix.translate(-(x + xOff), -(y + yOff), -(z + zOff));
+		this.viewFrustum.updateFrustum(viewMatrix, x + xOff, y + yOff, z + xOff);
 	}
 	
 	/**
@@ -101,4 +109,6 @@ public class Camera
 	{
 		return new Matrix4f().identity().mul(perspectiveMatrix).mul(viewMatrix);
 	}
+	
+	public Frustum getViewFrustum() { return viewFrustum; }
 }

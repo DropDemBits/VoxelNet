@@ -1,13 +1,7 @@
 package ddb.io.voxelnet.render;
 
 import ddb.io.voxelnet.block.Block;
-import ddb.io.voxelnet.util.Facing;
-import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.Chunk;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Model of a chunk being rendered
@@ -21,13 +15,10 @@ public class ChunkModel
 	Model model;
 	Model transparentLayer;
 	Chunk chunk;
-	private volatile boolean isDirty = false;
-	private volatile boolean updatePending = false;
-	private volatile boolean updateInProgress = false;
+	private boolean isDirty = false;
+	private boolean updatePending = false;
+	private boolean updateInProgress = false;
 	private boolean hasTransparency = false;
-	public Thread updatingThread = null;
-	public final Object criticalSection = new Object();
-	
 	/**
 	 * Creates a chunk model
 	 * @param chunk The chunk to be based off from
@@ -78,14 +69,14 @@ public class ChunkModel
 		long blockGenCount = 0;
 		
 		long start = System.nanoTime();
-		for (int x = 0; x < 16; x++)
+		for (int y = 0; y < 16; y++)
 		{
 			for (int z = 0; z < 16; z++)
 			{
-				long blockNow = System.nanoTime();
-				for (int y = 0; y < 16; y++)
+				//long blockNow = System.nanoTime();
+				for (int x = 0; x < 16; x++)
 				{
-					byte id = chunk.getData()[x + z * 16 + y * 256];
+					byte id = chunk.getData()[x + (z << 4) + (y << 8)];
 					if (id == 0)
 						continue;
 					
@@ -102,8 +93,8 @@ public class ChunkModel
 					int[] faceTextures = block.getFaceTextures();
 					BlockRenderer.addCube(targetModel, chunk, block, x, y, z, faceTextures, atlas);
 				}
-				blockGenAccum += System.nanoTime() - blockNow;
-				blockGenCount += 16;
+				/*blockGenAccum += System.nanoTime() - blockNow;
+				blockGenCount += 16;*/
 			}
 		}
 		
@@ -113,11 +104,11 @@ public class ChunkModel
 		
 		if ((generateCount % 8) == 0)
 		{
-			/*System.out.print("\tAvg Generate Time: " + (((double) generateAccum / (double) generateCount) / 1000000.0d) + "ms");
+			System.out.print("\tAvg Generate Time: " + (((double) generateAccum / (double) generateCount) / 1000000.0d) + "ms");
 			System.out.println(", Current Generate Time: " + (currentGenerate) / 1000000.0d);
 			System.out.println("\tAvg Block Gen Time: " + (((double) blockGenAccum / (double) blockGenCount) / 1000.0d) + "us");
 			System.out.println("\tExtrapolate BlockGen Time: " + (((double) blockGenAccum / (double) blockGenCount) / 1000.0d) * 256.0d + "us");
-			System.out.println("---------------------------------");*/
+			System.out.println("---------------------------------");
 		}
 		
 		// Defer the vertex buffer update to the render stage

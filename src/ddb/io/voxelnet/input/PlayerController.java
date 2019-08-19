@@ -47,9 +47,6 @@ public class PlayerController
 			lastX = x;
 			lastY = y;
 			
-			if(Math.abs(deltaX) > 50.0 || Math.abs(deltaY) > 50.0)
-				return;
-			
 			player.rotate(
 					(float) -deltaY * MOUSE_SENSITIVITY,
 					(float) -deltaX * MOUSE_SENSITIVITY
@@ -73,13 +70,24 @@ public class PlayerController
 				{
 					Block block = Block.idToBlock(placeID);
 					
-					int[] off = hitFace.getOffset();
-					// If the block can't be placed, don't place if
-					if(!block.canPlaceBlock(player.world, blockX + off[0], blockY + off[1], blockZ + off[2]))
+					// If the block can't be placed, don't place it
+					if(!block.canPlaceBlock(
+							player.world,
+							blockX + hitFace.getOffsetX(),
+							blockY + hitFace.getOffsetY(),
+							blockZ + hitFace.getOffsetZ()))
 						return;
 					
-					player.world.setBlock(blockX + off[0], blockY + off[1], blockZ + off[2], placeID);
-					block.onBlockPlaced(player.world, blockX + off[0], blockY + off[1], blockZ + off[2]);
+					player.world.setBlock(
+							blockX + hitFace.getOffsetX(),
+							blockY + hitFace.getOffsetY(),
+							blockZ + hitFace.getOffsetZ(),
+							placeID);
+					block.onBlockPlaced(
+							player.world,
+							blockX + hitFace.getOffsetX(),
+							blockY + hitFace.getOffsetY(),
+							blockZ + hitFace.getOffsetZ());
 				}
 				else if (button == GLFW_MOUSE_BUTTON_LEFT)
 				{
@@ -158,9 +166,9 @@ public class PlayerController
 	private boolean raycast()
 	{
 		// Calculate the pointing vector
-		Vector3f point = new Vector3f(0.0f, 0.0f, 1.0f);
-		point.rotateAxis((float) -Math.toRadians(player.pitch), 1f, 0f, 0f);
-		point.rotateAxis((float) -Math.toRadians(player.yaw),   0f, 1f, 0f);
+		Vector3f point = new Vector3f(0.0f, 0.0f, -1.0f);
+		point.rotateAxis((float) Math.toRadians(player.pitch), 1f, 0f, 0f);
+		point.rotateAxis((float) Math.toRadians(player.yaw),   0f, 1f, 0f);
 		
 		point.mul(0.125f);
 		
@@ -195,7 +203,7 @@ public class PlayerController
 				{
 					rayX -= point.x;
 					rayY -= point.y;
-					rayZ += point.z;
+					rayZ -= point.z;
 					
 					hitX = rayX;
 					hitY = rayY;
@@ -234,7 +242,7 @@ public class PlayerController
 			
 			rayX += point.x;
 			rayY += point.y;
-			rayZ -= point.z;
+			rayZ += point.z;
 		}
 		
 		blockX = -1;

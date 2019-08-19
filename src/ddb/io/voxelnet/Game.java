@@ -6,6 +6,7 @@ import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.input.PlayerController;
 import ddb.io.voxelnet.render.*;
 import ddb.io.voxelnet.util.Facing;
+import ddb.io.voxelnet.util.Frustum;
 import ddb.io.voxelnet.world.World;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -14,6 +15,7 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
+import sun.security.provider.certpath.Vertex;
 
 import java.nio.IntBuffer;
 
@@ -25,8 +27,8 @@ public class Game {
 	private static final int INITIAL_WIDTH = 854;
 	private static final int INITIAL_HEIGHT = 480;
 	
-	private static final float FOV   = 60.0f;
-	private static final float ZNEAR = 0.01f;
+	private static final float FOV   = 70.0f;
+	private static final float ZNEAR = 0.05f;
 	private static final float ZFAR  = 1000.0f;
 	
 	public static boolean showThings = false;
@@ -107,11 +109,6 @@ public class Game {
 			// Update the perspective matrix
 			camera.updatePerspective((float) width / (float) height);
 		});
-		
-		// Add mouse movement callback
-		// TODO: Shove into a player controller class \/
-		
-		// TODO: Shove into a player controller class /\
 		
 		// Setup input modes
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -271,9 +268,6 @@ public class Game {
 	
 	private void update()
 	{
-		// TODO: Shove into a player controller class \/
-		// TODO: Shove into a player controller class /\
-		
 		controller.update();
 		player.update();
 		
@@ -289,7 +283,7 @@ public class Game {
 		// Create the pvm matrix
 		Matrix4f pvm = camera.getTransform();
 		final Matrix4f modelMatrix = new Matrix4f();
-		float[] mat = new float[4 * 4];
+		final float[] mat = new float[4 * 4];
 		chunkShader.setUniformMatrix4fv("pvm", false, pvm.get(mat));
 		
 		glClearColor(0f, 0f, 0f, 1f);
@@ -304,11 +298,9 @@ public class Game {
 		
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		// Draw the chunks
+		// Draw the world
 		chunkShader.bind();
-		
-		worldRenderer.render();
-		
+		worldRenderer.render(camera);
 		chunkShader.unbind();
 		
 		if (controller.showHit)
@@ -325,17 +317,6 @@ public class Game {
 			hitBox.unbind();
 			blackShader.unbind();
 		}
-		
-		// Show hit point
-		/*Vector4f toof = new Vector4f(hitX, hitY, hitZ, 1.0f);
-		toof.mul(camera.getTransform());
-		toof.mul(1.0f / toof.w);
-		
-		glPointSize(10.0f);
-		glColor3f(1.0f, 0.0f, 0.0f);
-		glBegin(GL_POINTS);
-		glVertex2f(toof.x, toof.y);
-		glEnd();*/
 		
 		glPointSize(5.0f);
 		glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
