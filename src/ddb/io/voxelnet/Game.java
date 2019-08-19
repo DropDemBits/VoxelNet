@@ -227,7 +227,7 @@ public class Game {
 			// Catchup loop
 			while(lag >= MS_PER_UPDATE)
 			{
-				update();
+				update((float)MS_PER_UPDATE);
 				ups++;
 				lag -= MS_PER_UPDATE;
 			}
@@ -266,10 +266,10 @@ public class Game {
 		worldRenderer.stop();
 	}
 	
-	private void update()
+	private void update(float delta)
 	{
-		controller.update();
-		player.update();
+		controller.update(delta);
+		player.update(delta);
 		
 		camera.asPlayer(player);
 		camera.updateView();

@@ -22,7 +22,6 @@ public class PlayerController
 	
 	double lastX = 0.0f, lastY = 0.0f;
 	
-	// PlayerController variables
 	float hitX = 0.0f;
 	float hitY = 0.0f;
 	float hitZ = 0.0f;
@@ -30,8 +29,13 @@ public class PlayerController
 	public int blockY = 0;
 	public int blockZ = 0;
 	Facing hitFace = Facing.NORTH;
-	public boolean showHit = false;
 	byte placeID = 1;
+	public boolean showHit = false;
+	
+	float breakTimer = 0.0f;
+	boolean isBreaking = false;
+	float placeTimer = 0.0f;
+	boolean isPlacing = false;
 	
 	private final float boxRad = 1.5f / 16f;
 	private AABBCollider rayBox = new AABBCollider(0, 0, 0, boxRad, boxRad, boxRad);
@@ -62,42 +66,25 @@ public class PlayerController
 				if (button != GLFW_MOUSE_BUTTON_LEFT && button != GLFW_MOUSE_BUTTON_RIGHT)
 					return;
 				
-				// No block was found in range
-				if(!raycast())
-					return;
-				
+				if (button == GLFW_MOUSE_BUTTON_RIGHT)
+					isPlacing = true;
+				else if (button == GLFW_MOUSE_BUTTON_LEFT)
+					isBreaking = true;
+			}
+			else if (action == GLFW_RELEASE)
+			{
 				if (button == GLFW_MOUSE_BUTTON_RIGHT)
 				{
-					Block block = Block.idToBlock(placeID);
-					
-					// If the block can't be placed, don't place it
-					if(!block.canPlaceBlock(
-							player.world,
-							blockX + hitFace.getOffsetX(),
-							blockY + hitFace.getOffsetY(),
-							blockZ + hitFace.getOffsetZ()))
-						return;
-					
-					player.world.setBlock(
-							blockX + hitFace.getOffsetX(),
-							blockY + hitFace.getOffsetY(),
-							blockZ + hitFace.getOffsetZ(),
-							placeID);
-					block.onBlockPlaced(
-							player.world,
-							blockX + hitFace.getOffsetX(),
-							blockY + hitFace.getOffsetY(),
-							blockZ + hitFace.getOffsetZ());
+					// Reset status & timer
+					isPlacing = false;
+					placeTimer = 0;
 				}
 				else if (button == GLFW_MOUSE_BUTTON_LEFT)
 				{
-					Block block = Block.idToBlock(player.world.getBlock(blockX, blockY, blockZ));
-					block.onBlockBroken(player.world, blockX, blockY, blockZ);
-					player.world.setBlock(blockX, blockY, blockZ, (byte) 0);
+					// Reset status & timer
+					isBreaking = false;
+					breakTimer = 0;
 				}
-				
-				// Update the hitbox position
-				showHit = raycast();
 			}
 		});
 		
@@ -130,8 +117,72 @@ public class PlayerController
 		});
 	}
 	
-	public void update()
+	public void update(float delta)
 	{
+		if (breakTimer > 0)
+		{
+			breakTimer -= delta;
+		}
+		else
+		{
+			breakTimer = 0;
+			
+			if (isBreaking && raycast())
+			{
+				Block block = Block.idToBlock(player.world.getBlock(blockX, blockY, blockZ));
+				block.onBlockBroken(player.world, blockX, blockY, blockZ);
+				player.world.setBlock(blockX, blockY, blockZ, (byte) 0);
+				
+				// Update the hit selection
+				showHit = raycast();
+				
+				// 0.25s between block breaks
+				breakTimer = 0.25f;
+			}
+		}
+		
+		if (placeTimer > 0)
+		{
+			placeTimer -= delta;
+		}
+		else
+		{
+			placeTimer = 0;
+			
+			if (isPlacing && raycast())
+			{
+				isPlacing = true;
+				
+				Block block = Block.idToBlock(placeID);
+				
+				// If the block can't be placed, don't place it
+				if(!block.canPlaceBlock(
+						player.world,
+						blockX + hitFace.getOffsetX(),
+						blockY + hitFace.getOffsetY(),
+						blockZ + hitFace.getOffsetZ()))
+					return;
+				
+				player.world.setBlock(
+						blockX + hitFace.getOffsetX(),
+						blockY + hitFace.getOffsetY(),
+						blockZ + hitFace.getOffsetZ(),
+						placeID);
+				block.onBlockPlaced(
+						player.world,
+						blockX + hitFace.getOffsetX(),
+						blockY + hitFace.getOffsetY(),
+						blockZ + hitFace.getOffsetZ());
+				
+				// Update the hit selection
+				showHit = raycast();
+				
+				// 0.25s between block breaks
+				placeTimer = 0.25f;
+			}
+		}
+		
+		
 		float xDir = 0.0f, yDir = 0.0f, zDir = 0.0f;
 		
 		player.speedCoef = 1f;
