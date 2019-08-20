@@ -2,29 +2,18 @@ package ddb.io.voxelnet.render;
 
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.world.Chunk;
+import org.joml.Matrix4f;
 
 /**
  * Model of a chunk being rendered
  */
 public class ChunkModel
 {
-	// Worst case scenario model size: 2064384 B / 2016 KiB / ~ 2 MiB
+	// Worst case scenario model size: 688128 B / 672 KiB
 	public static long generateAccum = 0;
 	public static long generateCount = 0;
 	
-	private static final BufferLayout CHUNK_LAYOUT = new BufferLayout();
-	
-	static {
-		// Setup the buffer layout
-		
-		// Vertex position
-		CHUNK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.FLOAT, 3, false);
-		// TexCoord
-		CHUNK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.FLOAT, 2, false);
-		// Intensity
-		CHUNK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.FLOAT, 1, false);
-	}
-	
+	Matrix4f modelMatrix;
 	Model model;
 	Model transparentLayer;
 	Chunk chunk;
@@ -40,8 +29,10 @@ public class ChunkModel
 	public ChunkModel(Chunk chunk)
 	{
 		this.chunk = chunk;
-		this.model = new Model(CHUNK_LAYOUT);
-		this.transparentLayer = new Model(CHUNK_LAYOUT);
+		this.model = new Model(BlockRenderer.BLOCK_LAYOUT);
+		this.transparentLayer = new Model(BlockRenderer.BLOCK_LAYOUT);
+		this.modelMatrix = new Matrix4f();
+		this.modelMatrix.translate(chunk.chunkX * 16, chunk.chunkY * 16, chunk.chunkZ * 16);
 	}
 	
 	/**
@@ -151,6 +142,11 @@ public class ChunkModel
 	public boolean isDirty()
 	{
 		return isDirty;
+	}
+	
+	public Matrix4f getTransform()
+	{
+		return modelMatrix;
 	}
 	
 	public synchronized void makeClean()

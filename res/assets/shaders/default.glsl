@@ -7,10 +7,11 @@ attribute float lightIntensity;
 varying float frag_lightIntensity;
 varying vec2 frag_texCoord;
 
-uniform mat4 pvm;
+uniform mat4 PVMatrix;
+uniform mat4 ModelMatrix;
 
 void main (void) {
-    gl_Position = pvm * vec4(position, 1);
+    gl_Position = PVMatrix * ModelMatrix * vec4(position, 1);
     frag_texCoord = texCoord;
     frag_lightIntensity = lightIntensity;
 }

@@ -1,8 +1,5 @@
 package ddb.io.voxelnet.render;
 
-import org.joml.Matrix4f;
-import sun.awt.image.ImageWatched;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -20,6 +17,8 @@ public class Shader
 	private final boolean isValid;
 	// Holds the program handle
 	private int programHandle;
+	// Whether the shader is bound or not
+	private boolean isBound = false;
 	private Map<String, Integer> locationCache;
 	
 	public Shader (String path)
@@ -185,30 +184,26 @@ public class Shader
 	
 	/**
 	 * Sets the uniform's value for the current shader
-	 * Must not be contained inside of a bind/unbind pair
+	 * The shader must already be bound
 	 * @param name The name of the uniform to set
 	 * @param value The new value of the uniform
 	 */
 	public void setUniform1i(String name, int value)
 	{
 		int location = getUniform(name);
-		bind();
 		glUniform1i(location, value);
-		unbind();
 	}
 	
 	/**
 	 * Sets the uniform's value for the current shader
-	 * Must not be contained inside of a bind/unbind pair
+	 * The shader must already be bound
 	 * @param name The name of the uniform to set
 	 * @param value The new value of the uniform
 	 */
 	public void setUniformMatrix4fv(String name, boolean transpose, float[] value)
 	{
 		int location = getUniform(name);
-		bind();
 		glUniformMatrix4fv(location, transpose, value);
-		unbind();
 	}
 	
 }

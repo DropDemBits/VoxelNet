@@ -288,7 +288,6 @@ public class Game {
 		Matrix4f pvm = camera.getTransform();
 		final Matrix4f modelMatrix = new Matrix4f();
 		final float[] mat = new float[4 * 4];
-		chunkShader.setUniformMatrix4fv("pvm", false, pvm.get(mat));
 		
 		glClearColor(0f, 0f, 0f, 1f);
 		glEnable(GL_CULL_FACE);
@@ -304,7 +303,9 @@ public class Game {
 		
 		// Draw the world
 		chunkShader.bind();
-		worldRenderer.render(camera);
+		chunkShader.setUniformMatrix4fv("PVMatrix", false, pvm.get(mat));
+		// TODO: Pass a renderer to handle the camera and shader logic
+		worldRenderer.render(chunkShader, camera);
 		chunkShader.unbind();
 		
 		if (controller.showHit)
@@ -313,9 +314,9 @@ public class Game {
 			modelMatrix.translate(controller.blockX - scale / 2, controller.blockY - scale / 2, controller.blockZ - scale / 2);
 			modelMatrix.scale(1.0f + scale);
 			
+			blackShader.bind();
 			blackShader.setUniformMatrix4fv("PVMatrix", false, pvm.get(mat));
 			blackShader.setUniformMatrix4fv("ModelMatrix", false, modelMatrix.get(mat));
-			blackShader.bind();
 			hitBox.bind();
 			glDrawElements(GL_LINES, hitBox.getIndexCount(), GL_UNSIGNED_INT, 0L);
 			hitBox.unbind();

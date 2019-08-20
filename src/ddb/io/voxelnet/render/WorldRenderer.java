@@ -63,10 +63,12 @@ public class WorldRenderer
 			new ThreadedChunkGenerator(generateQueue.pop()).run();*/
 	}
 	
-	public void render(Camera camera)
+	public void render(Shader shader, Camera camera)
 	{
 		// List of chunks that have transparent blocks
 		List<ChunkModel> transparentChunks = new ArrayList<>();
+		
+		final float[] matrix = new float[4 * 4];
 		
 		long opaqueCount = 0;
 		long opaqueAccum = 0;
@@ -105,6 +107,8 @@ public class WorldRenderer
 					chunkModel.makeClean();
 			}
 			
+			chunkModel.getTransform().get(matrix);
+			shader.setUniformMatrix4fv("ModelMatrix", false, matrix);
 			glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
 			model.unbind();
 			
@@ -132,6 +136,8 @@ public class WorldRenderer
 				chunkModel.makeClean();
 			}
 			
+			chunkModel.getTransform().get(matrix);
+			shader.setUniformMatrix4fv("ModelMatrix", false, matrix);
 			glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
 			model.unbind();
 			

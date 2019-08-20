@@ -6,6 +6,19 @@ import ddb.io.voxelnet.world.Chunk;
 
 public class BlockRenderer
 {
+	public static final BufferLayout BLOCK_LAYOUT = new BufferLayout();
+	
+	static {
+		// Setup the buffer layout
+		
+		// Vertex position
+		BLOCK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.UBYTE, 3, false);
+		// TexCoord
+		BLOCK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.USHORT, 2, true);
+		// Intensity
+		BLOCK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.UBYTE, 1, true);
+	}
+	
 	// No instance can be made
 	private BlockRenderer() {}
 	
@@ -53,16 +66,16 @@ public class BlockRenderer
 			if (adjacent == block)
 				continue;
 			
-			float[] texCoords = atlas.getPositions(faceTextures[face.ordinal()]);
+			short[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
 			final float[] faceIntensities = new float[] { 0.85f, 0.85f, 0.85f, 0.85f, 0.95f, 0.75f };
 			BlockRenderer.addCubeFace(
 					model,
-					(float) (chunk.chunkX * 16 + x),
-					(float) (chunk.chunkY * 16 + y),
-					(float) (chunk.chunkZ * 16 + z),
+					(float) (x),
+					(float) (y),
+					(float) (z),
 					face,
 					texCoords,
-					((faceLight + 1f) / 16f) * faceIntensities[face.ordinal()]);
+					(byte)(((faceLight + 1f) / 16f) * faceIntensities[face.ordinal()] * 255));
 		}
 	}
 	
@@ -75,7 +88,7 @@ public class BlockRenderer
 	 * @param face The specific face to draw.
 	 * @param texCoords The texture coordinates of the face
 	 */
-	public static void addCubeFace(Model model, float x, float y, float z, Facing face, float[] texCoords, float intensity)
+	public static void addCubeFace(Model model, float x, float y, float z, Facing face, short[] texCoords, float intensity)
 	{
 		model.beginPoly();
 		switch (face)

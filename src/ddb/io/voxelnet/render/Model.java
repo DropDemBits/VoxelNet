@@ -11,12 +11,6 @@ import static org.lwjgl.opengl.GL20.*;
 
 public class Model
 {
-	// Memory savings
-	// - Use GL_UNSIGNED_BYTE for vtexcoords
-	// - Use GL_UNSIGNED_BYTE or GL_UNSIGNED_SHORT for texcoords
-	// - Use GL_UNSIGNED_BYTE for intensity & calc on GPU (no, but still use for
-	//   normalization post-mapping)
-	
 	/// Tesselator ///
 	/// Polygon State ///
 	// Current starting index for the polygon
