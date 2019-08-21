@@ -35,6 +35,8 @@ public class Model
 	private int vboHandle;
 	private int iboHandle;
 	
+	private boolean isBound = false;
+	
 	// Layout of the vertex buffer
 	private final BufferLayout layout;
 	// Temporary buffer holding a single vertex's data, in bytes
@@ -88,6 +90,10 @@ public class Model
 	 */
 	public void bind()
 	{
+		if(isBound)
+			return;
+		isBound = true;
+		
 		glBindBuffer(GL_ARRAY_BUFFER, vboHandle);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboHandle);
 		
@@ -106,6 +112,10 @@ public class Model
 	 */
 	public void unbind()
 	{
+		if(!isBound)
+			return;
+		isBound = false;
+		
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		

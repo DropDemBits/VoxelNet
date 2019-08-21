@@ -101,12 +101,10 @@ public class WorldRenderer
 			new ThreadedChunkGenerator(generateQueue.pop()).run();*/
 	}
 	
-	public void render(Shader shader, Camera camera)
+	public void render(GameRenderer renderer)
 	{
 		// List of chunks that have transparent blocks
 		List<ChunkModel> transparentChunks = new ArrayList<>();
-		
-		final float[] matrix = new float[4 * 4];
 		
 		long opaqueCount = 0;
 		long opaqueAccum = 0;
@@ -118,7 +116,7 @@ public class WorldRenderer
 				continue;
 			
 			// Perform frustum culling
-			if (!camera.getViewFrustum().isSphereInside(
+			if (!renderer.getCamera().getViewFrustum().isSphereInside(
 					(chunkModel.chunk.chunkX << 4) + 8.5f,
 					(chunkModel.chunk.chunkY << 4) + 8.5f,
 					(chunkModel.chunk.chunkZ << 4) + 8.5f,
@@ -139,6 +137,7 @@ public class WorldRenderer
 			Model model = chunkModel.getModel();
 			
 			model.bind();
+			
 			// Update the vertices if an update is not in progress
 			if (!isUpdating && chunkModel.isDirty())
 			{
@@ -149,10 +148,7 @@ public class WorldRenderer
 					chunkModel.makeClean();
 			}
 			
-			chunkModel.getTransform().get(matrix);
-			shader.setUniformMatrix4fv("ModelMatrix", false, matrix);
-			glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
-			model.unbind();
+			renderer.drawModel(model, chunkModel.getTransform());
 			
 			++opaqueCount;
 			opaqueAccum += System.nanoTime() - opaqueStart;
@@ -178,10 +174,7 @@ public class WorldRenderer
 				chunkModel.makeClean();
 			}
 			
-			chunkModel.getTransform().get(matrix);
-			shader.setUniformMatrix4fv("ModelMatrix", false, matrix);
-			glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0);
-			model.unbind();
+			renderer.drawModel(model, chunkModel.getTransform());
 			
 			transparentAccum += System.nanoTime() - transparentStart;
 		}

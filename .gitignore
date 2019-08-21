@@ -209,3 +209,6 @@ nbdist/
 ### VoxelNet Specific ###
 # Local save data
 world.dat
+
+### Local Files ###
+notes/

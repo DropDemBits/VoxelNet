@@ -31,20 +31,23 @@ public class Game {
 	
 	/** Current window associated with this game instance */
 	long window;
-	/** Current shader program */
+	WorldSave worldSave;
+	World world;
+	
+	EntityPlayer player;
+	PlayerController controller;
+	
+	Model hitBox;
+	
+	// Rendering things
 	Shader chunkShader;
 	Shader blackShader;
 	
 	Texture texture;
-	WorldSave worldSave;
-	World world;
-	WorldRenderer worldRenderer;
 	
-	PlayerController controller;
-	EntityPlayer player;
 	Camera camera;
-	
-	Model hitBox;
+	WorldRenderer worldRenderer;
+	GameRenderer renderer;
 	
 	private void run()
 	{
@@ -124,7 +127,10 @@ public class Game {
 		// Initialize the blocks
 		Block.init();
 		
-		// Setup the world, world save/loader, and renderer
+		// Setup the game renderer
+		renderer = new GameRenderer();
+		
+		// Setup the world, world save/loader, and world renderer
 		world = new World();
 		worldSave = new WorldSave(world, "world.dat");
 		worldRenderer = new WorldRenderer(world, atlas);
@@ -146,6 +152,7 @@ public class Game {
 		// Setup the camera
 		camera = new Camera(FOV, ZNEAR, ZFAR);
 		camera.setOffset(0, player.eyeHeight, 0);
+		renderer.useCamera(camera);
 		
 		// Setup the hitbox & shader
 		blackShader = new Shader("assets/shaders/blackShader.glsl");
@@ -208,6 +215,7 @@ public class Game {
 		camera.asPlayer(player);
 		camera.updateView();
 		
+		// Setup the main texture
 		chunkShader.bind();
 		chunkShader.setUniform1i("texture0", 0);
 		chunkShader.unbind();
@@ -309,11 +317,10 @@ public class Game {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		// Draw the world
-		chunkShader.bind();
-		chunkShader.setUniformMatrix4fv("PVMatrix", false, pvm.get(mat));
-		// TODO: Pass a renderer to handle the camera and shader logic
-		worldRenderer.render(chunkShader, camera);
-		chunkShader.unbind();
+		renderer.useShader(chunkShader);
+		renderer.prepare();
+		worldRenderer.render(renderer);
+		renderer.finish();
 		
 		if (controller.showHit)
 		{
@@ -321,13 +328,10 @@ public class Game {
 			modelMatrix.translate(controller.blockX - scale / 2, controller.blockY - scale / 2, controller.blockZ - scale / 2);
 			modelMatrix.scale(1.0f + scale);
 			
-			blackShader.bind();
-			blackShader.setUniformMatrix4fv("PVMatrix", false, pvm.get(mat));
-			blackShader.setUniformMatrix4fv("ModelMatrix", false, modelMatrix.get(mat));
-			hitBox.bind();
-			glDrawElements(GL_LINES, hitBox.getIndexCount(), GL_UNSIGNED_INT, 0L);
-			hitBox.unbind();
-			blackShader.unbind();
+			renderer.useShader(chunkShader);
+			renderer.prepare();
+			renderer.drawModel(hitBox, modelMatrix);
+			renderer.finish();
 		}
 		
 		glPointSize(5.0f);
