@@ -1,4 +1,4 @@
-package ddb.io.voxelnet.render;
+package ddb.io.voxelnet.client.render;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;

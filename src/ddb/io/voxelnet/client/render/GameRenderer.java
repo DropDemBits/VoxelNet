@@ -1,4 +1,4 @@
-package ddb.io.voxelnet.render;
+package ddb.io.voxelnet.client.render;
 
 import org.joml.Matrix4f;
 
@@ -78,16 +78,15 @@ public class GameRenderer
 	/**
 	 * Draws a single model
 	 * @param model The model to draw
-	 * @param modelMatrix The model transform to use
 	 */
-	public void drawModel(Model model, Matrix4f modelMatrix)
+	public void drawModel(Model model)
 	{
 		// Upload the model matrix
-		modelMatrix.get(matrix);
+		model.getTransform().get(matrix);
 		currentShader.setUniformMatrix4fv("ModelMatrix", false, matrix);
 		
 		model.bind();
-		glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, 0L);
+		glDrawElements(model.getDrawMode().toGLEnum(), model.getIndexCount(), GL_UNSIGNED_INT, 0L);
 		model.unbind();
 	}
 	

@@ -1,4 +1,4 @@
-package ddb.io.voxelnet.render;
+package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.util.Facing;

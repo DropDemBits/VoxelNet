@@ -1,4 +1,4 @@
-package ddb.io.voxelnet.render;
+package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.util.Vec3i;
@@ -8,9 +8,6 @@ import ddb.io.voxelnet.world.World;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Stream;
-
-import static org.lwjgl.opengl.GL11.*;
 
 public class WorldRenderer
 {
@@ -134,7 +131,7 @@ public class WorldRenderer
 			if (chunkModel.hasTransparency())
 				transparentChunks.add(chunkModel);
 			
-			Model model = chunkModel.getModel();
+			Model model = chunkModel.getOpaqueLayer();
 			
 			model.bind();
 			
@@ -148,7 +145,7 @@ public class WorldRenderer
 					chunkModel.makeClean();
 			}
 			
-			renderer.drawModel(model, chunkModel.getTransform());
+			renderer.drawModel(model);
 			
 			++opaqueCount;
 			opaqueAccum += System.nanoTime() - opaqueStart;
@@ -169,12 +166,12 @@ public class WorldRenderer
 			{
 				// Update both models
 				// Done just in case the update status has changed between the loops
-				chunkModel.getModel().updateVertices();
+				chunkModel.getOpaqueLayer().updateVertices();
 				model.updateVertices();
 				chunkModel.makeClean();
 			}
 			
-			renderer.drawModel(model, chunkModel.getTransform());
+			renderer.drawModel(model);
 			
 			transparentAccum += System.nanoTime() - transparentStart;
 		}

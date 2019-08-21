@@ -2,8 +2,8 @@ package ddb.io.voxelnet;
 
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.entity.EntityPlayer;
-import ddb.io.voxelnet.input.PlayerController;
-import ddb.io.voxelnet.render.*;
+import ddb.io.voxelnet.client.input.PlayerController;
+import ddb.io.voxelnet.client.render.*;
 import ddb.io.voxelnet.world.World;
 import ddb.io.voxelnet.world.WorldSave;
 import org.joml.Matrix4f;
@@ -161,7 +161,9 @@ public class Game {
 		simpleLayout.addAttribute(BufferLayout.EnumAttribType.FLOAT, 3, false);
 		
 		hitBox = new Model(simpleLayout);
-		hitBox.drawLines = true;
+		hitBox.setTransform(new Matrix4f());
+		hitBox.setDrawMode(EnumDrawMode.TRIANGLES);
+		
 		hitBox.beginPoly();
 		hitBox.addVertex(0f, 0f, 0f);
 		hitBox.addVertex(1f, 0f, 0f);
@@ -299,9 +301,6 @@ public class Game {
 	
 	private void render(double partialTicks)
 	{
-		// Model matrix for the hitbox
-		final Matrix4f modelMatrix = new Matrix4f();
-		
 		renderer.begin();
 		
 		// Draw the world
@@ -315,12 +314,14 @@ public class Game {
 		{
 			// ???: Should the model matrix be part of the model?
 			final float scale = 0.00390625f;
+			Matrix4f modelMatrix = hitBox.getTransform();
+			modelMatrix.identity();
 			modelMatrix.translate(controller.blockX - scale / 2, controller.blockY - scale / 2, controller.blockZ - scale / 2);
 			modelMatrix.scale(1.0f + scale);
 			
-			renderer.useShader(chunkShader);
+			renderer.useShader(blackShader);
 			renderer.prepareShader();
-			renderer.drawModel(hitBox, modelMatrix);
+			renderer.drawModel(hitBox);
 			renderer.finishShader();
 		}
 		

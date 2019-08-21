@@ -1,4 +1,4 @@
-package ddb.io.voxelnet.input;
+package ddb.io.voxelnet.client.input;
 
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;

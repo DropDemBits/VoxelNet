@@ -1,9 +1,10 @@
-package ddb.io.voxelnet.render;
+package ddb.io.voxelnet.client.render;
+
+import org.joml.Matrix4f;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.lwjgl.opengl.GL15.*;
@@ -22,6 +23,10 @@ public class Model
 	// Whether to create lines or not
 	public boolean drawLines = false;
 	
+	/// Shared ///
+	// Draw mode of the model. TRIANGLES by default
+	private EnumDrawMode drawMode = EnumDrawMode.TRIANGLES;
+	
 	/// Model Data ///
 	// Vertex Data
 	// Vertex position (in byte[])
@@ -35,12 +40,16 @@ public class Model
 	private int vboHandle;
 	private int iboHandle;
 	
+	// Binding state of the buffer
 	private boolean isBound = false;
 	
 	// Layout of the vertex buffer
 	private final BufferLayout layout;
 	// Temporary buffer holding a single vertex's data, in bytes
 	private final ByteBuffer vertex;
+	
+	// Transformation matrix of the model
+	private Matrix4f modelMatrix;
 	
 	/**
 	 * Creates a new model with the specified vertex layout
@@ -66,6 +75,24 @@ public class Model
 	private int[] getIndexData()
 	{
 		return indices.stream().mapToInt(f -> f == null ? -1 : f).toArray();
+	}
+	
+	/**
+	 * Sets the draw mode for the model
+	 * @param mode The new draw mode for the model
+	 */
+	public void setDrawMode(EnumDrawMode mode)
+	{
+		this.drawMode = mode;
+	}
+	
+	/**
+	 * Gets the draw mode of the model
+	 * @return The draw mode of the model
+	 */
+	public EnumDrawMode getDrawMode()
+	{
+		return drawMode;
 	}
 	
 	/**
@@ -136,6 +163,25 @@ public class Model
 		return indiciesCount;
 	}
 	
+	/**
+	 * Sets the transform matrix of the model
+	 * @param matrix The matrix to use as the transform
+	 */
+	public void setTransform(Matrix4f matrix)
+	{
+		this.modelMatrix = matrix;
+	}
+	
+	/**
+	 * Gets the models' associated transform
+	 * @return The model's model matrix
+	 */
+	public Matrix4f getTransform()
+	{
+		return modelMatrix;
+	}
+	
+	/// Tessellator Methods ///
 	/**
 	 * Reset the construction state
 	 * Used to regenerate models

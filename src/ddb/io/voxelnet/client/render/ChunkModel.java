@@ -1,4 +1,4 @@
-package ddb.io.voxelnet.render;
+package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.world.Chunk;
@@ -14,9 +14,9 @@ public class ChunkModel
 	public static long generateCount = 0;
 	
 	Matrix4f modelMatrix;
-	Model model;
-	Model transparentLayer;
 	Chunk chunk;
+	private Model opaqueLayer;
+	private Model transparentLayer;
 	private volatile boolean isDirty = false;
 	private volatile boolean updatePending = false;
 	private volatile boolean updateInProgress = false;
@@ -29,10 +29,13 @@ public class ChunkModel
 	public ChunkModel(Chunk chunk)
 	{
 		this.chunk = chunk;
-		this.model = new Model(BlockRenderer.BLOCK_LAYOUT);
+		this.opaqueLayer = new Model(BlockRenderer.BLOCK_LAYOUT);
 		this.transparentLayer = new Model(BlockRenderer.BLOCK_LAYOUT);
 		this.modelMatrix = new Matrix4f();
 		this.modelMatrix.translate(chunk.chunkX * 16, chunk.chunkY * 16, chunk.chunkZ * 16);
+		
+		this.opaqueLayer.setTransform(this.modelMatrix);
+		this.transparentLayer.setTransform(this.modelMatrix);
 	}
 	
 	/**
@@ -47,8 +50,8 @@ public class ChunkModel
 			return false;
 		
 		// Reset the models
-		if (model.getIndexCount() > 0)
-			model.reset();
+		if (opaqueLayer.getIndexCount() > 0)
+			opaqueLayer.reset();
 		
 		if (transparentLayer.getIndexCount() > 0)
 			transparentLayer.reset();
@@ -86,7 +89,7 @@ public class ChunkModel
 						continue;
 					
 					Block block = Block.idToBlock(id);
-					Model targetModel = model;
+					Model targetModel = opaqueLayer;
 					
 					if (block.isTransparent())
 					{
@@ -133,9 +136,9 @@ public class ChunkModel
 	 * Gets the model associated with this chunk model
 	 * @return The model associated with this chunk model
 	 */
-	public Model getModel()
+	public Model getOpaqueLayer()
 	{
-		return model;
+		return opaqueLayer;
 	}
 	
 	/**
@@ -165,7 +168,7 @@ public class ChunkModel
 		// Update the model data
 		
 		// Free the excess vertex data
-		model.freeData();
+		opaqueLayer.freeData();
 		transparentLayer.freeData();
 		
 		isDirty = false;
