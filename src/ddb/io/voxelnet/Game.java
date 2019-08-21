@@ -1,21 +1,17 @@
 package ddb.io.voxelnet;
 
 import ddb.io.voxelnet.block.Block;
-import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.input.PlayerController;
 import ddb.io.voxelnet.render.*;
-import ddb.io.voxelnet.util.Facing;
-import ddb.io.voxelnet.util.Frustum;
 import ddb.io.voxelnet.world.World;
+import ddb.io.voxelnet.world.WorldSave;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
-import sun.security.provider.certpath.Vertex;
 
 import java.nio.IntBuffer;
 
@@ -38,8 +34,9 @@ public class Game {
 	/** Current shader program */
 	Shader chunkShader;
 	Shader blackShader;
-	/** List of chunks to render */
+	
 	Texture texture;
+	WorldSave worldSave;
 	World world;
 	WorldRenderer worldRenderer;
 	
@@ -127,9 +124,15 @@ public class Game {
 		// Initialize the blocks
 		Block.init();
 		
-		// Setup the world and world renderer
+		// Setup the world, world save/loader and world renderer
 		world = new World();
+		worldSave = new WorldSave(world, "world.dat");
 		worldRenderer = new WorldRenderer(world, atlas);
+		
+		if (worldSave.canLoad())
+			worldSave.load();
+		//else
+		//world.generate();
 		
 		// Setup the player
 		player = new EntityPlayer();
@@ -268,6 +271,9 @@ public class Game {
 		
 		// Stop the generator threads
 		worldRenderer.stop();
+		
+		// Save the world
+		worldSave.save();
 	}
 	
 	private void update(float delta)

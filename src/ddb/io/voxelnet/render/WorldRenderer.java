@@ -1,5 +1,6 @@
 package ddb.io.voxelnet.render;
 
+import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.Chunk;
 import ddb.io.voxelnet.world.World;
@@ -12,6 +13,8 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class WorldRenderer
 {
+	// Player that the world is rendered around
+	private EntityPlayer player;
 	// List of chunks to render
 	private Map<Vec3i, ChunkModel> renderChunks = new LinkedHashMap<>();
 	// List of chunks that need model updates
@@ -39,7 +42,7 @@ public class WorldRenderer
 				chunk.setGenerated();
 			}
 			
-			if (chunk.isDirty())
+			if (chunk.needsRebuild())
 			{
 				assert(renderChunks.get(pos) != null);
 				if (!renderChunks.get(pos).isUpdatePending())
@@ -55,8 +58,9 @@ public class WorldRenderer
 		// Enqueue more updates
 		for(int upd = 0; upd < 16 && !generateQueue.empty(); upd++)
 		{
+			ChunkModel model = generateQueue.peek();
 			generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
-			//System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
+			System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
 		}
 		
 		/*if (!generateQueue.isEmpty())
@@ -162,7 +166,7 @@ public class WorldRenderer
 	
 	public void stop()
 	{
-		generatePool.shutdown();
+		generatePool.shutdownNow();
 	}
 	
 	private class ThreadedChunkGenerator implements Runnable

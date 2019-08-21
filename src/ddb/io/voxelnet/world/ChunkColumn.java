@@ -22,4 +22,17 @@ public class ChunkColumn
 		this.columnX = x;
 		this.columnZ = z;
 	}
+	
+	/**
+	 * Creates a chunk column from existing data
+	 * @param x The x position of the column
+	 * @param z The z position of the column
+	 * @param opaqueColumns Opaque column data
+	 */
+	public ChunkColumn(int x, int z, byte[] opaqueColumns)
+	{
+		this(x, z);
+		
+		System.arraycopy(opaqueColumns, 0, this.opaqueColumns, 0, this.opaqueColumns.length);
+	}
 }

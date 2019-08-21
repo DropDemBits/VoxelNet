@@ -15,21 +15,24 @@ public class World
 	// Highest, opaque block in each chunk column (vertical group of chunks)
 	// Accessed by index = x + z * 16
 	// TODO: Add Vec2i
-	private final Map<Vec3i, ChunkColumn> chunkColumns = new LinkedHashMap<>();
+	final Map<Vec3i, ChunkColumn> chunkColumns = new LinkedHashMap<>();
 	private final Chunk EMPTY_CHUNK;
+	
+	// WorldGen
+	private long worldSeed;
 	private Random worldRandom;
 	
 	public World()
 	{
 		EMPTY_CHUNK = new Chunk(this, 0, -64, 0);
-		worldRandom = new Random(System.currentTimeMillis());
-		generate();
+		worldSeed = System.currentTimeMillis();
+		worldRandom = new Random(worldSeed);
 	}
 	
 	/**
 	 * Generates a set of chunks
 	 */
-	private void generate()
+	public void generate()
 	{
 		for (int cx = -8; cx <= 7; cx++)
 		{
@@ -50,6 +53,17 @@ public class World
 			
 			explode(x, y, z, radius);
 		}
+	}
+	
+	public void setWorldSeed(long newSeed)
+	{
+		worldSeed = newSeed;
+		worldRandom.setSeed(newSeed);
+	}
+	
+	public long getWorldSeed()
+	{
+		return worldSeed;
 	}
 	
 	/**
@@ -217,14 +231,14 @@ public class World
 		
 		// Update the adjacent in the column chunks if the block is at one of the chunk edges
 		if (blockY == 15)
-			loadedChunks.getOrDefault(chunkPos.add( 0,  1,  0), EMPTY_CHUNK).makeDirty();
+			loadedChunks.getOrDefault(chunkPos.add( 0,  1,  0), EMPTY_CHUNK).forceRebuild();
 		
 		for(int yPos = chunkPos.getY(); yPos >= 0; yPos--)
 		{
 			int yOff = yPos - chunkPos.getY();
 			
 			if (yOff != 0)
-				loadedChunks.getOrDefault(chunkPos.add(0, yOff, 0), EMPTY_CHUNK).makeDirty();
+				loadedChunks.getOrDefault(chunkPos.add(0, yOff, 0), EMPTY_CHUNK).forceRebuild();
 			
 			// If there was no lighting update, only update the directly
 			// adjacent chunks
@@ -232,14 +246,14 @@ public class World
 				break;
 			
 			if (blockX == 0)
-				loadedChunks.getOrDefault(chunkPos.add(-1, yOff, 0), EMPTY_CHUNK).makeDirty();
+				loadedChunks.getOrDefault(chunkPos.add(-1, yOff, 0), EMPTY_CHUNK).forceRebuild();
 			else if (blockX == 15)
-				loadedChunks.getOrDefault(chunkPos.add(1, yOff, 0), EMPTY_CHUNK).makeDirty();
+				loadedChunks.getOrDefault(chunkPos.add(1, yOff, 0), EMPTY_CHUNK).forceRebuild();
 			
 			if (blockZ == 0)
-				loadedChunks.getOrDefault(chunkPos.add(0, yOff, -1), EMPTY_CHUNK).makeDirty();
+				loadedChunks.getOrDefault(chunkPos.add(0, yOff, -1), EMPTY_CHUNK).forceRebuild();
 			else if (blockZ == 15)
-				loadedChunks.getOrDefault(chunkPos.add(0, yOff, 1), EMPTY_CHUNK).makeDirty();
+				loadedChunks.getOrDefault(chunkPos.add(0, yOff, 1), EMPTY_CHUNK).forceRebuild();
 		}
 	}
 	
@@ -317,16 +331,6 @@ public class World
 	
 	public void update()
 	{
-		int dirtyCount = 0;
-		
-		// TODO: REM TO REMOVE THIS FROM TESTING
-		// Go through all of the chunks
-		/*for(Chunk chunk : loadedChunks.values())
-		{
-			if (worldRandom.nextInt(4) == 0)
-				chunk.makeDirty();
-			if(++dirtyCount >= 8)
-				break;
-		}*/
+	
 	}
 }

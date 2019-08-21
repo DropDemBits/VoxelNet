@@ -17,10 +17,10 @@ public class ChunkModel
 	Model model;
 	Model transparentLayer;
 	Chunk chunk;
-	private boolean isDirty = false;
-	private boolean updatePending = false;
-	private boolean updateInProgress = false;
-	private boolean hasTransparency = false;
+	private volatile boolean isDirty = false;
+	private volatile boolean updatePending = false;
+	private volatile boolean updateInProgress = false;
+	private volatile boolean hasTransparency = false;
 	
 	/**
 	 * Creates a chunk model
@@ -43,7 +43,7 @@ public class ChunkModel
 	public boolean updateModel(TextureAtlas atlas)
 	{
 		// Check if the chunk actually needs to be re-rendered
-		if (!chunk.isDirty())
+		if (!chunk.needsRebuild())
 			return false;
 		
 		// Reset the models
@@ -54,7 +54,7 @@ public class ChunkModel
 			transparentLayer.reset();
 		
 		// Indicate that the chunk has been updated
-		chunk.makeClean();
+		chunk.resetRebuildStatus();
 		
 		// Check if the chunk has been made empty
 		if (chunk.isEmpty())
@@ -116,6 +116,14 @@ public class ChunkModel
 			System.out.println("---------------------------------");
 		}
 		
+		try
+		{
+			Thread.sleep(100);
+		} catch (InterruptedException e)
+		{
+			e.printStackTrace();
+		}
+		
 		// Defer the vertex buffer update to the render stage
 		isDirty = true;
 		return true;
@@ -153,6 +161,8 @@ public class ChunkModel
 	{
 		if(!isDirty)
 			return;
+		
+		// Update the model data
 		
 		// Free the excess vertex data
 		model.freeData();

@@ -24,6 +24,8 @@ public class Chunk
 	// If the chunk holds data (by default, they are empty)
 	private boolean isEmpty = true;
 	// If the chunk needs to be re-rendered
+	private boolean needsRebuild = false;
+	// If the chunk needs to be saved to disk
 	private boolean isDirty = false;
 	// If the chunk was recently generated
 	private boolean recentlyGenerated = true;
@@ -47,16 +49,50 @@ public class Chunk
 	}
 	
 	/**
+	 * Constructs a chunk from existing data
+	 * @param world The world associated with the chunk
+	 * @param x The chunk x position
+	 * @param y The chunk y position
+	 * @param z The chunk z position
+	 * @param blockData The chunk block data
+	 * @param blockLights The chunk block light data
+	 * @param blockCount The chunk's block count
+	 */
+	public Chunk(World world, int x, int y, int z, byte[] blockData, byte[] blockLights, short blockCount)
+	{
+		this(world, x, y, z);
+		
+		this.blockCount = blockCount;
+		System.arraycopy(blockData, 0, this.blockData, 0, this.blockData.length);
+		System.arraycopy(blockLights, 0, this.blockLights, 0, this.blockLights.length);
+		
+		// Update the rebuild state
+		needsRebuild = true;
+		
+		// Most likely not empty
+		isEmpty = false;
+	}
+	
+	/**
 	 * Gets the block data for the chunk
 	 * The data is organized in a single dimension list, and is always accessed
 	 * using the following formula:
 	 * <code>x + z * 16 + y * (16 * 16)</code>
 	 * @return The block data for this chunk
 	 */
-	public byte[] getData()
-	{
-		return blockData;
-	}
+	public byte[] getData() { return blockData; }
+	
+	/**
+	 * Gets the per-block light data in the chunk
+	 * @return The block light data of the chunk
+	 */
+	public byte[] getLightData() { return blockLights; }
+	
+	/**
+	 * Gets the number of blocks in the chunk
+	 * @return The number of blocks in the chunk
+	 */
+	public short getBlockCount() { return blockCount; }
 	
 	/**
 	 * Sets the block at the specified block position to the specified id
@@ -75,8 +111,9 @@ public class Chunk
 		byte lastBlock = blockData[x + z * 16 + y * 256];
 		blockData[x + z * 16 + y * 256] = id;
 		
-		// Update the dirty state
+		// Update the dirty & rebuild states
 		isDirty = true;
+		needsRebuild = true;
 		
 		if(Game.showThings)
 			System.out.println("block ("+x+", "+y+", "+z+") "+id);
@@ -143,8 +180,8 @@ public class Chunk
 	}
 	
 	/**
-	 * Checks if the chunk is dirty and needs to be re-rendered
-	 * @return True if the chunk needs to be re-rendered
+	 * Checks if the chunk is dirty and needs to be saved to disk
+	 * @return True if the chunk needs to be saved
 	 */
 	public boolean isDirty()
 	{
@@ -165,6 +202,31 @@ public class Chunk
 	public void makeDirty()
 	{
 		isDirty = true;
+	}
+	
+	/**
+	 * Checks if the chunk needs to be re-rendered
+	 * @return True if the chunk needs to be re-rendered
+	 */
+	public boolean needsRebuild()
+	{
+		return needsRebuild;
+	}
+	
+	/**
+	 * Resets the chunk rebuild status
+	 */
+	public void resetRebuildStatus()
+	{
+		needsRebuild = false;
+	}
+	
+	/**
+	 * Forces a chunk rebuild to occur
+	 */
+	public void forceRebuild()
+	{
+		needsRebuild = true;
 	}
 	
 	/**
