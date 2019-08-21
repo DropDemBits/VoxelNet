@@ -92,7 +92,7 @@ public class Game {
 		// Update the window context
 		glfwMakeContextCurrent(window);
 		// Setup vsync
-		glfwSwapInterval(1);
+		glfwSwapInterval(0);
 		// Show the window
 		glfwShowWindow(window);
 		
@@ -124,20 +124,21 @@ public class Game {
 		// Initialize the blocks
 		Block.init();
 		
-		// Setup the world, world save/loader and world renderer
+		// Setup the world, world save/loader, and renderer
 		world = new World();
 		worldSave = new WorldSave(world, "world.dat");
 		worldRenderer = new WorldRenderer(world, atlas);
 		
 		if (worldSave.canLoad())
 			worldSave.load();
-		//else
-		//world.generate();
+		else
+			world.generate();
 		
 		// Setup the player
 		player = new EntityPlayer();
 		player.setPos(0.0f, 256.0f, 0.0f);
 		player.setWorld(world);
+		worldRenderer.setPlayer(player);
 		
 		// Setup the controller
 		controller = new PlayerController(window, player);

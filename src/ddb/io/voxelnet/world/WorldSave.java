@@ -35,15 +35,18 @@ public class WorldSave
 	 */
 	public void save()
 	{
-		// Backup the old world
-		System.out.println("Backing up " + saveFile);
-		try
+		if (canLoad())
 		{
-			Files.copy(Paths.get(saveFile), Paths.get(saveFile + ".bak"), StandardCopyOption.REPLACE_EXISTING);
-		} catch (IOException e)
-		{
-			System.err.println("Unable to backup old world! Overwriting without a backup copy");
-			e.printStackTrace();
+			// Backup the old world if it can be loaded
+			System.out.println("Backing up " + saveFile);
+			try
+			{
+				Files.copy(Paths.get(saveFile), Paths.get(saveFile + ".bak"), StandardCopyOption.REPLACE_EXISTING);
+			} catch (IOException e)
+			{
+				System.err.println("Unable to backup old world! Overwriting without a backup copy");
+				e.printStackTrace();
+			}
 		}
 		
 		System.out.println("Saving world to " + saveFile);

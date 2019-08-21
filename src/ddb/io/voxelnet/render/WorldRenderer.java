@@ -8,6 +8,7 @@ import ddb.io.voxelnet.world.World;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 import static org.lwjgl.opengl.GL11.*;
 
@@ -18,7 +19,6 @@ public class WorldRenderer
 	// List of chunks to render
 	private Map<Vec3i, ChunkModel> renderChunks = new LinkedHashMap<>();
 	// List of chunks that need model updates
-	// TODO: Add threads for chunk model generation
 	private Stack<ChunkModel> generateQueue = new Stack<>();
 	private ExecutorService generatePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
 	private TextureAtlas atlas;
@@ -30,9 +30,14 @@ public class WorldRenderer
 		this.atlas = atlas;
 	}
 	
+	public void setPlayer(EntityPlayer player)
+	{
+		this.player = player;
+	}
+	
 	public void update()
 	{
-		for (Chunk chunk : world.loadedChunks.values())
+		for(Chunk chunk : world.loadedChunks.values())
 		{
 			Vec3i pos = new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ);
 			if (chunk.recentlyGenerated())
@@ -53,6 +58,24 @@ public class WorldRenderer
 					//System.out.println("Pending Add (" + generateQueue.size() + ") " + pos.toString());
 				}
 			}
+		};
+		
+		if (!generateQueue.isEmpty())
+		{
+			// Sort generate queue by distance to player
+			generateQueue.sort((modelA, modelB) ->
+			{
+				Chunk a = modelA.chunk;
+				Chunk b = modelB.chunk;
+				
+				float distA = (float) (Math.pow((a.chunkX << 4) - player.xPos, 2) +
+						Math.pow((a.chunkY << 4) - player.yPos, 2) +
+						Math.pow((a.chunkZ << 4) - player.zPos, 2));
+				float distB = (float) (Math.pow((b.chunkX << 4) - player.xPos, 2) +
+						Math.pow((b.chunkY << 4) - player.yPos, 2) +
+						Math.pow((b.chunkZ << 4) - player.zPos, 2));
+				return Float.compare(distB, distA);
+			});
 		}
 		
 		// Enqueue more updates

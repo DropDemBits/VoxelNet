@@ -202,7 +202,7 @@ public class EntityPlayer
 			int blockZ = Math.round(zPos - 0.5f);
 			
 			//System.out.println("P (" + xPos + ", " + yPos + ", " + zPos + ")");
-			System.out.println("B (" + blockX + ", " + blockY + ", " + blockZ + ")");
+			//System.out.println("B (" + blockX + ", " + blockY + ", " + blockZ + ")");
 			//System.out.println("V (" + xVel + ", " + yVel + ", " + zVel + ")");
 			//System.out.println("-----------------------------------");
 		}

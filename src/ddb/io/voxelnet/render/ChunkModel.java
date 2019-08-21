@@ -116,13 +116,13 @@ public class ChunkModel
 			System.out.println("---------------------------------");
 		}
 		
-		try
+		/*try
 		{
 			Thread.sleep(100);
 		} catch (InterruptedException e)
 		{
 			e.printStackTrace();
-		}
+		}*/
 		
 		// Defer the vertex buffer update to the render stage
 		isDirty = true;

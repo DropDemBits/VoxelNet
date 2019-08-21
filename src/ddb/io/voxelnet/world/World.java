@@ -34,6 +34,7 @@ public class World
 	 */
 	public void generate()
 	{
+		System.out.println("Generating world with seed " + worldSeed);
 		for (int cx = -8; cx <= 7; cx++)
 		{
 			for (int cz = -8; cz <= 7; cz++)
@@ -42,17 +43,18 @@ public class World
 			}
 		}
 		
-		// Create tiny explosions in the world (worldgen test)
-		int explosionCount = worldRandom.nextInt(100) + 50;
+		// Create explosions in the world (worldgen test)
+		int explosionCount = worldRandom.nextInt(200) + 50;
 		for (int i = 0; i < explosionCount; i++)
 		{
 			int x = worldRandom.nextInt(256) - 128;
 			int y = worldRandom.nextInt(64);
 			int z = worldRandom.nextInt(256) - 128;
-			int radius = worldRandom.nextInt(14) + 2;
+			int radius = worldRandom.nextInt(32) + 8;
 			
 			explode(x, y, z, radius);
 		}
+		System.out.println("Done generation");
 	}
 	
 	public void setWorldSeed(long newSeed)
