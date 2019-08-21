@@ -35,6 +35,8 @@ public class BlockRenderer
 	 */
 	public static void addCube(Model model, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
 	{
+		final double LN_4 = Math.log(4);
+		
 		for (Facing face : Facing.values())
 		{
 			// If the specified face is -1, the face isn't supposed to be rendered
@@ -67,7 +69,7 @@ public class BlockRenderer
 				continue;
 			
 			short[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
-			final float[] faceIntensities = new float[] { 0.85f, 0.85f, 0.85f, 0.85f, 0.95f, 0.75f };
+			final float[] faceIntensities = new float[] { 0.75f, 0.75f, 0.75f, 0.75f, 0.95f, 0.55f };
 			BlockRenderer.addCubeFace(
 					model,
 					(float) (x),

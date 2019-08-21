@@ -16,13 +16,18 @@ public class WorldRenderer
 {
 	// Player that the world is rendered around
 	private EntityPlayer player;
-	// List of chunks to render
+	// List of all chunk models
 	private Map<Vec3i, ChunkModel> renderChunks = new LinkedHashMap<>();
+	// List of chunk models to render
+	private List<ChunkModel> renderList = new ArrayList<>();
 	// List of chunks that need model updates
 	private Stack<ChunkModel> generateQueue = new Stack<>();
 	private ExecutorService generatePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
 	private TextureAtlas atlas;
 	private World world;
+	
+	// Last chunk position of the player
+	private int lastChunkX = 0, lastChunkY = 0, lastChunkZ = 0;
 	
 	public WorldRenderer(World world, TextureAtlas atlas)
 	{
@@ -37,13 +42,18 @@ public class WorldRenderer
 	
 	public void update()
 	{
+		boolean newChunks = false;
+		
 		for(Chunk chunk : world.loadedChunks.values())
 		{
 			Vec3i pos = new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ);
 			if (chunk.recentlyGenerated())
 			{
+				// New chunk generated
+				newChunks = true;
 				ChunkModel model = new ChunkModel(chunk);
 				renderChunks.put(pos, model);
+				renderList.add(model);
 				chunk.setGenerated();
 			}
 			
@@ -60,26 +70,27 @@ public class WorldRenderer
 			}
 		};
 		
-		if (!generateQueue.isEmpty())
+		if( (int)player.xPos >> 4 != lastChunkX ||
+			(int)player.yPos >> 4 != lastChunkY ||
+			(int)player.zPos >> 4 != lastChunkZ ||
+			newChunks)
 		{
-			// Sort generate queue by distance to player
-			generateQueue.sort((modelA, modelB) ->
+			// Sort for every new chunk added or change in the player's chunk
+			System.out.println("sort!");
+			
+			if (!generateQueue.isEmpty())
 			{
-				Chunk a = modelA.chunk;
-				Chunk b = modelB.chunk;
-				
-				float distA = (float) (Math.pow((a.chunkX << 4) - player.xPos, 2) +
-						Math.pow((a.chunkY << 4) - player.yPos, 2) +
-						Math.pow((a.chunkZ << 4) - player.zPos, 2));
-				float distB = (float) (Math.pow((b.chunkX << 4) - player.xPos, 2) +
-						Math.pow((b.chunkY << 4) - player.yPos, 2) +
-						Math.pow((b.chunkZ << 4) - player.zPos, 2));
-				return Float.compare(distB, distA);
-			});
+				// Sort generate queue by distance to player
+				generateQueue.sort(this::distanceSort);
+			}
+			
+			lastChunkX = (int)player.xPos >> 4;
+			lastChunkY = (int)player.yPos >> 4;
+			lastChunkZ = (int)player.zPos >> 4;
 		}
 		
-		// Enqueue more updates
-		for(int upd = 0; upd < 16 && !generateQueue.empty(); upd++)
+		// Enqueue all the changed chunks
+		while(!generateQueue.isEmpty())
 		{
 			ChunkModel model = generateQueue.peek();
 			generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
@@ -100,8 +111,12 @@ public class WorldRenderer
 		long opaqueCount = 0;
 		long opaqueAccum = 0;
 		long updProgressCount = 0;
-		for (ChunkModel chunkModel : renderChunks.values())
+		for (ChunkModel chunkModel : renderList)
 		{
+			// Perform empty check
+			if (chunkModel.chunk.isEmpty())
+				continue;
+			
 			// Perform frustum culling
 			if (!camera.getViewFrustum().isSphereInside(
 					(chunkModel.chunk.chunkX << 4) + 8.5f,
@@ -190,6 +205,20 @@ public class WorldRenderer
 	public void stop()
 	{
 		generatePool.shutdownNow();
+	}
+	
+	private int distanceSort(ChunkModel modelA, ChunkModel modelB)
+	{
+		Chunk a = modelA.chunk;
+		Chunk b = modelB.chunk;
+		
+		float distA = (float) (Math.pow((a.chunkX << 4) - player.xPos, 2) +
+				Math.pow((a.chunkY << 4) - player.yPos, 2) +
+				Math.pow((a.chunkZ << 4) - player.zPos, 2));
+		float distB = (float) (Math.pow((b.chunkX << 4) - player.xPos, 2) +
+				Math.pow((b.chunkY << 4) - player.yPos, 2) +
+				Math.pow((b.chunkZ << 4) - player.zPos, 2));
+		return Float.compare(distB, distA);
 	}
 	
 	private class ThreadedChunkGenerator implements Runnable

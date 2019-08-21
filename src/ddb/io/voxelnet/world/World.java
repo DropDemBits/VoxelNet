@@ -35,6 +35,8 @@ public class World
 	public void generate()
 	{
 		System.out.println("Generating world with seed " + worldSeed);
+		
+		long startGen = System.currentTimeMillis();
 		for (int cx = -8; cx <= 7; cx++)
 		{
 			for (int cz = -8; cz <= 7; cz++)
@@ -54,7 +56,7 @@ public class World
 			
 			explode(x, y, z, radius);
 		}
-		System.out.println("Done generation");
+		System.out.println("Done generation in " + (System.currentTimeMillis() - startGen) + " ms");
 	}
 	
 	public void setWorldSeed(long newSeed)
