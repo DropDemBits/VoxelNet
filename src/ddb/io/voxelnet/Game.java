@@ -299,41 +299,32 @@ public class Game {
 	
 	private void render(double partialTicks)
 	{
-		// Create the pvm matrix
-		Matrix4f pvm = camera.getTransform();
+		// Model matrix for the hitbox
 		final Matrix4f modelMatrix = new Matrix4f();
-		final float[] mat = new float[4 * 4];
 		
-		glClearColor(0f, 0f, 0f, 1f);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
-		
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
-		
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		renderer.begin();
 		
 		// Draw the world
 		renderer.useShader(chunkShader);
-		renderer.prepare();
+		renderer.prepareShader();
 		worldRenderer.render(renderer);
-		renderer.finish();
+		renderer.finishShader();
 		
+		// ???: Is the hit box technically part of the HUD?
 		if (controller.showHit)
 		{
+			// ???: Should the model matrix be part of the model?
 			final float scale = 0.00390625f;
 			modelMatrix.translate(controller.blockX - scale / 2, controller.blockY - scale / 2, controller.blockZ - scale / 2);
 			modelMatrix.scale(1.0f + scale);
 			
 			renderer.useShader(chunkShader);
-			renderer.prepare();
+			renderer.prepareShader();
 			renderer.drawModel(hitBox, modelMatrix);
-			renderer.finish();
+			renderer.finishShader();
 		}
 		
+		// TODO: Draw HUD & GUI elements here
 		glPointSize(5.0f);
 		glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
 		glBegin(GL_POINTS);

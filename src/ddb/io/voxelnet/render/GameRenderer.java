@@ -38,10 +38,10 @@ public class GameRenderer
 	}
 	
 	/**
-	 * Prepares the renderer for drawing models
+	 * Prepares the shader for drawing models
 	 * Sends the PV matrix to the shader
 	 */
-	public void prepare()
+	public void prepareShader()
 	{
 		camera.getTransform().get(matrix);
 		
@@ -52,9 +52,27 @@ public class GameRenderer
 	/**
 	 * Finishes drawing models
 	 */
-	public void finish()
+	public void finishShader()
 	{
 		currentShader.unbind();
+	}
+	
+	/**
+	 * Begins rendering
+	 */
+	public void begin()
+	{
+		glClearColor(0f, 0f, 0f, 1f);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+		
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 	
 	/**
