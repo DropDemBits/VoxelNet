@@ -4,6 +4,9 @@ import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.client.input.PlayerController;
 import ddb.io.voxelnet.client.render.*;
+import ddb.io.voxelnet.event.EventBus;
+import ddb.io.voxelnet.event.input.KeyEvent;
+import ddb.io.voxelnet.event.input.MouseEvent;
 import ddb.io.voxelnet.world.World;
 import ddb.io.voxelnet.world.WorldSave;
 import org.joml.Matrix4f;
@@ -48,6 +51,9 @@ public class Game {
 	Camera camera;
 	WorldRenderer worldRenderer;
 	GameRenderer renderer;
+	
+	// Global Event Bus
+	public static final EventBus GLOBAL_BUS = new EventBus();
 	
 	private void run()
 	{
@@ -114,6 +120,12 @@ public class Game {
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
 		
+		// Setup the input events
+		GLOBAL_BUS.registerEvent(MouseEvent.Move.class);
+		GLOBAL_BUS.registerEvent(MouseEvent.Button.class);
+		GLOBAL_BUS.registerEvent(KeyEvent.Button.class);
+		
+		///////////////////////////////////////////////
 		// Create the shader
 		chunkShader = new Shader("assets/shaders/default.glsl");
 		
@@ -239,7 +251,8 @@ public class Game {
 			last = now;
 			lag += elapsed;
 			
-			// Input Stage
+			// Event Stage
+			GLOBAL_BUS.processEvents();
 			
 			// Update Stage
 			// Catchup loop

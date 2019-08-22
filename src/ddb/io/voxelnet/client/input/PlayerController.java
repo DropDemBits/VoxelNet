@@ -1,8 +1,12 @@
 package ddb.io.voxelnet.client.input;
 
+import ddb.io.voxelnet.Game;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.EntityPlayer;
+import ddb.io.voxelnet.event.Event;
+import ddb.io.voxelnet.event.input.KeyEvent;
+import ddb.io.voxelnet.event.input.MouseEvent;
 import ddb.io.voxelnet.util.AABBCollider;
 import ddb.io.voxelnet.util.Facing;
 import org.joml.Vector3f;
@@ -42,83 +46,112 @@ public class PlayerController
 	
 	public PlayerController(long win, EntityPlayer player)
 	{
+		// TODO: Move these things into a separate window class
 		this.window = win;
-		this.player = player;
-		
 		glfwSetCursorPosCallback(window, (window, x, y) -> {
-			double deltaX = x - lastX;
-			double deltaY = y - lastY;
+			double dx = x - lastX;
+			double dy = y - lastY;
 			lastX = x;
 			lastY = y;
 			
-			player.rotate(
-					(float) -deltaY * MOUSE_SENSITIVITY,
-					(float) -deltaX * MOUSE_SENSITIVITY
-			);
-			
-			showHit = raycast();
+			Game.GLOBAL_BUS.postEvent(new MouseEvent.Move(x, y, dx, dy, false));
 		});
 		
 		glfwSetMouseButtonCallback(window, (window, button, action, mods) -> {
-			if (action == GLFW_PRESS)
-			{
-				// Ignore all other mouse buttons
-				if (button != GLFW_MOUSE_BUTTON_LEFT && button != GLFW_MOUSE_BUTTON_RIGHT)
-					return;
-				
-				if (button == GLFW_MOUSE_BUTTON_RIGHT)
-					isPlacing = true;
-				else if (button == GLFW_MOUSE_BUTTON_LEFT)
-					isBreaking = true;
-			}
-			else if (action == GLFW_RELEASE)
-			{
-				if (button == GLFW_MOUSE_BUTTON_RIGHT)
-				{
-					// Reset status & timer
-					isPlacing = false;
-					placeTimer = 0;
-				}
-				else if (button == GLFW_MOUSE_BUTTON_LEFT)
-				{
-					// Reset status & timer
-					isBreaking = false;
-					breakTimer = 0;
-				}
-			}
+			Game.GLOBAL_BUS.postEvent(new MouseEvent.Button(button, action, mods, System.currentTimeMillis()));
 		});
 		
 		glfwSetKeyCallback(window, (window, keycode, scancode, action, mods) -> {
-			if (action != GLFW_PRESS)
-				return;
-			
-			// Select block to place
-			final Block[] placeBlocks = new Block[] {
-					Blocks.GRASS, Blocks.DIRT, Blocks.STONE,
-					Blocks.PLANKS, Blocks.STONE_BRICKS, Blocks.CLAY_BRICKS,
-					Blocks.DOOR_LOWER, Blocks.GLASS,
-			};
-			
-			if (keycode >= GLFW_KEY_1 && keycode <= (GLFW_KEY_0 + placeBlocks.length))
-				placeID = placeBlocks[keycode - GLFW_KEY_1].getId();
-			
-			// Toggle flying
-			if (keycode == GLFW_KEY_F)
-				player.isFlying = !player.isFlying;
-			
-			if (keycode == GLFW_KEY_F3)
-				showThings = !showThings;
-			
-			if (keycode == GLFW_KEY_B)
-			{
-				// BOOM!
-				player.world.explode((int)player.xPos, (int)player.yPos, (int)player.zPos, 20);
-			}
+			Game.GLOBAL_BUS.postEvent(new KeyEvent.Button(keycode, scancode, action, mods));
 		});
+		
+		this.player = player;
+		// Register the input handlers
+		Game.GLOBAL_BUS.addHandler(MouseEvent.Button.class, this::onMouseButton);
+		Game.GLOBAL_BUS.addHandler(MouseEvent.Move.class, this::onMouseMove);
+		Game.GLOBAL_BUS.addHandler(KeyEvent.Button.class, this::onKeyButton);
 	}
 	
+	//// Event Handlers \\\\
+	private void onMouseButton(Event evt)
+	{
+		MouseEvent.Button e = (MouseEvent.Button)evt;
+		
+		if (e.state == MouseEvent.Button.PRESSED)
+		{
+			// Ignore all other mouse buttons
+			if (e.button != GLFW_MOUSE_BUTTON_LEFT && e.button != GLFW_MOUSE_BUTTON_RIGHT)
+				return;
+			
+			if (e.button == GLFW_MOUSE_BUTTON_RIGHT)
+				isPlacing = true;
+			else if (e.button == GLFW_MOUSE_BUTTON_LEFT)
+				isBreaking = true;
+		}
+		else if (e.state == MouseEvent.Button.RELEASED)
+		{
+			if (e.button == GLFW_MOUSE_BUTTON_RIGHT)
+			{
+				// Reset status & timer
+				isPlacing = false;
+				placeTimer = 0;
+			}
+			else if (e.button == GLFW_MOUSE_BUTTON_LEFT)
+			{
+				// Reset status & timer
+				isBreaking = false;
+				breakTimer = 0;
+			}
+		}
+	}
+	
+	private void onMouseMove(Event evt)
+	{
+		MouseEvent.Move e = (MouseEvent.Move)evt;
+		
+		player.rotate(
+				(float) -e.dy * MOUSE_SENSITIVITY,
+				(float) -e.dx * MOUSE_SENSITIVITY
+		);
+		
+		showHit = raycast();
+	}
+	
+	private void onKeyButton(Event evt)
+	{
+		KeyEvent.Button e = (KeyEvent.Button) evt;
+		
+		if (e.state != KeyEvent.Button.PRESSED)
+			return;
+		
+		// Select block to place
+		final Block[] placeBlocks = new Block[] {
+				Blocks.GRASS, Blocks.DIRT, Blocks.STONE,
+				Blocks.PLANKS, Blocks.STONE_BRICKS, Blocks.CLAY_BRICKS,
+				Blocks.DOOR_LOWER, Blocks.GLASS,
+		};
+		
+		if (e.keycode >= GLFW_KEY_1 && e.keycode <= (GLFW_KEY_0 + placeBlocks.length))
+			placeID = placeBlocks[e.keycode - GLFW_KEY_1].getId();
+		
+		// Toggle flying
+		if (e.keycode == GLFW_KEY_F)
+			player.isFlying = !player.isFlying;
+		
+		if (e.keycode == GLFW_KEY_F3)
+			showThings = !showThings;
+		
+		if (e.keycode == GLFW_KEY_B)
+		{
+			// BOOM!
+			player.world.explode((int)player.xPos, (int)player.yPos, (int)player.zPos, 20);
+		}
+	}
+	
+	//// Main interface \\\\
 	public void update(float delta)
 	{
+		// TODO: Move some of these things into EntityPlayer
 		if (breakTimer > 0)
 		{
 			breakTimer -= delta;
@@ -182,8 +215,7 @@ public class PlayerController
 			}
 		}
 		
-		
-		float xDir = 0.0f, yDir = 0.0f, zDir = 0.0f;
+		float xDir = 0.0f, zDir = 0.0f;
 		
 		player.speedCoef = 1f;
 		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
@@ -210,8 +242,7 @@ public class PlayerController
 		
 		player.move(xDir, zDir);
 		
-		if (xDir != 0.0f || yDir != 0.0f || zDir != 0.0f)
-			showHit = raycast();
+		showHit = raycast();
 	}
 	
 	private boolean raycast()
