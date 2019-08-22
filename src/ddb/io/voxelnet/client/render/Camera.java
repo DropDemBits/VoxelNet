@@ -27,6 +27,7 @@ public class Camera
 	// Matrices
 	public Matrix4f perspectiveMatrix;
 	public Matrix4f viewMatrix;
+	private Matrix4f pvMatrix;
 	
 	// View frustum
 	public Frustum viewFrustum;
@@ -39,6 +40,7 @@ public class Camera
 		
 		this.perspectiveMatrix = new Matrix4f();
 		this.viewMatrix = new Matrix4f();
+		this.pvMatrix = new Matrix4f();
 		viewFrustum = new Frustum();
 	}
 	
@@ -107,7 +109,7 @@ public class Camera
 	 */
 	public Matrix4f getTransform()
 	{
-		return new Matrix4f().identity().mul(perspectiveMatrix).mul(viewMatrix);
+		return pvMatrix.identity().mul(perspectiveMatrix).mul(viewMatrix);
 	}
 	
 	public Frustum getViewFrustum() { return viewFrustum; }

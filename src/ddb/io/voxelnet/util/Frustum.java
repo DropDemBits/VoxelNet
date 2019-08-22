@@ -86,7 +86,7 @@ public class Frustum
 		resetBasisAndPoints();
 		
 		// Rotate all the basis vectors
-		Matrix4f inView = new Matrix4f();
+		final Matrix4f inView = new Matrix4f();
 		view.invert(inView);
 		right.mulDirection(inView);
 		up.mulDirection(inView);

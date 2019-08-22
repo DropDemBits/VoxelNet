@@ -113,8 +113,6 @@ public class PlayerController
 				(float) -e.dy * MOUSE_SENSITIVITY,
 				(float) -e.dx * MOUSE_SENSITIVITY
 		);
-		
-		showHit = raycast();
 	}
 	
 	private void onKeyButton(Event evt)
@@ -247,6 +245,8 @@ public class PlayerController
 	
 	private boolean raycast()
 	{
+		// TODO: Only get the block closest to the player
+		
 		// Calculate the pointing vector
 		Vector3f point = new Vector3f(0.0f, 0.0f, -1.0f);
 		point.rotateAxis((float) Math.toRadians(player.pitch), 1f, 0f, 0f);
