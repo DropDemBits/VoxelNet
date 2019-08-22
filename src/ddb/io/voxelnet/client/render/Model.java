@@ -236,7 +236,7 @@ public class Model
 		// Terminate the current polygon
 		constructingPolygon = false;
 		
-		if(drawLines)
+		if(drawMode == EnumDrawMode.LINES)
 		{
 			// Close the final line
 			indices.add(polyStart);
@@ -290,7 +290,7 @@ public class Model
 		int index = polyCount + polyStart;
 		polyCount++;
 		
-		if (!drawLines)
+		if (drawMode == EnumDrawMode.TRIANGLES)
 		{
 			if (polyCount <= 3)
 			{
@@ -304,7 +304,7 @@ public class Model
 				indices.add(polyStart);
 			}
 		}
-		else
+		else if (drawMode == EnumDrawMode.LINES)
 		{
 			indices.add(index);
 			// Double the index for the other points

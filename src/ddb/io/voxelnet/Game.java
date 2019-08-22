@@ -174,7 +174,7 @@ public class Game {
 		
 		hitBox = new Model(simpleLayout);
 		hitBox.setTransform(new Matrix4f());
-		hitBox.setDrawMode(EnumDrawMode.TRIANGLES);
+		hitBox.setDrawMode(EnumDrawMode.LINES);
 		
 		hitBox.beginPoly();
 		hitBox.addVertex(0f, 0f, 0f);
