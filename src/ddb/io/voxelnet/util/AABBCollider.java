@@ -97,10 +97,23 @@ public class AABBCollider
 		return false;
 	}*/
 	
+	/**
+	 *
+	 * @param xOff
+	 * @param yOff
+	 * @param zOff
+	 */
 	public void add(float xOff, float yOff, float zOff)
 	{
 		x += xOff;
 		y += yOff;
 		z += zOff;
+	}
+	
+	public void grow(float width, float height, float depth)
+	{
+		this.width += width;
+		this.height += height;
+		this.depth += depth;
 	}
 }

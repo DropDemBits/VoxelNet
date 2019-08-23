@@ -9,7 +9,11 @@ import ddb.io.voxelnet.event.input.KeyEvent;
 import ddb.io.voxelnet.event.input.MouseEvent;
 import ddb.io.voxelnet.util.AABBCollider;
 import ddb.io.voxelnet.util.Facing;
+import ddb.io.voxelnet.util.Vec3i;
 import org.joml.Vector3f;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static ddb.io.voxelnet.Game.showThings;
 import static org.lwjgl.glfw.GLFW.*;
@@ -19,7 +23,7 @@ import static org.lwjgl.glfw.GLFW.*;
  */
 public class PlayerController
 {
-	private static final float MOUSE_SENSITIVITY = 0.5f;
+	private static final float MOUSE_SENSITIVITY = 0.45f;
 	
 	long window = 0;
 	EntityPlayer player;
@@ -41,7 +45,7 @@ public class PlayerController
 	float placeTimer = 0.0f;
 	boolean isPlacing = false;
 	
-	private final float boxRad = 1.5f / 16f;
+	private final float boxRad = 1.375f / 16f;
 	private AABBCollider rayBox = new AABBCollider(0, 0, 0, boxRad, boxRad, boxRad);
 	
 	public PlayerController(long win, EntityPlayer player)
@@ -261,10 +265,13 @@ public class PlayerController
 		int x, y, z;
 		
 		AABBCollider rayBB = new AABBCollider(rayBox);
+		List<Vector3f> potentialHits = new ArrayList<>();
+		List<Vec3i> seen = new ArrayList<>();
 		
 		// Step for 5 blocks
 		for(int i = 0; i < 7 * 8; i++)
 		{
+			// Move the ray box to the current position
 			rayBB.setPosition(rayX - (rayBox.width / 2f), rayY - (rayBox.height / 2f), rayZ - (rayBox.depth / 2f));
 			
 			// Go through the 8 corners
@@ -278,48 +285,97 @@ public class PlayerController
 				y = Math.round((rayBB.y + offY) - 0.5f);
 				z = Math.round((rayBB.z + offZ) - 0.5f);
 				
-				
+				// Fetch the block at the current corner
 				byte id = player.world.getBlock(x, y, z);
 				
-				if (id != 0)
+				// TODO:
+				// Fetch collision box
+				// Grow collision box to add some bias
+				// Test for relative collision
+				
+				if (id != Blocks.AIR.getId())
 				{
-					rayX -= point.x;
-					rayY -= point.y;
-					rayZ -= point.z;
+					Vec3i pos = new Vec3i(x, y, z);
+					if(seen.contains(pos))
+						continue;
+					seen.add(pos);
 					
-					hitX = rayX;
-					hitY = rayY;
-					hitZ = rayZ;
+					// Test the hit box for collision with the ray
+					AABBCollider box = new AABBCollider(Block.idToBlock(id).getCollisionBox());
+					box.setPosition(x, y, z);
+					box.add(-0.0625f, -0.0625f, -0.0625f);
+					box.grow(0.125f, 0.125f, 0.125f);
 					
-					// Block found, get the specific face
-					Vector3f hit = new Vector3f(rayX - x - 0.5f, rayY - y - 0.5f, rayZ - z - 0.5f);
-					final Vector3f xAxis = new Vector3f(0.5f, 0.0f, 0.0f);
-					final Vector3f yAxis = new Vector3f(0.0f, 0.5f, 0.0f);
-					final Vector3f zAxis = new Vector3f(0.0f, 0.0f, 0.5f);
-					
-					float dotX = hit.dot(xAxis);
-					float dotY = hit.dot(yAxis);
-					float dotZ = hit.dot(zAxis);
-					
-					if (Math.abs(dotZ) > Math.abs(dotY) && Math.abs(dotZ) > Math.abs(dotX))
+					if (box.intersectsWith(rayBB))
 					{
-						if (dotZ > 0) hitFace = Facing.SOUTH;
-						else hitFace = Facing.NORTH;
-					} else if (Math.abs(dotX) > Math.abs(dotY) && Math.abs(dotX) > Math.abs(dotZ))
-					{
-						if (dotX > 0) hitFace = Facing.EAST;
-						else hitFace = Facing.WEST;
-					} else if (Math.abs(dotY) >= Math.abs(dotX) && Math.abs(dotY) >= Math.abs(dotZ))
-					{
-						if (dotY > 0) hitFace = Facing.UP;
-						else hitFace = Facing.DOWN;
+						// Add the hit to the potential list
+						Vector3f hit = new Vector3f((rayBB.x + offX) - 0.5f, (rayBB.y + offY) - 0.5f, (rayBB.z + offZ) - 0.5f);
+						potentialHits.add(hit);
 					}
-					
-					blockX = x;
-					blockY = y;
-					blockZ = z;
-					return true;
 				}
+			}
+			
+			// Might add:
+			// Sand, Gravel (Falling blocks)
+			//  - Entities
+			//  - Generalized Collision
+			//  - Neighbor Block Updates
+			if (potentialHits.size() > 0)
+			{
+				System.out.println("Hits: (" + potentialHits.size() + ")");
+				
+				if (potentialHits.size() > 1)
+				{
+					// Sort the hit list by distance to the player
+					// Have player be in the middle of the block for consistency
+					Vector3f origin = new Vector3f(Math.round(player.xPos - 0.5), player.yPos + player.eyeHeight, Math.round(player.zPos - 0.5));
+					potentialHits.sort((vA, vB) -> Float.compare(taxicabDistance(vA, origin), taxicabDistance(vB, origin)));
+					System.out.println("FINDING! (" + potentialHits.size() + ")");
+				}
+				
+				// Select the first hit
+				Vector3f hit = potentialHits.get(0);
+				
+				// Move the hit back by 1 position
+				rayX -= point.x;
+				rayY -= point.y;
+				rayZ -= point.z;
+				
+				// Get the block hit
+				blockX = Math.round(hit.x);
+				blockY = Math.round(hit.y);
+				blockZ = Math.round(hit.z);
+				
+				// Move the hit point relative to the block position
+				// ray - hit - (0.5f, 0.5f, 0.5f) -> -hit + ray - (0.5f, 0.5f, 0.5f)
+				hit.set(rayX, rayY, rayZ).sub(blockX, blockY, blockZ).sub(0.5f, 0.5f, 0.5f);
+				hitX = hit.x;
+				hitY = hit.y;
+				hitZ = hit.z;
+				
+				// Get the face hit
+				final Vector3f xAxis = new Vector3f(0.5f, 0.0f, 0.0f);
+				final Vector3f yAxis = new Vector3f(0.0f, 0.5f, 0.0f);
+				final Vector3f zAxis = new Vector3f(0.0f, 0.0f, 0.5f);
+				
+				float dotX = hit.dot(xAxis);
+				float dotY = hit.dot(yAxis);
+				float dotZ = hit.dot(zAxis);
+				
+				if (Math.abs(dotZ) > Math.abs(dotY) && Math.abs(dotZ) > Math.abs(dotX))
+				{
+					if (dotZ > 0) hitFace = Facing.SOUTH;
+					else hitFace = Facing.NORTH;
+				} else if (Math.abs(dotX) > Math.abs(dotY) && Math.abs(dotX) > Math.abs(dotZ))
+				{
+					if (dotX > 0) hitFace = Facing.EAST;
+					else hitFace = Facing.WEST;
+				} else if (Math.abs(dotY) >= Math.abs(dotX) && Math.abs(dotY) >= Math.abs(dotZ))
+				{
+					if (dotY > 0) hitFace = Facing.UP;
+					else hitFace = Facing.DOWN;
+				}
+				return true;
 			}
 			
 			rayX += point.x;
@@ -331,6 +387,19 @@ public class PlayerController
 		blockY = -1;
 		blockZ = -1;
 		return false;
+	}
+	
+	/**
+	 * Finds the taxicab distance between two points
+	 * || a - b || = d
+	 *
+	 * @param a Point a
+	 * @param b Point b
+	 * @return The taxicab distance between the points
+	 */
+	private float taxicabDistance(Vector3f a, Vector3f b)
+	{
+		return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z);
 	}
 	
 }
