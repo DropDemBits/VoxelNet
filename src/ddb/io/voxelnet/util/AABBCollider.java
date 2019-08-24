@@ -48,6 +48,13 @@ public class AABBCollider
 				&& z <= other.z + other.depth  && other.z <= z + depth;
 	}
 	
+	public boolean relativeIntersectionWith(AABBCollider other, float xOther, float yOther, float zOther)
+	{
+		return     (x - xOther) <= other.x + other.width  && other.x <= (x - xOther) + width
+				&& (y - yOther) <= other.y + other.height && other.y <= (y - yOther) + height
+				&& (z - zOther) <= other.z + other.depth  && other.z <= (z - zOther) + depth;
+	}
+	
 	/**
 	 * Checks if this box intersects with the other box, accounting for
 	 * velocity.
@@ -98,10 +105,10 @@ public class AABBCollider
 	}*/
 	
 	/**
-	 *
-	 * @param xOff
-	 * @param yOff
-	 * @param zOff
+	 * Adds an offset to the position
+	 * @param xOff The x offset to add
+	 * @param yOff The y offset to add
+	 * @param zOff The z offset to add
 	 */
 	public void add(float xOff, float yOff, float zOff)
 	{
@@ -110,10 +117,16 @@ public class AABBCollider
 		z += zOff;
 	}
 	
-	public void grow(float width, float height, float depth)
+	/**
+	 * Grows the collision box in the specified axis
+	 * @param xOff The amount to grow in the x direction
+	 * @param yOff The amount to grow in the y direction
+	 * @param zOff The amount to grow in the z direction
+	 */
+	public void grow(float xOff, float yOff, float zOff)
 	{
-		this.width += width;
-		this.height += height;
-		this.depth += depth;
+		width  += xOff;
+		height += yOff;
+		depth  += zOff;
 	}
 }

@@ -2,38 +2,29 @@ package ddb.io.voxelnet.entity;
 
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.util.AABBCollider;
-import ddb.io.voxelnet.world.World;
 
-public class EntityPlayer
+public class EntityPlayer extends Entity
 {
-	// The position of the player
-	public float xPos, yPos, zPos;
+	// Horizontal speed
+	public float speed = 3f;
 	
-	// The velocity of the player
-	public float xVel = 0.0f, yVel = 0.0f, zVel = 0.0f;
-	
-	// The acceleration of the player
-	public float xAccel = 0.0f, yAccel = 0.0f, zAccel = 0.0f;
-	
-	// Movement speed
-	public float speed = 6.0f / 60.0f;
 	// Speed Coefficient
 	public float speedCoef = 1f;
 	
-	// The orientation of the player
-	public float pitch = -90.0f, yaw = 0.0f;
+	// Ramp Up/Down Coefficient
+	public float rampUpCoeff = 8.5f;
+	public float rampDownCoeff = 8.5f;
 	
+	// Horizontal Acceleration
+	public float horizontalAccel = speed * speed;
+	// Horizontal Coeff
+	public float horizontalCoeff = speedCoef * speedCoef;
+	
+	// Jump related
 	private float targetHeight = 1.25f;
-	private float targetTime = 3f / 60.0f;
+	private float targetTime = 3f;
 	
 	private float jumpVelocity = ((2.0f * targetHeight) * targetTime);
-	public float gravity = ((2.0f * targetHeight) * (targetTime * targetTime));
-	
-	// Eye height of the player
-	public float eyeHeight = 1.45f;
-	
-	// If the player is on the ground
-	public boolean onGround = false;
 	
 	// If the player is currently jumping
 	public boolean isJumping = false;
@@ -44,52 +35,18 @@ public class EntityPlayer
 	// If the player is flying
 	public boolean isFlying = false;
 	
-	/**
-	 * The world the player is currently in
-	 */
-	public World world;
-	
-	public AABBCollider collisionBox = new AABBCollider(0.0f, 0.0f, 0.0f, 0.5f, 1.7f, 0.5f);
-	
 	public EntityPlayer()
 	{
+		super();
+		gravity = ((2.0f * targetHeight) * (targetTime * targetTime));
+		
 		// By default, the y acceleration is just gravity
 		yAccel = -gravity;
-	}
-	
-	/// Helpers ///
-	public void setWorld(World world)
-	{
-		this.world = world;
-	}
-	
-	public void setPos(float x, float y, float z)
-	{
-		this.xPos = x;
-		this.yPos = y;
-		this.zPos = z;
-	}
-	
-	public void setOrientation(float pitch, float yaw)
-	{
-		this.pitch = pitch;
-		this.yaw = yaw;
-	}
-	
-	public void rotate(float deltaPitch, float deltaYaw)
-	{
-		this.pitch += deltaPitch;
-		this.yaw += deltaYaw;
 		
-		// Clamp the pitch to [-90, 90]
-		this.pitch = clamp(this.pitch, -90.0f, 90.0f);
-		
-		// Keep the yaw between [0, 360]
-		this.yaw %= 360.0f;
-		
-		if (this.yaw < 0.0f)
-			this.yaw += 360.0f;
+		collisionBox = new AABBCollider(0.0f, 0.0f, 0.0f, 0.5f, 1.7f, 0.5f);
 	}
+	
+	
 	
 	/**
 	 * Pushes the player to the specified direction
@@ -99,6 +56,13 @@ public class EntityPlayer
 	 */
 	public void move(float xAccel, float zAccel)
 	{
+		if (xAccel == 0 && zAccel == 0)
+		{
+			this.xAccel = 0;
+			this.zAccel = 0;
+			return;
+		}
+		
 		double phi = Math.toRadians(yaw);
 		double xDir =  xAccel * Math.cos(phi) + zAccel * Math.sin(phi);
 		double zDir = -xAccel * Math.sin(phi) + zAccel * Math.cos(phi);
@@ -106,14 +70,11 @@ public class EntityPlayer
 		// Normalize the horizontal movement vector
 		double mag = Math.sqrt(Math.pow(xDir, 2) + Math.pow(zDir, 2));
 		
-		if (mag <= 0.0f)
-			mag = 1.0f;
-		
 		xDir /= mag;
 		zDir /= mag;
 		
-		this.xAccel = (float) ((speed * speedCoef) * xDir) / 2.0f;
-		this.zAccel = (float) ((speed * speedCoef) * zDir) / 2.0f;
+		this.xAccel = (float) (xDir * speed * speedCoef) * rampUpCoeff;
+		this.zAccel = (float) (zDir * speed * speedCoef) * rampUpCoeff;
 	}
 	
 	public void jump()
@@ -135,17 +96,19 @@ public class EntityPlayer
 			yAccel = -gravity;
 		
 		// Apply the acceleration
-		xVel += xAccel;
-		yVel += yAccel;
-		zVel += zAccel;
+		xVel += xAccel * delta;
+		yVel += yAccel * delta;
+		zVel += zAccel * delta;
 		
 		// Clamp the horizontal velocities
-		xVel = clamp(xVel, -(speed * speedCoef), (speed * speedCoef));
-		zVel = clamp(zVel, -(speed * speedCoef), (speed * speedCoef));
+		xVel = clamp(xVel, -speed * speedCoef, speed * speedCoef);
+		zVel = clamp(zVel, -speed * speedCoef, speed * speedCoef);
 		
 		// Clamp the vertical velocity if flying
 		if (isFlying)
 			yVel = clamp(yVel, -jumpVelocity, jumpVelocity);
+		else
+			yVel = clamp(yVel, -gravity * 2, yVel);
 		
 		if (isFlying && isSneaking)
 			yVel = -jumpVelocity;
@@ -153,20 +116,20 @@ public class EntityPlayer
 		// Update the collision status
 		// Apply the response in the event of a collision
 		int zResponse, xResponse;
-		if ((zResponse = testForCollisionZ()) != 0)
+		if ((zResponse = testForCollisionZ(delta)) != 0)
 		{
-			zPos += ((Math.abs(zResponse) - 2) / 16f) * zVel;
+			zPos += ((Math.abs(zResponse) - 2) / 16f) * zVel * delta;
 			zVel = 0;
 			zAccel = 0;
 		}
 		
-		if ((xResponse = testForCollisionX()) != 0)
+		if ((xResponse = testForCollisionX(delta)) != 0)
 		{
-			xPos += ((Math.abs(xResponse) - 2) / 16f) * xVel;
+			xPos += ((Math.abs(xResponse) - 2) / 16f) * xVel * delta;
 			xVel = 0;
 			xAccel = 0;
 		}
-		float yResponse = testForCollisionY();
+		float yResponse = testForCollisionY(delta);
 		
 		onGround = yResponse < 0;
 		
@@ -176,12 +139,12 @@ public class EntityPlayer
 			if ((Math.abs(yResponse) - 2) == -1)
 			{
 				// Snap to the nearest Y position, plus a bit
-				yPos = Math.round(yPos) - (1 / 16f) * yVel;
+				yPos = Math.round(yPos) - (1 / 16f) * yVel * delta;
 			}
 			else
 			{
 				// Do the normal response
-				yPos += ((Math.abs(yResponse) - 2) / 16f) * yVel;
+				yPos += ((Math.abs(yResponse) - 2) / 16f) * yVel * delta;
 			}
 			
 			yVel = 0;
@@ -191,9 +154,9 @@ public class EntityPlayer
 		}
 		
 		// Apply the velocity
-		xPos += xVel;
-		yPos += yVel;
-		zPos += zVel;
+		xPos += xVel * delta;
+		yPos += yVel * delta;
+		zPos += zVel * delta;
 		
 		if (xVel != 0.0f || yVel != 0.0f || zVel != 0.0f)
 		{
@@ -208,14 +171,26 @@ public class EntityPlayer
 		}
 		
 		// Apply decay to the velocity
-		xVel = decay(xVel, 0.9f);
-		zVel = decay(zVel, 0.9f);
+		if(Math.abs(xVel) > delta)
+			xVel = lerpf(xVel, 0, delta * rampDownCoeff);
+		else
+			xVel = 0;
+		
+		if(Math.abs(zVel) > delta)
+			zVel = lerpf(zVel, 0, delta * rampDownCoeff);
+		else
+			zVel = 0;
 		
 		if (isFlying)
 			yVel = decay(yVel, 0.5f);
 	}
 	
-	private int testForCollisionY()
+	private float lerpf(float start, float end, float step)
+	{
+		return (start * (1 - step)) + (end * step);
+	}
+	
+	private int testForCollisionY(float delta)
 	{
 		int yDir = (int)Math.signum(yVel);
 		int blockDelta = 0;
@@ -230,7 +205,6 @@ public class EntityPlayer
 		else if (yDir == 1)
 			blockDelta = Math.round(collisionBox.height);
 		
-		// Was: Working on collision
 		int blockX, blockY, blockZ;
 		blockX = Math.round(xPos - 0.5f);
 		blockY = Math.round(yPos);
@@ -251,20 +225,21 @@ public class EntityPlayer
 				if (!block.isSolid())
 					continue;
 				
-				// Setup the collision box
-				AABBCollider blockCollider = new AABBCollider(block.getCollisionBox());
-				blockCollider.setPosition(blockX + xOff, blockY + blockDelta, blockZ + zOff);
-				
-				collisionBox.add(0, yVel, 0);
-				boolean collides = collisionBox.intersectsWith(blockCollider);
-				collisionBox.add(0, -yVel, 0);
+				// Test for a rough collision
+				collisionBox.add(0, yVel * delta, 0);
+				boolean collides = collisionBox.relativeIntersectionWith(block.getCollisionBox(), blockX + xOff, blockY + blockDelta, blockZ + zOff);
+				collisionBox.add(0, -(yVel * delta), 0);
 				
 				// If no collision will happen, don't check for it
 				if (!collides)
 					continue;
 				
+				// Setup the collision box for fine stepping
+				AABBCollider blockCollider = new AABBCollider(block.getCollisionBox());
+				blockCollider.setPosition(blockX + xOff, blockY + blockDelta, blockZ + zOff);
+				
 				// Do fine stepping
-				float stepY = yVel / 16f;
+				float stepY = (yVel * delta) / 16f;
 				for (int step = 0; step <= 16; step++)
 				{
 					if (collisionBox.intersectsWith(blockCollider))
@@ -284,7 +259,7 @@ public class EntityPlayer
 	}
 	
 	// Return is a signed number of steps to the collision
-	private int testForCollisionZ()
+	private int testForCollisionZ(float delta)
 	{
 		int zDir = (int)Math.signum(zVel);
 		
@@ -312,15 +287,15 @@ public class EntityPlayer
 				AABBCollider blockCollider = new AABBCollider(block.getCollisionBox());
 				blockCollider.setPosition(blockX + xOff, blockY + yOff, blockZ + zDir);
 				
-				collisionBox.add(0, 0, zVel);
+				collisionBox.add(0, 0, zVel * delta);
 				boolean collidesZ = collisionBox.intersectsWith(blockCollider);
-				collisionBox.add(0, 0, -zVel);
+				collisionBox.add(0, 0, -zVel * delta);
 				
 				if (!collidesZ)
 					continue;
 				
 				// Collision will happen, do fine stepping
-				float stepZ = zVel / 16f;
+				float stepZ = (zVel * delta) / 16f;
 				for (int step = 0; step <= 16; step++)
 				{
 					// Check for collision
@@ -341,7 +316,7 @@ public class EntityPlayer
 	}
 	
 	// Return is a signed number of steps to the collision
-	private int testForCollisionX()
+	private int testForCollisionX(float delta)
 	{
 		int xDir = (int)Math.signum(xVel);
 		
@@ -369,15 +344,15 @@ public class EntityPlayer
 				AABBCollider blockCollider = new AABBCollider(block.getCollisionBox());
 				blockCollider.setPosition(blockX + xDir, blockY + yOff, blockZ + zOff);
 				
-				collisionBox.add(xVel, 0, 0);
+				collisionBox.add(xVel * delta, 0, 0);
 				boolean collidesX = collisionBox.intersectsWith(blockCollider);
-				collisionBox.add(-xVel, 0, 0);
+				collisionBox.add(-xVel * delta, 0, 0);
 				
 				if (!collidesX)
 					continue;
 				
 				// Collision will happen, do fine stepping
-				float stepX = xVel / 16f;
+				float stepX = (xVel * delta) / 16f;
 				for (int step = 0; step <= 16; step++)
 				{
 					// Check for collision
@@ -397,28 +372,4 @@ public class EntityPlayer
 		return 0;
 	}
 	
-	/**
-	 * Clamps the value to the specified range
-	 * @param value The value to clamp
-	 * @param min The minimum bound for the value
-	 * @param max The maximum bound for the value
-	 * @return The clamped value
-	 */
-	private float clamp(float value, float min, float max)
-	{
-		if (value > max)
-			return max;
-		return Math.max(value, min);
-	}
-	
-	private float decay(float value, float decayFactor)
-	{
-		if (value == 0.0f)
-			return value;
-		
-		if (Math.abs(value) > 0.2f)
-			return value * decayFactor;
-		else
-			return 0.0f;
-	}
 }

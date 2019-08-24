@@ -55,6 +55,12 @@ public class Game {
 	// Global Event Bus
 	public static final EventBus GLOBAL_BUS = new EventBus();
 	
+	// Might add:
+	// Sand, Gravel (Falling blocks)
+	//  - Entities
+	//  - Generalized Collision
+	//  - Neighbor Block Updates
+	
 	private void run()
 	{
 		/// Init ///
@@ -101,7 +107,7 @@ public class Game {
 		// Update the window context
 		glfwMakeContextCurrent(window);
 		// Setup vsync
-		glfwSwapInterval(0);
+		glfwSwapInterval(1);
 		// Show the window
 		glfwShowWindow(window);
 		
@@ -154,7 +160,7 @@ public class Game {
 		
 		// Setup the player
 		player = new EntityPlayer();
-		player.setPos(0.0f, 256.0f, 0.0f);
+		player.setPos(0.0f, 64.0f, 0.0f);
 		player.setWorld(world);
 		worldRenderer.setPlayer(player);
 		
@@ -303,12 +309,12 @@ public class Game {
 	private void update(float delta)
 	{
 		controller.update(delta);
+		world.update();
 		player.update(delta);
 		
 		camera.asPlayer(player);
 		camera.updateView();
 		
-		world.update();
 		worldRenderer.update();
 	}
 	

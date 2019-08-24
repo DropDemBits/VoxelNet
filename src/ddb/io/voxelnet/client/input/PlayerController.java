@@ -315,14 +315,9 @@ public class PlayerController
 				}
 			}
 			
-			// Might add:
-			// Sand, Gravel (Falling blocks)
-			//  - Entities
-			//  - Generalized Collision
-			//  - Neighbor Block Updates
 			if (potentialHits.size() > 0)
 			{
-				System.out.println("Hits: (" + potentialHits.size() + ")");
+				//System.out.println("Hits: (" + potentialHits.size() + ")");
 				
 				if (potentialHits.size() > 1)
 				{
@@ -330,7 +325,7 @@ public class PlayerController
 					// Have player be in the middle of the block for consistency
 					Vector3f origin = new Vector3f(Math.round(player.xPos - 0.5), player.yPos + player.eyeHeight, Math.round(player.zPos - 0.5));
 					potentialHits.sort((vA, vB) -> Float.compare(taxicabDistance(vA, origin), taxicabDistance(vB, origin)));
-					System.out.println("FINDING! (" + potentialHits.size() + ")");
+					//System.out.println("FINDING! (" + potentialHits.size() + ")");
 				}
 				
 				// Select the first hit
