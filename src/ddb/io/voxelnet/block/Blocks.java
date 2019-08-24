@@ -16,4 +16,7 @@ public class Blocks
 	public static Block DOOR_LOWER;
 	public static Block DOOR_UPPER;
 	public static Block GLASS;
+	public static Block SAND;
+	public static Block GRAVEL;
+	
 }

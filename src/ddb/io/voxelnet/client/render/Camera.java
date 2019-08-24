@@ -94,9 +94,9 @@ public class Camera
 	 */
 	public void asPlayer(EntityPlayer player)
 	{
-		this.x = (float) player.xPos;
-		this.y = (float) player.yPos;
-		this.z = (float) player.zPos;
+		this.x = (float) (player.xPos);
+		this.y = (float) (player.yPos);
+		this.z = (float) (player.zPos);
 		
 		this.pitch = player.pitch;
 		this.yaw = player.yaw;

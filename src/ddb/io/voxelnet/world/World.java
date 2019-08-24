@@ -2,6 +2,7 @@ package ddb.io.voxelnet.world;
 
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
+import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.util.Vec3i;
 
 import java.util.LinkedHashMap;
@@ -258,6 +259,21 @@ public class World
 				loadedChunks.getOrDefault(chunkPos.add(0, yOff, -1), EMPTY_CHUNK).forceRebuild();
 			else if (blockZ == 15)
 				loadedChunks.getOrDefault(chunkPos.add(0, yOff, 1), EMPTY_CHUNK).forceRebuild();
+		}
+		
+		// Update the neighboring blocks
+		for (Facing face : Facing.values())
+		{
+			byte neighbor = getBlock(x + face.getOffsetX(), y + face.getOffsetY(), z + face.getOffsetZ());
+			
+			// Update the neigh bor if it's not air
+			if (neighbor != Blocks.AIR.getId())
+				Block.idToBlock(neighbor).onNeighborUpdated(
+						this,
+						x + face.getOffsetX(),
+						y + face.getOffsetY(),
+						z + face.getOffsetZ(),
+						face.getOpposite());
 		}
 	}
 	

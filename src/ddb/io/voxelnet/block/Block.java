@@ -1,6 +1,7 @@
 package ddb.io.voxelnet.block;
 
 import ddb.io.voxelnet.util.AABBCollider;
+import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.World;
 
 import java.util.ArrayList;
@@ -13,16 +14,18 @@ public class Block
 	
 	public static void init()
 	{
-		Blocks.AIR          = addBlock(0, new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}).setTransparent(true));
-		Blocks.GRASS        = addBlock(1, new Block().setSolid(true).setFaceTextures(new int[] {1, 1, 1, 1, 0, 2}));
-		Blocks.DIRT         = addBlock(2, new Block().setSolid(true).setFaceTextures(new int[] {2, 2, 2, 2, 2, 2}));
-		Blocks.STONE        = addBlock(3, new Block().setSolid(true).setFaceTextures(new int[] {3, 3, 3, 3, 3, 3}));
-		Blocks.PLANKS       = addBlock(4, new Block().setSolid(true).setFaceTextures(new int[] {4, 4, 4, 4, 4, 4}));
-		Blocks.STONE_BRICKS = addBlock(5, new Block().setSolid(true).setFaceTextures(new int[] {5, 5, 5, 5, 5, 5}));
-		Blocks.CLAY_BRICKS  = addBlock(6, new Block().setSolid(true).setFaceTextures(new int[] {6, 6, 6, 6, 6, 6}));
-		Blocks.DOOR_LOWER   = addBlock(7, new BlockDoor().setUpper(false));
-		Blocks.DOOR_UPPER   = addBlock(8, new BlockDoor().setUpper(true));
-		Blocks.GLASS        = addBlock(9, new Block().setSolid(true).setFaceTextures(new int[] {10, 10, 10, 10, 10, 10}).setTransparent(true));
+		Blocks.AIR          = addBlock(0,  new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}).setTransparent(true));
+		Blocks.GRASS        = addBlock(1,  new Block().setSolid(true).setFaceTextures(new int[] {1, 1, 1, 1, 0, 2}));
+		Blocks.DIRT         = addBlock(2,  new Block().setSolid(true).setFaceTextures(new int[] {2, 2, 2, 2, 2, 2}));
+		Blocks.STONE        = addBlock(3,  new Block().setSolid(true).setFaceTextures(new int[] {3, 3, 3, 3, 3, 3}));
+		Blocks.PLANKS       = addBlock(4,  new Block().setSolid(true).setFaceTextures(new int[] {4, 4, 4, 4, 4, 4}));
+		Blocks.STONE_BRICKS = addBlock(5,  new Block().setSolid(true).setFaceTextures(new int[] {5, 5, 5, 5, 5, 5}));
+		Blocks.CLAY_BRICKS  = addBlock(6,  new Block().setSolid(true).setFaceTextures(new int[] {6, 6, 6, 6, 6, 6}));
+		Blocks.DOOR_LOWER   = addBlock(7,  new BlockDoor().setUpper(false));
+		Blocks.DOOR_UPPER   = addBlock(8,  new BlockDoor().setUpper(true));
+		Blocks.GLASS        = addBlock(9,  new Block().setSolid(true).setFaceTextures(new int[] {10, 10, 10, 10, 10, 10}).setTransparent(true));
+		Blocks.SAND         = addBlock(10, new BlockFalling().setSolid(true).setFaceTextures(new int[] {11, 11, 11, 11, 11, 11}));
+		Blocks.GRAVEL       = addBlock(11, new BlockFalling().setSolid(true).setFaceTextures(new int[] {12, 12, 12, 12, 12, 12}));
 	}
 	
 	private static Block addBlock(int id, Block instance)
@@ -156,6 +159,16 @@ public class Block
 	public void onBlockBroken(World world, int x, int y, int z) {}
 	
 	/**
+	 * Called whenever one of the neighboring blocks is updated
+	 * @param world The world the neighboring block was update
+	 * @param x The x coordinate of the current block
+	 * @param y The y coordinate of the current block
+	 * @param z The z coordinate of the current block
+	 * @param dir The direction of the neighbor block, relative to the current one
+	 */
+	public void onNeighborUpdated(World world, int x, int y, int z, Facing dir) {}
+	
+	/**
 	 * Checks if a player can place a block in the specified location
 	 * @param world The world that the block will be placed in
 	 * @param x The x coordinate of the block
@@ -168,4 +181,5 @@ public class Block
 		// By default, the block can only be placed if there is air
 		return world.getBlock(x, y, z) == Blocks.AIR.getId();
 	}
+	
 }

@@ -130,11 +130,13 @@ public class PlayerController
 		final Block[] placeBlocks = new Block[] {
 				Blocks.GRASS, Blocks.DIRT, Blocks.STONE,
 				Blocks.PLANKS, Blocks.STONE_BRICKS, Blocks.CLAY_BRICKS,
-				Blocks.DOOR_LOWER, Blocks.GLASS,
+				Blocks.DOOR_LOWER, Blocks.GLASS, Blocks.SAND, Blocks.GRAVEL
 		};
 		
 		if (e.keycode >= GLFW_KEY_1 && e.keycode <= (GLFW_KEY_0 + placeBlocks.length))
 			placeID = placeBlocks[e.keycode - GLFW_KEY_1].getId();
+		else if(e.keycode == GLFW_KEY_0)
+			placeID = placeBlocks[9].getId();
 		
 		// Toggle flying
 		if (e.keycode == GLFW_KEY_F)

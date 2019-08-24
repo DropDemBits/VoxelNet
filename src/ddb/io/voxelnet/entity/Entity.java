@@ -18,7 +18,7 @@ public class Entity
 	public float gravity;
 	
 	// The orientation of the entity
-	public float pitch = -90.0f, yaw = 0.0f;
+	public float pitch = 0.0f, yaw = 0.0f;
 	
 	// Eye height of the entity
 	public float eyeHeight = 1.45f;

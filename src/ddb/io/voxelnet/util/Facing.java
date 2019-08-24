@@ -2,10 +2,10 @@ package ddb.io.voxelnet.util;
 
 public enum Facing
 {
-	NORTH   ( 0,  0, -1),
-	WEST    (-1,  0,  0),
 	SOUTH   ( 0,  0,  1),
+	NORTH   ( 0,  0, -1),
 	EAST    ( 1,  0,  0),
+	WEST    (-1,  0,  0),
 	UP      ( 0,  1,  0),
 	DOWN    ( 0, -1,  0);
 	
@@ -39,4 +39,12 @@ public enum Facing
 	{
 		return zOff;
 	}
+	
+	public Facing getOpposite()
+	{
+		// Due to the arrangement of the enum values, finding the opposite
+		// direction is just a simple bitwise op
+		return values()[ordinal() ^ 1];
+	}
+	
 }
