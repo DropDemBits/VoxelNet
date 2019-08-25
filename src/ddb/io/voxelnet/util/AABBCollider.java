@@ -123,10 +123,12 @@ public class AABBCollider
 	 * @param yOff The amount to grow in the y direction
 	 * @param zOff The amount to grow in the z direction
 	 */
-	public void grow(float xOff, float yOff, float zOff)
+	public AABBCollider grow(float xOff, float yOff, float zOff)
 	{
 		width  += xOff;
 		height += yOff;
 		depth  += zOff;
+		
+		return this;
 	}
 }

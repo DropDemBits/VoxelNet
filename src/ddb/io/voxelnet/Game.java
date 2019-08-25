@@ -1,6 +1,8 @@
 package ddb.io.voxelnet;
 
 import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.client.render.entity.EntityRendererFalling;
+import ddb.io.voxelnet.entity.EntityFallingBlock;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.client.input.PlayerController;
 import ddb.io.voxelnet.client.render.*;
@@ -146,13 +148,17 @@ public class Game {
 		Block.init();
 		
 		// Setup the game renderer
-		renderer = new GameRenderer();
+		renderer = new GameRenderer(atlas);
+		
+		// Register the entity renderers
+		renderer.registerEntityRenderer(EntityFallingBlock.class, new EntityRendererFalling());
 		
 		// Setup the world, world save/loader, and world renderer
 		world = new World();
 		worldSave = new WorldSave(world, "world.dat");
 		worldRenderer = new WorldRenderer(world, atlas);
 		
+		// Load / Generate the world
 		if (worldSave.canLoad())
 			worldSave.load();
 		else
@@ -161,7 +167,7 @@ public class Game {
 		// Setup the player
 		player = new EntityPlayer();
 		player.setPos(0.0f, 64.0f, 0.0f);
-		player.setWorld(world);
+		world.addEntity(player);
 		worldRenderer.setPlayer(player);
 		
 		// Setup the controller
@@ -309,8 +315,7 @@ public class Game {
 	private void update(float delta)
 	{
 		controller.update(delta);
-		world.update();
-		player.update(delta);
+		world.update(delta);
 		
 		camera.asPlayer(player);
 		camera.updateView();

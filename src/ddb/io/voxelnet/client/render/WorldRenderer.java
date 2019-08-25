@@ -1,5 +1,6 @@
 package ddb.io.voxelnet.client.render;
 
+import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.Chunk;
@@ -90,8 +91,11 @@ public class WorldRenderer
 		while(!generateQueue.isEmpty())
 		{
 			ChunkModel model = generateQueue.peek();
-			generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
-			System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
+			if (!model.isUpdateInProgress())
+			{
+				generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
+				System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
+			}
 		}
 		
 		/*if (!generateQueue.isEmpty())
@@ -136,7 +140,7 @@ public class WorldRenderer
 			model.bind();
 			
 			// Update the vertices if an update is not in progress
-			if (!isUpdating && chunkModel.isDirty())
+			if (!chunkModel.isUpdateInProgress() && chunkModel.isDirty())
 			{
 				model.updateVertices();
 				
@@ -190,6 +194,16 @@ public class WorldRenderer
 				"TrnA " + transparentCount + ", " +
 				"UpdA " + updProgressCount
 		);*/
+		
+		// Draw all the entities
+		for (Entity e : world.loadedEntities)
+		{
+			// Skip drawing the local player
+			if (e instanceof EntityPlayer)
+				continue;
+			
+			renderer.getEntityRenderer(e.getClass()).render(e, renderer);
+		}
 	}
 	
 	public void stop()

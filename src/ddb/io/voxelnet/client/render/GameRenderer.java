@@ -1,14 +1,53 @@
 package ddb.io.voxelnet.client.render;
 
-import org.joml.Matrix4f;
+import ddb.io.voxelnet.client.render.entity.EntityRenderer;
+import ddb.io.voxelnet.entity.Entity;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.lwjgl.opengl.GL11.*;
 
+/**
+ * Renderer for the entire game
+ */
 public class GameRenderer
 {
 	private final float[] matrix = new float[16];
 	private Camera camera;
 	private Shader currentShader;
+	private Map<Class<? extends Entity>, EntityRenderer> entityRenderers;
+	public TextureAtlas tileAtlas;
+	
+	public GameRenderer(TextureAtlas tileAtlas)
+	{
+		this.tileAtlas = tileAtlas;
+		entityRenderers = new LinkedHashMap<>();
+	}
+	
+	/**
+	 * Registers an entity render
+	 * @param entity The entity that should use this renderer
+	 * @param renderer The renderer to render the entity
+	 */
+	public void registerEntityRenderer(Class<? extends Entity> entity, EntityRenderer renderer)
+	{
+		if (entityRenderers.containsKey(entity))
+			throw new IllegalStateException("Attempt to register the same entity twice");
+		entityRenderers.put(entity, renderer);
+	}
+	
+	/**
+	 * Gets the renderer for the given entity
+	 * @param entity The entity that should be rendered
+	 * @return
+	 */
+	public EntityRenderer getEntityRenderer(Class<? extends Entity> entity)
+	{
+		if (!entityRenderers.containsKey(entity))
+			throw new IllegalStateException("Entity Renderer not registered for entity " + entity.getName());
+		return entityRenderers.get(entity);
+	}
 	
 	/**
 	 * Uses the shader for the next set of models

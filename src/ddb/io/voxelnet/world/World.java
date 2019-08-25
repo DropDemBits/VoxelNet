@@ -2,12 +2,11 @@ package ddb.io.voxelnet.world;
 
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
+import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.util.Vec3i;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class World
 {
@@ -17,7 +16,13 @@ public class World
 	// Accessed by index = x + z * 16
 	// TODO: Add Vec2i
 	final Map<Vec3i, ChunkColumn> chunkColumns = new LinkedHashMap<>();
+	// Empty Chunk
 	private final Chunk EMPTY_CHUNK;
+	
+	// List of entities that are waiting to be added
+	public List<Entity> pendingEntities;
+	// List of currently loaded entities
+	public List<Entity> loadedEntities;
 	
 	// WorldGen
 	private long worldSeed;
@@ -28,6 +33,8 @@ public class World
 		EMPTY_CHUNK = new Chunk(this, 0, -64, 0);
 		worldSeed = System.currentTimeMillis();
 		worldRandom = new Random(worldSeed);
+		loadedEntities = new ArrayList<>();
+		pendingEntities = new ArrayList<>();
 	}
 	
 	/**
@@ -349,8 +356,36 @@ public class World
 		}
 	}
 	
-	public void update()
+	/**
+	 * Adds an entity to the world
+	 * @param e The entity to add
+	 */
+	public void addEntity(Entity e)
 	{
+		// Set the entity's world
+		e.setWorld(this);
+		
+		// Add to the list
+		pendingEntities.add(e);
+	}
 	
+	/**
+	 * Updates the world
+	 * @param delta The delta for updates
+	 */
+	public void update(float delta)
+	{
+		// Add all of the pending entities
+		loadedEntities.addAll(pendingEntities);
+		pendingEntities.clear();
+		
+		// Update all of the entities
+		for (Entity e : loadedEntities)
+		{
+			e.update(delta);
+		}
+		
+		// Remove all the entities that need to be removed
+		loadedEntities.removeIf((e) -> e.isRemoved);
 	}
 }

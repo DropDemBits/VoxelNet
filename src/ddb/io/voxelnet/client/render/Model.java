@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
@@ -30,10 +31,10 @@ public class Model
 	/// Model Data ///
 	// Vertex Data
 	// Vertex position (in byte[])
-	private List<byte[]> vertexData;
+	private Vector<byte[]> vertexData;
 	
 	// Indices
-	private List<Integer> indices;
+	private Vector<Integer> indices;
 	private int indiciesCount = 0;
 	
 	// GL *BO Handles
@@ -61,8 +62,8 @@ public class Model
 		vertex = ByteBuffer.allocate(layout.getStride());
 		vertex.order(ByteOrder.nativeOrder());
 		
-		vertexData = new ArrayList<>();
-		indices = new ArrayList<>();
+		vertexData = new Vector<>();
+		indices = new Vector<>();
 		
 		// Create the buffers
 		vboHandle = glGenBuffers();

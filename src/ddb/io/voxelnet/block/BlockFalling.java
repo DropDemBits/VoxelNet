@@ -1,5 +1,6 @@
 package ddb.io.voxelnet.block;
 
+import ddb.io.voxelnet.entity.EntityFallingBlock;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.World;
 
@@ -25,21 +26,14 @@ public class BlockFalling extends Block
 		if(world.getBlock(x, y - 1, z) != Blocks.AIR.getId())
 			return;
 		
-		int newY = y - 1;
-		
-		// Find the lowest block position that has air above it
-		for (; newY >= 0; newY--)
-		{
-			if(world.getBlock(x, newY, z) != Blocks.AIR.getId())
-				break;
-		}
-		
-		// If the new position is above the world, set it
-		if (newY >= 0)
-			world.setBlock(x, newY + 1, z, getId());
-		
 		// Set the old position to air
 		world.setBlock(x, y, z, Blocks.AIR.getId());
+		
+		// Add a new falling entity
+		EntityFallingBlock falling = new EntityFallingBlock(this);
+		falling.setPos(x + 0.5f, y, z + 0.5f);
+		
+		world.addEntity(falling);
 	}
 	
 }
