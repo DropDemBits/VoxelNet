@@ -109,7 +109,7 @@ public class Game {
 		// Update the window context
 		glfwMakeContextCurrent(window);
 		// Setup vsync
-		glfwSwapInterval(1);
+		glfwSwapInterval(0);
 		// Show the window
 		glfwShowWindow(window);
 		
@@ -309,7 +309,7 @@ public class Game {
 		worldRenderer.stop();
 		
 		// Save the world
-		worldSave.save();
+		//worldSave.save();
 	}
 	
 	private void update(float delta)

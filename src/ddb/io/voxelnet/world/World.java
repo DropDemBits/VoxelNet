@@ -4,6 +4,7 @@ import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.util.Facing;
+import ddb.io.voxelnet.util.PerlinOctaves;
 import ddb.io.voxelnet.util.Vec3i;
 
 import java.util.*;
@@ -27,14 +28,18 @@ public class World
 	// WorldGen
 	private long worldSeed;
 	private Random worldRandom;
+	private PerlinOctaves perlinNoise;
 	
 	public World()
 	{
 		EMPTY_CHUNK = new Chunk(this, 0, -64, 0);
-		worldSeed = System.currentTimeMillis();
+		worldSeed = 1566757735901L;//System.currentTimeMillis();
 		worldRandom = new Random(worldSeed);
 		loadedEntities = new ArrayList<>();
 		pendingEntities = new ArrayList<>();
+		perlinNoise = new PerlinOctaves(1, 0.9);
+		
+		setWorldSeed(worldSeed);
 	}
 	
 	/**
@@ -52,18 +57,10 @@ public class World
 				generateChunk(cx, cz);
 			}
 		}
+		System.out.println("Done base generation in " + (System.currentTimeMillis() - startGen) + " ms");
 		
 		// Create explosions in the world (worldgen test)
-		int explosionCount = worldRandom.nextInt(200) + 50;
-		for (int i = 0; i < explosionCount; i++)
-		{
-			int x = worldRandom.nextInt(256) - 128;
-			int y = worldRandom.nextInt(64);
-			int z = worldRandom.nextInt(256) - 128;
-			int radius = worldRandom.nextInt(32) + 8;
-			
-			explode(x, y, z, radius);
-		}
+		startGen = System.currentTimeMillis();
 		System.out.println("Done generation in " + (System.currentTimeMillis() - startGen) + " ms");
 	}
 	
@@ -71,6 +68,7 @@ public class World
 	{
 		worldSeed = newSeed;
 		worldRandom.setSeed(newSeed);
+		perlinNoise.seed(worldSeed);
 	}
 	
 	public long getWorldSeed()
@@ -151,6 +149,32 @@ public class World
 	 */
 	public void setBlock (int x, int y, int z, byte id)
 	{
+		setBlock(x, y, z, id, 7);
+	}
+	
+	/**
+	 * Sets the block id at the given position, with some flags
+	 * The flags are defined to be as follows:
+	 * Bit 0: When set, updates the lighting
+	 * Bit 1: When set, updates the adjacent chunks
+	 * Bit 2: When set, updates the adjacent neighbors
+	 *
+	 * @param x The x position of the block
+	 * @param y The y position of the block
+	 * @param z The z position of the block
+	 * @param id The id of the block
+	 * @param flags The bitmap of the flags to use
+	 */
+	public void setBlock (int x, int y, int z, byte id, int flags)
+	{
+		// If a lighting update needs to occur
+		boolean lightingUpdate = false;
+		
+		// Decode the flags
+		boolean updateLighting = (flags & 1) != 0;
+		boolean updateNeighborChunks = (flags & 2) != 0;
+		boolean updateNeighbors = (flags & 4) != 0;
+		
 		// Don't set block below or above the world
 		if (y < 0 || y > 255)
 			return;
@@ -191,96 +215,102 @@ public class World
 			chunkColumns.put(columnPos, chunkColumn);
 		}
 		
-		// Update the appropriate column
-		int columnIdx = blockX + blockZ * 16;
-		int tallestOpaque = Byte.toUnsignedInt(chunkColumn.opaqueColumns[columnIdx]);
-		
-		// 3 Main Groups for Column placement
-		// - Below tallest opaque block
-		// - At tallest opaque block
-		// - Above tallest opaque block
-		// If the block is below the tallest opaque block, then do nothing
-		// If the block is above the tallest block and is opaque, make this
-		//    block the tallest one, otherwise do nothing
-		// If the block is at the tallest opaque block and is not opaque (i.e
-		//    air or isTransparent), search for the next opaque block below.
-		//    Otherwise, nothing happens
-		// If no match is found, set the tallest opaque block to zero.
-		
-		Block block = Block.idToBlock(id);
-		
-		boolean performSearch = false;
-		boolean lightingUpdate = false;
-		
-		if (y > tallestOpaque)
+		if (updateLighting)
 		{
-			// Only do update for opaque blocks
-			if(!block.isTransparent())
+			// Update the appropriate column
+			int columnIdx = blockX + blockZ * 16;
+			int tallestOpaque = Byte.toUnsignedInt(chunkColumn.opaqueColumns[columnIdx]);
+			
+			// 3 Main Groups for Column placement
+			// - Below tallest opaque block
+			// - At tallest opaque block
+			// - Above tallest opaque block
+			// If the block is below the tallest opaque block, then do nothing
+			// If the block is above the tallest block and is opaque, make this
+			//    block the tallest one, otherwise do nothing
+			// If the block is at the tallest opaque block and is not opaque (i.e
+			//    air or isTransparent), search for the next opaque block below.
+			//    Otherwise, nothing happens
+			// If no match is found, set the tallest opaque block to zero.
+			
+			Block block = Block.idToBlock(id);
+			
+			if (y > tallestOpaque)
 			{
-				chunkColumn.opaqueColumns[columnIdx] = (byte) y;
+				// Only do update for opaque blocks
+				if (!block.isTransparent())
+				{
+					chunkColumn.opaqueColumns[columnIdx] = (byte) y;
+					lightingUpdate = true;
+				}
+			}
+			
+			if (y == tallestOpaque && block.isTransparent())
+			{
+				// Only update on same height if the block is not opaque or a search should be performed
+				int height = y - 1;
+				
+				for (; height != y; height = (--height) & 0xFF)
+				{
+					if (!Block.idToBlock(getBlock(x, height, z)).isTransparent())
+						break;
+				}
+				
+				// If the height is the same, make the column empty
+				if (height == y)
+					height = 0;
+				
+				chunkColumn.opaqueColumns[columnIdx] = (byte) height;
 				lightingUpdate = true;
 			}
 		}
 		
-		if (y == tallestOpaque && block.isTransparent())
+		if (updateNeighborChunks)
 		{
-			// Only update on same height if the block is not opaque or a search should be performed
-			int height = y - 1;
+			// Update the adjacent in the column chunks if the block is at one of the chunk edges
+			if (blockY == 15)
+				loadedChunks.getOrDefault(chunkPos.add(0, 1, 0), EMPTY_CHUNK).forceRebuild();
 			
-			for (; height != y; height = (--height) & 0xFF)
+			for (int yPos = chunkPos.getY(); yPos >= 0; yPos--)
 			{
-				if(!Block.idToBlock(getBlock(x, height, z)).isTransparent())
+				int yOff = yPos - chunkPos.getY();
+				
+				if (yOff != 0)
+					loadedChunks.getOrDefault(chunkPos.add(0, yOff, 0), EMPTY_CHUNK).forceRebuild();
+				
+				// If there was no lighting update, only update the directly
+				// adjacent chunks
+				if (!lightingUpdate && yOff < -1)
 					break;
+				
+				if (blockX == 0)
+					loadedChunks.getOrDefault(chunkPos.add(-1, yOff, 0), EMPTY_CHUNK).forceRebuild();
+				else if (blockX == 15)
+					loadedChunks.getOrDefault(chunkPos.add(1, yOff, 0), EMPTY_CHUNK).forceRebuild();
+				
+				if (blockZ == 0)
+					loadedChunks.getOrDefault(chunkPos.add(0, yOff, -1), EMPTY_CHUNK).forceRebuild();
+				else if (blockZ == 15)
+					loadedChunks.getOrDefault(chunkPos.add(0, yOff, 1), EMPTY_CHUNK).forceRebuild();
 			}
-			
-			// If the height is the same, make the column empty
-			if (height == y)
-				height = 0;
-			
-			chunkColumn.opaqueColumns[columnIdx] = (byte)height;
-			lightingUpdate = true;
 		}
 		
-		// Update the adjacent in the column chunks if the block is at one of the chunk edges
-		if (blockY == 15)
-			loadedChunks.getOrDefault(chunkPos.add( 0,  1,  0), EMPTY_CHUNK).forceRebuild();
-		
-		for(int yPos = chunkPos.getY(); yPos >= 0; yPos--)
+		if (updateNeighbors)
 		{
-			int yOff = yPos - chunkPos.getY();
-			
-			if (yOff != 0)
-				loadedChunks.getOrDefault(chunkPos.add(0, yOff, 0), EMPTY_CHUNK).forceRebuild();
-			
-			// If there was no lighting update, only update the directly
-			// adjacent chunks
-			if (!lightingUpdate && yOff < -1)
-				break;
-			
-			if (blockX == 0)
-				loadedChunks.getOrDefault(chunkPos.add(-1, yOff, 0), EMPTY_CHUNK).forceRebuild();
-			else if (blockX == 15)
-				loadedChunks.getOrDefault(chunkPos.add(1, yOff, 0), EMPTY_CHUNK).forceRebuild();
-			
-			if (blockZ == 0)
-				loadedChunks.getOrDefault(chunkPos.add(0, yOff, -1), EMPTY_CHUNK).forceRebuild();
-			else if (blockZ == 15)
-				loadedChunks.getOrDefault(chunkPos.add(0, yOff, 1), EMPTY_CHUNK).forceRebuild();
-		}
-		
-		// Update the neighboring blocks
-		for (Facing face : Facing.values())
-		{
-			byte neighbor = getBlock(x + face.getOffsetX(), y + face.getOffsetY(), z + face.getOffsetZ());
-			
-			// Update the neigh bor if it's not air
-			if (neighbor != Blocks.AIR.getId())
-				Block.idToBlock(neighbor).onNeighborUpdated(
-						this,
-						x + face.getOffsetX(),
-						y + face.getOffsetY(),
-						z + face.getOffsetZ(),
-						face.getOpposite());
+			// Update the neighboring blocks
+			for (Facing face : Facing.values())
+			{
+				byte neighbor = getBlock(x + face.getOffsetX(), y + face.getOffsetY(), z + face.getOffsetZ());
+				
+				// Update the neigh bor if it's not air
+				if (neighbor != Blocks.AIR.getId())
+					Block.idToBlock(neighbor).onNeighborUpdated(
+							this,
+							x + face.getOffsetX(),
+							y + face.getOffsetY(),
+							z + face.getOffsetZ(),
+							face.getOpposite());
+			}
 		}
 	}
 	
@@ -301,40 +331,91 @@ public class World
 		ChunkColumn column = new ChunkColumn(cx, cz);
 		chunkColumns.put(new Vec3i(cx, 0, cz), column);
 		
-		for(int cy = 3; cy >= 0; cy--)
+		// Pre-generate heightmap
+		double[] heights = new double[16 * 16];
+		for (int z = 15; z >= 0; z--)
 		{
-			Chunk chunk = new Chunk(this, cx, cy, cz);
-			loadedChunks.put(new Vec3i(cx, cy, cz), chunk);
-			
-			// Fill the chunk
-			for (int i = 0; i < chunk.getData().length; i++)
+			for (int x = 15; x >= 0; x--)
 			{
-				int x = i & 0xF;
-				int y = 15 - (i >> 8);
-				int z = (i >> 4) & 0xF;
+				double noiseX, noiseZ;
 				
-				int blockY = (cy << 4) + y;
+				noiseX = (0.5d * (cx * 16f + x) / 16.0d);
+				noiseZ = (0.5d * (cz * 16f + z) / 16.0d);
 				
-				Block block;
-				
-				if (blockY == 63)
-					block = Blocks.GRASS;
-				else if (blockY >= 60)
-					block = Blocks.DIRT;
-				else if (blockY >= 4)
-					block = Blocks.STONE;
-				else if (worldRandom.nextInt(4) == 0)
-					block = Blocks.PLANKS;
-				else
-					block = Blocks.STONE;
-				
-				chunk.setBlock(x, y, z, block.getId());
-				
-				// Update the respective column so that the lighting is correct
-				int colIdx = x + (z << 4);
-				if (!block.isTransparent() && column.opaqueColumns[colIdx] < blockY)
-					column.opaqueColumns[colIdx] = (byte)blockY;
+				// Convert the noise into the [-1,1] range
+				heights[x + z * 16] = perlinNoise.perlinOctaves(noiseX, noiseZ, 0.5d) * 2d - 1d;
 			}
+		}
+		
+		int depth = 0;
+		
+		for (int z = 0; z < 16; z++)
+		for (int x = 0; x < 16; x++)
+		{
+			boolean foundTallest = false;
+			int colIdx = x + (z << 4);
+			
+			int height = 64 + (int)(heights[colIdx] * 13.0d);
+			int y = height;
+			
+			if (y < 63)
+			{
+				// Generate water
+				y = 63;
+			}
+			
+			// Used in generating the blocks below the top layer
+			Block blockBelow = Blocks.AIR;
+			
+			for (; y >= 0; y--)
+			{
+				Block block = Blocks.STONE;
+				
+				// Setup the top layers
+				if (depth == 0)
+				{
+					if (y >= 64)
+					{
+						block = Blocks.GRASS;
+						blockBelow = Blocks.DIRT;
+					}
+					else if (y >= 60)
+					{
+						block = Blocks.SAND;
+						blockBelow = Blocks.SAND;
+					}
+					else
+					{
+						block = Blocks.GRAVEL;
+						blockBelow = Blocks.GRAVEL;
+					}
+				}
+				else if (depth < 3)
+					block = blockBelow;
+				
+				if (y > height)
+				{
+					block = Blocks.WATER;
+				}
+				
+				setBlock((cx << 4) + x, y, (cz << 4) + z, block.getId(), 0);
+				
+				if (!foundTallest)
+				{
+					// Update the respective column so that the lighting is correct
+					if (!block.isTransparent() && column.opaqueColumns[colIdx] < y)
+					{
+						column.opaqueColumns[colIdx] = (byte) y;
+						foundTallest = true;
+					}
+				}
+				
+				// Only increase the depth once the generate height is reached
+				if (y <= height)
+					depth++;
+			}
+			
+			depth = 0;
 		}
 	}
 	
@@ -350,7 +431,7 @@ public class World
 					if (dist > radius*radius)
 						continue;
 					
-					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId());
+					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId(), 5);
 				}
 			}
 		}

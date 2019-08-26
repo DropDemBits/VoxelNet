@@ -26,6 +26,7 @@ public class Block
 		Blocks.GLASS        = addBlock(9,  new Block().setSolid(true).setFaceTextures(new int[] {10, 10, 10, 10, 10, 10}).setTransparent(true));
 		Blocks.SAND         = addBlock(10, new BlockFalling().setSolid(true).setFaceTextures(new int[] {11, 11, 11, 11, 11, 11}));
 		Blocks.GRAVEL       = addBlock(11, new BlockFalling().setSolid(true).setFaceTextures(new int[] {12, 12, 12, 12, 12, 12}));
+		Blocks.WATER        = addBlock(12, new Block().setSolid(false).setFaceTextures(new int[] {13, 13, 13, 13, 13, 13}).setTransparent(true));
 	}
 	
 	private static Block addBlock(int id, Block instance)

@@ -9,6 +9,7 @@ import ddb.io.voxelnet.world.World;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Predicate;
 
 public class WorldRenderer
 {
@@ -57,8 +58,9 @@ public class WorldRenderer
 			
 			if (chunk.needsRebuild())
 			{
-				assert(renderChunks.get(pos) != null);
-				if (!renderChunks.get(pos).isUpdatePending())
+				ChunkModel model = renderChunks.get(pos);
+				assert(model != null);
+				if (!model.isUpdatePending() && !model.isUpdateInProgress())
 				{
 					// No model update is pending, add it to the generate queue
 					generateQueue.push(renderChunks.get(pos));
@@ -91,11 +93,8 @@ public class WorldRenderer
 		while(!generateQueue.isEmpty())
 		{
 			ChunkModel model = generateQueue.peek();
-			if (!model.isUpdateInProgress())
-			{
-				generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
-				System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
-			}
+			generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
+			System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
 		}
 		
 		/*if (!generateQueue.isEmpty())
@@ -154,6 +153,9 @@ public class WorldRenderer
 			++opaqueCount;
 			opaqueAccum += System.nanoTime() - opaqueStart;
 		}
+		
+		if (!transparentChunks.isEmpty())
+			transparentChunks.sort((a, b) -> -distanceSort(a, b));
 		
 		long transparentAccum = 0;
 		long transparentCount = transparentChunks.size();

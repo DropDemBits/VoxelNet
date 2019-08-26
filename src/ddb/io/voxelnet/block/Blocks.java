@@ -18,5 +18,6 @@ public class Blocks
 	public static Block GLASS;
 	public static Block SAND;
 	public static Block GRAVEL;
+	public static Block WATER;
 	
 }
