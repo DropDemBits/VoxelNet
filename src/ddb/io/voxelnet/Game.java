@@ -67,10 +67,23 @@ public class Game {
 	{
 		/// Init ///
 		init();
-		/// Main Loop ///
-		loop();
-		/// Cleanup ///
-		cleanup();
+		
+		// Catch all the bad exceptions
+		try
+		{
+			/// Main Loop ///
+			loop();
+		}
+		catch (Exception e)
+		{
+			System.err.println("Oops, a bad thing happened!");
+			e.printStackTrace();
+		}
+		finally
+		{
+			/// Cleanup ///
+			cleanup();
+		}
 	}
 	
 	private void init()

@@ -44,7 +44,7 @@ public class WorldRenderer
 		boolean newChunks = false;
 		
 		// Generate chunks in a 16x16 radius around the player
-		for (int cx = -8; cx < 8; cx++)
+		/*for (int cx = -8; cx < 8; cx++)
 		{
 			for (int cz = -8; cz < 8; cz++)
 			{
@@ -54,7 +54,7 @@ public class WorldRenderer
 				if (world.getChunk(cx + cxOff, 0, cz + czOff) == world.EMPTY_CHUNK)
 					world.generateChunk(cx + cxOff, cz + czOff);
 			}
-		}
+		}*/
 		
 		// Update existing chunks
 		for(Chunk chunk : world.loadedChunks.values())
@@ -253,10 +253,10 @@ public class WorldRenderer
 		@Override
 		public void run()
 		{
-			model.setUpdatePending(false);
 			model.setUpdateProgress(true);
 			model.updateModel(atlas);
 			model.setUpdateProgress(false);
+			model.setUpdatePending(false);
 		}
 	}
 }

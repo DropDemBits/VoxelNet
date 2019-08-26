@@ -33,7 +33,9 @@ public class World
 	public World()
 	{
 		EMPTY_CHUNK = new Chunk(this, 0, -64, 0);
-		worldSeed = 1566757735901L;//System.currentTimeMillis();
+		//worldSeed = System.currentTimeMillis();
+		//worldSeed = 1566757735901L;
+		worldSeed = 1566847034636L;
 		worldRandom = new Random(worldSeed);
 		loadedEntities = new ArrayList<>();
 		pendingEntities = new ArrayList<>();
@@ -339,11 +341,10 @@ public class World
 			{
 				double noiseX, noiseZ;
 				
-				noiseX = (0.5d * (cx * 16f + x) / 16.0d);
-				noiseZ = (0.5d * (cz * 16f + z) / 16.0d);
+				noiseX = (0.25d * (cx * 16f + x) / 16.0d);
+				noiseZ = (0.25d * (cz * 16f + z) / 16.0d);
 				
-				// Convert the noise into the [-1,1] range
-				heights[x + z * 16] = perlinNoise.perlinOctaves(noiseX, noiseZ, 0.5d) * 2d - 1d;
+				heights[x + z * 16] = perlinNoise.perlinOctaves(noiseX, noiseZ, 0.5d);
 			}
 		}
 		
@@ -355,7 +356,7 @@ public class World
 			boolean foundTallest = false;
 			int colIdx = x + (z << 4);
 			
-			int height = 64 + (int)(heights[colIdx] * 13.0d);
+			int height = 55 + (int)Math.floor(heights[colIdx] * 28.0d);
 			int y = height;
 			
 			if (y < 63)
@@ -391,7 +392,13 @@ public class World
 					}
 				}
 				else if (depth < 3)
+				{
 					block = blockBelow;
+				}
+				else if ((y <= 4 && worldRandom.nextInt(8) == 0) || y == 0)
+				{
+					block = Blocks.PLANKS;
+				}
 				
 				if (y > height)
 				{
@@ -410,7 +417,7 @@ public class World
 					}
 				}
 				
-				// Only increase the depth once the generate height is reached
+				// Only increase the depth once the generated height is reached
 				if (y <= height)
 					depth++;
 			}
