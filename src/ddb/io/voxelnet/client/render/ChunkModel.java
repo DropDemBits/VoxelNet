@@ -56,14 +56,13 @@ public class ChunkModel
 		if (transparentLayer.getIndexCount() > 0)
 			transparentLayer.reset();
 		
-		// Indicate that the chunk has been updated
-		chunk.resetRebuildStatus();
-		
 		// Check if the chunk has been made empty
 		if (chunk.isEmpty())
 		{
 			// Defer the vertex buffer update to the render stage
 			isDirty = true;
+			// Indicate that the chunk has been updated
+			chunk.resetRebuildStatus();
 			return true;
 		}
 		
@@ -129,6 +128,8 @@ public class ChunkModel
 		
 		// Defer the vertex buffer update to the render stage
 		isDirty = true;
+		// Indicate that the chunk has been updated
+		chunk.resetRebuildStatus();
 		return true;
 	}
 	

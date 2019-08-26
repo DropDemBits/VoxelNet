@@ -43,6 +43,20 @@ public class WorldRenderer
 	{
 		boolean newChunks = false;
 		
+		// Generate chunks in a 16x16 radius around the player
+		for (int cx = -8; cx < 8; cx++)
+		{
+			for (int cz = -8; cz < 8; cz++)
+			{
+				int cxOff = (int)(player.xPos / 16f);
+				int czOff = (int)(player.zPos / 16f);
+				
+				if (world.getChunk(cx + cxOff, 0, cz + czOff) == world.EMPTY_CHUNK)
+					world.generateChunk(cx + cxOff, cz + czOff);
+			}
+		}
+		
+		// Update existing chunks
 		for(Chunk chunk : world.loadedChunks.values())
 		{
 			Vec3i pos = new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ);

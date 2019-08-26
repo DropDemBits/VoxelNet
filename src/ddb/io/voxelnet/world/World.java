@@ -18,7 +18,7 @@ public class World
 	// TODO: Add Vec2i
 	final Map<Vec3i, ChunkColumn> chunkColumns = new LinkedHashMap<>();
 	// Empty Chunk
-	private final Chunk EMPTY_CHUNK;
+	public final Chunk EMPTY_CHUNK;
 	
 	// List of entities that are waiting to be added
 	public List<Entity> pendingEntities;
@@ -325,7 +325,7 @@ public class World
 	 * @param cx The x position of the new chunk column
 	 * @param cz The z position of the new chunk column
 	 */
-	private void generateChunk (int cx, int cz)
+	public void generateChunk(int cx, int cz)
 	{
 		// Make the chunk columns
 		ChunkColumn column = new ChunkColumn(cx, cz);

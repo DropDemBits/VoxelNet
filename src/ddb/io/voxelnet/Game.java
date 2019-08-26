@@ -109,7 +109,7 @@ public class Game {
 		// Update the window context
 		glfwMakeContextCurrent(window);
 		// Setup vsync
-		glfwSwapInterval(0);
+		glfwSwapInterval(1);
 		// Show the window
 		glfwShowWindow(window);
 		
@@ -166,9 +166,19 @@ public class Game {
 		
 		// Setup the player
 		player = new EntityPlayer();
-		player.setPos(0.0f, 64.0f, 0.0f);
 		world.addEntity(player);
 		worldRenderer.setPlayer(player);
+		
+		// Spawn the player at the surface
+		int spawnY = 0;
+		
+		for (; spawnY < 256; spawnY++)
+		{
+			if (!Block.idToBlock(world.getBlock(0, spawnY, 0)).isSolid())
+				break;
+		}
+		
+		player.setPos(0.5f, spawnY, 0.5f);
 		
 		// Setup the controller
 		controller = new PlayerController(window, player);
