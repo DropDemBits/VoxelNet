@@ -297,13 +297,18 @@ public class PlayerController
 				
 				if (id != Blocks.AIR.getId())
 				{
+					Block block = Block.idToBlock(id);
 					Vec3i pos = new Vec3i(x, y, z);
 					if(seen.contains(pos))
 						continue;
 					seen.add(pos);
 					
+					// Don't select blocks without a hitbox
+					if (block.getHitBox() == null)
+						continue;
+					
 					// Test the hit box for collision with the ray
-					AABBCollider box = new AABBCollider(Block.idToBlock(id).getCollisionBox());
+					AABBCollider box = new AABBCollider(block.getHitBox());
 					box.setPosition(x, y, z);
 					box.add(-0.0625f, -0.0625f, -0.0625f);
 					box.grow(0.125f, 0.125f, 0.125f);

@@ -14,7 +14,7 @@ public class Block
 	
 	public static void init()
 	{
-		Blocks.AIR          = addBlock(0,  new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}).setTransparent(true));
+		Blocks.AIR          = addBlock(0,  new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}).setTransparent(true)).setHitBox(null);
 		Blocks.GRASS        = addBlock(1,  new Block().setSolid(true).setFaceTextures(new int[] {1, 1, 1, 1, 0, 2}));
 		Blocks.DIRT         = addBlock(2,  new Block().setSolid(true).setFaceTextures(new int[] {2, 2, 2, 2, 2, 2}));
 		Blocks.STONE        = addBlock(3,  new Block().setSolid(true).setFaceTextures(new int[] {3, 3, 3, 3, 3, 3}));
@@ -26,7 +26,7 @@ public class Block
 		Blocks.GLASS        = addBlock(9,  new Block().setSolid(true).setFaceTextures(new int[] {10, 10, 10, 10, 10, 10}).setTransparent(true));
 		Blocks.SAND         = addBlock(10, new BlockFalling().setSolid(true).setFaceTextures(new int[] {11, 11, 11, 11, 11, 11}));
 		Blocks.GRAVEL       = addBlock(11, new BlockFalling().setSolid(true).setFaceTextures(new int[] {12, 12, 12, 12, 12, 12}));
-		Blocks.WATER        = addBlock(12, new Block().setSolid(false).setFaceTextures(new int[] {13, 13, 13, 13, 13, 13}).setTransparent(true));
+		Blocks.WATER        = addBlock(12, new Block().setSolid(false).setFaceTextures(new int[] {13, 13, 13, 13, 13, 13}).setTransparent(true)).setHitBox(null);
 	}
 	
 	private static Block addBlock(int id, Block instance)
@@ -49,6 +49,7 @@ public class Block
 	private int[] faceTextures;
 	private boolean isSolid;
 	private boolean isTransparent;
+	private AABBCollider hitBox = DEFAULT_COLLIDER;
 	private byte id;
 	
 	protected Block() {}
@@ -94,6 +95,17 @@ public class Block
 		return this;
 	}
 	
+	/**
+	 * Sets the hit box of the block
+	 * @param hitBox The new hit box of the block
+	 * @return Instance of this to allow for chaining
+	 */
+	public Block setHitBox (AABBCollider hitBox)
+	{
+		this.hitBox = hitBox;
+		return this;
+	}
+	
 	/// Public Getters ///
 	/**
 	 * Gets the face textures associated with this block
@@ -130,6 +142,14 @@ public class Block
 	{
 		return DEFAULT_COLLIDER;
 	}
+	
+	/**
+	 * Gets the hit box of this block
+	 * Used to detect if a block should be selectable or not
+	 * Can be null to prevent selection
+	 * @return The hit box of this block
+	 */
+	public AABBCollider getHitBox() { return hitBox; }
 	
 	/**
 	 * Gets the ID of the block
