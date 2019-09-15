@@ -26,7 +26,7 @@ public class Block
 		Blocks.GLASS        = addBlock(9,  new Block().setSolid(true).setFaceTextures(new int[] {10, 10, 10, 10, 10, 10}).setTransparent(true));
 		Blocks.SAND         = addBlock(10, new BlockFalling().setSolid(true).setFaceTextures(new int[] {11, 11, 11, 11, 11, 11}));
 		Blocks.GRAVEL       = addBlock(11, new BlockFalling().setSolid(true).setFaceTextures(new int[] {12, 12, 12, 12, 12, 12}));
-		Blocks.WATER        = addBlock(12, new Block().setSolid(false).setFaceTextures(new int[] {13, 13, 13, 13, 13, 13}).setTransparent(true)).setHitBox(null);
+		Blocks.WATER        = addBlock(12, new BlockWater());
 	}
 	
 	private static Block addBlock(int id, Block instance)
@@ -47,8 +47,12 @@ public class Block
 	/// Per-Block variables ///
 	private static AABBCollider DEFAULT_COLLIDER = new AABBCollider(0f, 0f, 0f, 1f, 1f, 1f);
 	private int[] faceTextures;
-	private boolean isSolid;
-	private boolean isTransparent;
+	
+	// Conditional Setters
+	private boolean isSolid = true;
+	private boolean isTransparent = false;
+	private boolean isTickable = false;
+	
 	private AABBCollider hitBox = DEFAULT_COLLIDER;
 	private byte id;
 	
@@ -96,6 +100,17 @@ public class Block
 	}
 	
 	/**
+	 * Sets the tickability of the block
+	 * @param isTickable New tickable state of the block
+	 * @return Instance of this to allow for chaining
+	 */
+	public Block setTickable(boolean isTickable)
+	{
+		this.isTickable = isTickable;
+		return this;
+	}
+	
+	/**
 	 * Sets the hit box of the block
 	 * @param hitBox The new hit box of the block
 	 * @return Instance of this to allow for chaining
@@ -132,6 +147,15 @@ public class Block
 	public boolean isTransparent()
 	{
 		return isTransparent;
+	}
+	
+	/**
+	 * Gets if the block is tickable
+	 * @return True if the block is tickable
+	 */
+	public boolean isTickable()
+	{
+		return isTickable;
 	}
 	
 	/**
@@ -188,6 +212,10 @@ public class Block
 	 * @param dir The direction of the neighbor block, relative to the current one
 	 */
 	public void onNeighborUpdated(World world, int x, int y, int z, Facing dir) {}
+	
+	public void onTick(World world, int x, int y, int z) {}
+	
+	public void onRandomTick(World world, int x, int y, int z) {}
 	
 	/**
 	 * Checks if a player can place a block in the specified location

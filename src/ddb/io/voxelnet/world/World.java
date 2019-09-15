@@ -1,6 +1,7 @@
 package ddb.io.voxelnet.world;
 
 import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.block.BlockWater;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.util.Facing;
@@ -19,6 +20,8 @@ public class World
 	final Map<Vec3i, ChunkColumn> chunkColumns = new LinkedHashMap<>();
 	// Empty Chunk
 	public final Chunk EMPTY_CHUNK;
+	
+	private float accumulatedWorldTick;
 	
 	// List of entities that are waiting to be added
 	public List<Entity> pendingEntities;
@@ -322,6 +325,12 @@ public class World
 		return loadedChunks.getOrDefault(pos, EMPTY_CHUNK);
 	}
 	
+	public boolean isChunkPresent(int cx, int cy, int cz)
+	{
+		//return getChunk(cx, cy, cz) != EMPTY_CHUNK;
+		return loadedChunks.containsKey(new Vec3i(cx, cy, cz));
+	}
+	
 	/**
 	 * Generates a chunk column at the specified chunk position
 	 * @param cx The x position of the new chunk column
@@ -463,6 +472,35 @@ public class World
 	 */
 	public void update(float delta)
 	{
+		accumulatedWorldTick += delta;
+		if (accumulatedWorldTick > 1f/4f)
+		{
+			accumulatedWorldTick = 0;
+			
+			// Update the loaded chunks
+			List<Chunk> workingList = new ArrayList<>(loadedChunks.values());
+			workingList.iterator().forEachRemaining((chunk) ->
+			{
+				// y z x
+				for (int y = 0; y < 16; y++)
+				{
+					for (int z = 0; z < 16; z++)
+					{
+						for (int x = 0; x < 16; x++)
+						{
+							Block block = Block.idToBlock(chunk.getBlock(x, y, z));
+							
+							if (block.isTickable())
+								block.onTick(this, x + chunk.chunkX * 16, y + chunk.chunkY * 16, z + chunk.chunkZ * 16);
+						}
+					}
+				}
+			});
+			
+			// XXX: AGGGH! Use a better solution?
+			BlockWater.updateWater(this);
+		}
+		
 		// Add all of the pending entities
 		loadedEntities.addAll(pendingEntities);
 		pendingEntities.clear();
