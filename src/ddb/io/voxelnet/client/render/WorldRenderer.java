@@ -106,8 +106,11 @@ public class WorldRenderer
 		// Enqueue all the changed chunks
 		while(!generateQueue.isEmpty())
 		{
+			// TODO: Fix concurrent access during model generation
+			// TODO: Fix model updates not being propageted
 			ChunkModel model = generateQueue.peek();
 			generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
+			//new ThreadedChunkGenerator(generateQueue.pop()).run();
 			System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
 		}
 		
@@ -153,13 +156,10 @@ public class WorldRenderer
 			model.bind();
 			
 			// Update the vertices if an update is not in progress
-			if (!chunkModel.isUpdateInProgress() && chunkModel.isDirty())
+			if (!chunkModel.isUpdateInProgress())
 			{
-				model.updateVertices();
-				
-				// Only update the dirty status if there is no transparency
-				if (!chunkModel.hasTransparency())
-					chunkModel.makeClean();
+				// Update the opaque layer
+				chunkModel.updateLayer(0);
 			}
 			
 			renderer.drawModel(model);
@@ -168,13 +168,18 @@ public class WorldRenderer
 			opaqueAccum += System.nanoTime() - opaqueStart;
 		}
 		
-		if (!transparentChunks.isEmpty())
-			transparentChunks.sort((a, b) -> -distanceSort(a, b));
+		/*if (!transparentChunks.isEmpty())
+			transparentChunks.sort((a, b) -> -distanceSort(a, b));*/
 		
+		// Reverse iterate through the array
 		long transparentAccum = 0;
 		long transparentCount = transparentChunks.size();
-		for (ChunkModel chunkModel : transparentChunks)
+		ListIterator<ChunkModel> itr = transparentChunks.listIterator(transparentChunks.size());
+		
+		while (itr.hasPrevious())
 		{
+			ChunkModel chunkModel = itr.previous();
+			
 			long transparentStart = System.nanoTime();
 			boolean isUpdating = chunkModel.isUpdateInProgress();
 			Model model = chunkModel.getTransparentModel();
@@ -182,13 +187,10 @@ public class WorldRenderer
 			// Update the vertices if a model update is not in progress (have
 			// not been updated above)
 			model.bind();
-			if (!chunkModel.isUpdateInProgress() && chunkModel.isDirty())
+			if (!chunkModel.isUpdateInProgress())
 			{
-				// Update both models
-				// Done just in case the update status has changed between the loops
-				chunkModel.getOpaqueLayer().updateVertices();
-				model.updateVertices();
-				chunkModel.makeClean();
+				// Update transparent layer
+				chunkModel.updateLayer(1);
 			}
 			
 			renderer.drawModel(model);
@@ -254,7 +256,8 @@ public class WorldRenderer
 		public void run()
 		{
 			model.setUpdateProgress(true);
-			model.updateModel(atlas);
+			if(!model.updateModel(atlas))
+				System.err.println("OI, MODEL UPDATE DIDN'T HAPPEN @ " + new Vec3i(model.chunk.chunkX, model.chunk.chunkY, model.chunk.chunkZ).toString());
 			model.setUpdateProgress(false);
 			model.setUpdatePending(false);
 		}

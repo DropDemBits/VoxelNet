@@ -254,4 +254,11 @@ public class Chunk
 	{
 		recentlyGenerated = false;
 	}
+	
+	public void dbgPrint()
+	{
+		System.out.println("ChunkDump (" + chunkX + ", " + chunkY + ", " + chunkZ + ")");
+		System.out.println("Bcnt " + blockCount);
+		System.out.println("Empt " + isEmpty + " | Rbld " + needsRebuild + " | Drty " + isDirty + " | Rgen " + recentlyGenerated);
+	}
 }

@@ -101,7 +101,7 @@ public class GameRenderer
 	 */
 	public void begin()
 	{
-		glClearColor(0f, 0f, 0f, 1f);
+		glClearColor(134f/255f, 221f/255f, 243f/255f, 1f);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 		

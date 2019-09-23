@@ -4,6 +4,8 @@ import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.world.Chunk;
 import org.joml.Matrix4f;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * Model of a chunk being rendered
  */
@@ -21,6 +23,11 @@ public class ChunkModel
 	private volatile boolean updatePending = false;
 	private volatile boolean updateInProgress = false;
 	private volatile boolean hasTransparency = false;
+	private int updateAttempts = 0;
+	
+	private ReentrantLock updateLock;
+	// Layers that need updates
+	private boolean[] layerNeedsUpdate = new boolean[2];
 	
 	/**
 	 * Creates a chunk model
@@ -36,6 +43,8 @@ public class ChunkModel
 		
 		this.opaqueLayer.setTransform(this.modelMatrix);
 		this.transparentLayer.setTransform(this.modelMatrix);
+		
+		this.updateLock = new ReentrantLock();
 	}
 	
 	/**
@@ -45,9 +54,17 @@ public class ChunkModel
 	 */
 	public boolean updateModel(TextureAtlas atlas)
 	{
+		updateLock.lock();
+		++updateAttempts;
+		
 		// Check if the chunk actually needs to be re-rendered
 		if (!chunk.needsRebuild())
+		{
+			System.out.println("UPD InP" + updateAttempts);
+			--updateAttempts;
+			updateLock.unlock();
 			return false;
+		}
 		
 		// Reset the models
 		if (opaqueLayer.getIndexCount() > 0)
@@ -56,13 +73,21 @@ public class ChunkModel
 		if (transparentLayer.getIndexCount() > 0)
 			transparentLayer.reset();
 		
+		// All layers initially need updates
+		layerNeedsUpdate[0] = true;
+		layerNeedsUpdate[1] = true;
+		
 		// Check if the chunk has been made empty
 		if (chunk.isEmpty())
 		{
 			// Defer the vertex buffer update to the render stage
 			isDirty = true;
-			// Indicate that the chunk has been updated
+			
+			// Indicate that the chunk has been rebuilt
 			chunk.resetRebuildStatus();
+			
+			--updateAttempts;
+			updateLock.unlock();
 			return true;
 		}
 		
@@ -109,27 +134,22 @@ public class ChunkModel
 		generateAccum += currentGenerate;
 		generateCount += 1;
 		
-		if ((generateCount % 8) == 0)
+		/*if ((generateCount % 8) == 0)
 		{
 			System.out.print("\tAvg Generate Time: " + (((double) generateAccum / (double) generateCount) / 1000000.0d) + "ms");
 			System.out.println(", Current Generate Time: " + (currentGenerate) / 1000000.0d);
 			System.out.println("\tAvg Block Gen Time: " + (((double) blockGenAccum / (double) blockGenCount) / 1000.0d) + "us");
 			System.out.println("\tExtrapolate BlockGen Time: " + (((double) blockGenAccum / (double) blockGenCount) / 1000.0d) * 256.0d + "us");
 			System.out.println("---------------------------------");
-		}
-		
-		/*try
-		{
-			Thread.sleep(100);
-		} catch (InterruptedException e)
-		{
-			e.printStackTrace();
 		}*/
 		
 		// Defer the vertex buffer update to the render stage
 		isDirty = true;
 		// Indicate that the chunk has been updated
 		chunk.resetRebuildStatus();
+		
+		--updateAttempts;
+		updateLock.unlock();
 		return true;
 	}
 	
@@ -167,11 +187,6 @@ public class ChunkModel
 			return;
 		
 		// Update the model data
-		
-		// Free the excess vertex data
-		opaqueLayer.freeData();
-		transparentLayer.freeData();
-		
 		isDirty = false;
 	}
 	
@@ -219,4 +234,37 @@ public class ChunkModel
 	{
 		return hasTransparency;
 	}
+	
+	/**
+	 * Updates the layer's vertices
+	 * @param i The layer to update (0 = solid, 1 = transparent, 2 = fluid)
+	 */
+	public void updateLayer(int i)
+	{
+		// Don't update non-existent layers
+		if (i < 0 || i > 1)
+			return;
+		
+		updateLock.lock();
+		try
+		{
+			Model updatingModel;
+			if (i == 0) updatingModel = opaqueLayer;
+			else updatingModel = transparentLayer;
+			
+			// Update the model & clear the vertices
+			if (layerNeedsUpdate[i])
+			{
+				updatingModel.updateVertices();
+				updatingModel.freeData();
+			}
+			
+			layerNeedsUpdate[i] = false;
+		}
+		finally
+		{
+			updateLock.unlock();
+		}
+	}
+	
 }

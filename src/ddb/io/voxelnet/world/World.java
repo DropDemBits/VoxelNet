@@ -64,7 +64,6 @@ public class World
 		}
 		System.out.println("Done base generation in " + (System.currentTimeMillis() - startGen) + " ms");
 		
-		// Create explosions in the world (worldgen test)
 		startGen = System.currentTimeMillis();
 		System.out.println("Done generation in " + (System.currentTimeMillis() - startGen) + " ms");
 	}
@@ -437,6 +436,8 @@ public class World
 	
 	public void explode(int centreX, int centreY, int centreZ, int radius)
 	{
+		// Pass 1: Initial block removal
+		// No updates to adjacent chunks, or nearest neighbor updates
 		for (int x = -radius; x <= radius; x++)
 		{
 			for (int y = -radius; y <= radius; y++)
@@ -446,8 +447,24 @@ public class World
 					int dist = x*x + y*y + z*z;
 					if (dist > radius*radius)
 						continue;
+					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId(), 1);
+				}
+			}
+		}
+		
+		// Pass 2: Updates
+		// Update all the things (flags=7) at the edge
+		for (int x = -radius; x <= radius; x++)
+		{
+			for (int y = -radius; y <= radius; y++)
+			{
+				for (int z = -radius; z <= radius; z++)
+				{
+					int dist = x*x + y*y + z*z;
+					if (dist < (radius*radius) - 2*radius + 1 || dist > (radius*radius))
+						continue;
 					
-					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId(), 5);
+					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId(), 7);
 				}
 			}
 		}
@@ -476,29 +493,7 @@ public class World
 		if (accumulatedWorldTick > 1f/4f)
 		{
 			accumulatedWorldTick = 0;
-			
-			// Update the loaded chunks
-			List<Chunk> workingList = new ArrayList<>(loadedChunks.values());
-			workingList.iterator().forEachRemaining((chunk) ->
-			{
-				// y z x
-				for (int y = 0; y < 16; y++)
-				{
-					for (int z = 0; z < 16; z++)
-					{
-						for (int x = 0; x < 16; x++)
-						{
-							Block block = Block.idToBlock(chunk.getBlock(x, y, z));
-							
-							if (block.isTickable())
-								block.onTick(this, x + chunk.chunkX * 16, y + chunk.chunkY * 16, z + chunk.chunkZ * 16);
-						}
-					}
-				}
-			});
-			
-			// XXX: AGGGH! Use a better solution?
-			BlockWater.updateWater(this);
+			doBlockTick();
 		}
 		
 		// Add all of the pending entities
@@ -514,4 +509,31 @@ public class World
 		// Remove all the entities that need to be removed
 		loadedEntities.removeIf((e) -> e.isRemoved);
 	}
+	
+	private void doBlockTick()
+	{
+		// Update the loaded chunks
+		List<Chunk> workingList = new ArrayList<>(loadedChunks.values());
+		workingList.iterator().forEachRemaining((chunk) ->
+		{
+			// y z x
+			for (int y = 0; y < 16; y++)
+			{
+				for (int z = 0; z < 16; z++)
+				{
+					for (int x = 0; x < 16; x++)
+					{
+						Block block = Block.idToBlock(chunk.getBlock(x, y, z));
+						
+						if (block.isTickable())
+							block.onTick(this, x + chunk.chunkX * 16, y + chunk.chunkY * 16, z + chunk.chunkZ * 16);
+					}
+				}
+			}
+		});
+		
+		// XXX: AGGGH! Use a better solution?
+		BlockWater.updateWater(this);
+	}
+	
 }
