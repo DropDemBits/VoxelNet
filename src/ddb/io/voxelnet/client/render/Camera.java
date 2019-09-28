@@ -44,6 +44,15 @@ public class Camera
 		viewFrustum = new Frustum();
 	}
 	
+	public Camera(int width, int height)
+	{
+		this.perspectiveMatrix = new Matrix4f();
+		this.viewMatrix = new Matrix4f();
+		this.pvMatrix = new Matrix4f();
+		
+		updateOrtho(width, height);
+	}
+	
 	public void setPosition(float x, float y, float z)
 	{
 		this.x = x;
@@ -73,6 +82,12 @@ public class Camera
 		this.perspectiveMatrix.identity();
 		this.perspectiveMatrix.perspective((float) Math.toRadians(fov), aspect, zNear, zFar);
 		this.viewFrustum.updateShape((float) Math.toRadians(fov), aspect, zNear, zFar);
+	}
+	
+	public void updateOrtho(int width, int height)
+	{
+		this.perspectiveMatrix.identity();
+		this.perspectiveMatrix.ortho(0, width, height, 0, 1, -1);
 	}
 	
 	/**

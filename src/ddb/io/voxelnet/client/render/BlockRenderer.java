@@ -6,18 +6,13 @@ import ddb.io.voxelnet.world.Chunk;
 
 public class BlockRenderer
 {
-	public static final BufferLayout BLOCK_LAYOUT = new BufferLayout();
-	
-	static {
-		// Setup the buffer layout
-		
-		// Vertex position
-		BLOCK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.UBYTE, 3, false);
-		// TexCoord
-		BLOCK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.USHORT, 2, true);
-		// Intensity
-		BLOCK_LAYOUT.addAttribute(BufferLayout.EnumAttribType.UBYTE, 1, true);
-	}
+	public static final BufferLayout BLOCK_LAYOUT = new BufferLayout()
+			// Vertex position
+			.addAttribute(BufferLayout.EnumAttribType.UBYTE, 3, false)
+			// TexCoord
+			.addAttribute(BufferLayout.EnumAttribType.USHORT, 2, true)
+			// Intensity
+			.addAttribute(BufferLayout.EnumAttribType.UBYTE, 1, true);
 	
 	// No instance can be made
 	private BlockRenderer() {}

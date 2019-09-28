@@ -47,12 +47,18 @@ public class Game {
 	// Rendering things
 	Shader chunkShader;
 	Shader blackShader;
+	Shader quadShader;
 	
 	Texture texture;
 	
 	Camera camera;
+	Camera guiCamera;
 	WorldRenderer worldRenderer;
 	GameRenderer renderer;
+	FontRenderer fontRenderer;
+	
+	double frameTime = 0;
+	double updTime = 0;
 	
 	// Global Event Bus
 	public static final EventBus GLOBAL_BUS = new EventBus();
@@ -133,8 +139,9 @@ public class Game {
 		glfwSetWindowSizeCallback(window, (win, width, height) -> {
 			// Update the GL viewport size
 			glViewport(0, 0, width, height);
-			// Update the perspective matrix
+			// Update the perspective matrices
 			camera.updatePerspective((float) width / (float) height);
+			guiCamera.updateOrtho(width, height);
 		});
 		
 		// Setup input modes
@@ -268,6 +275,17 @@ public class Game {
 		chunkShader.bind();
 		chunkShader.setUniform1i("texture0", 0);
 		chunkShader.unbind();
+		
+		// Setup the 2D view
+		guiCamera = new Camera(INITIAL_WIDTH, INITIAL_HEIGHT);
+		System.out.println(guiCamera.perspectiveMatrix);
+		quadShader = new Shader("assets/shaders/2dlayer.glsl");
+		fontRenderer = new FontRenderer("assets/textures/font.png");
+		quadShader.bind();
+		quadShader.setUniform1i("texture0", 1);
+		quadShader.unbind();
+		
+		guiCamera.updateOrtho(INITIAL_WIDTH, INITIAL_HEIGHT);
 	}
 	
 	private void loop()
@@ -291,21 +309,27 @@ public class Game {
 			
 			// Update Stage
 			// Catchup loop
+			boolean didUpdate = false;
+			double updTick = glfwGetTime();
 			while(lag >= MS_PER_UPDATE)
 			{
 				update((float)MS_PER_UPDATE);
 				ups++;
 				lag -= MS_PER_UPDATE;
+				didUpdate = true;
 			}
 			
+			if(didUpdate)
+				updTime = glfwGetTime() - updTick;
+			
 			// Render Stage
+			double renderTick = glfwGetTime();
 			render(lag / MS_PER_UPDATE);
+			frameTime = glfwGetTime() - renderTick;
 			fps++;
 			
 			if (now - secondTimer > 1)
 			{
-				System.out.println("FPS: " + fps + ", " + " UPS: " + ups);
-				
 				// Update the things
 				ups = 0;
 				fps = 0;
@@ -351,6 +375,8 @@ public class Game {
 		renderer.begin();
 		
 		// Draw the world
+		texture.bind(0);
+		renderer.useCamera(camera);
 		renderer.useShader(chunkShader);
 		renderer.prepareShader();
 		worldRenderer.render(renderer);
@@ -378,6 +404,15 @@ public class Game {
 		glBegin(GL_POINTS);
 		glVertex2f(0, 0);
 		glEnd();
+		
+		// Test string
+		renderer.useCamera(guiCamera);
+		renderer.useShader(quadShader);
+		renderer.prepareShader();
+		String timeStr = String.format("FT %-5.2f / UT %-5.2f", frameTime * 1000d, updTime * 1000d);
+		fontRenderer.putString("VoxelNet\n"+timeStr, 0, 0);
+		fontRenderer.flush();
+		renderer.finishShader();
 	}
 	
 	private void parseArgs(String[] args) {}

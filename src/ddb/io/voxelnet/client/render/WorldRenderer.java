@@ -111,7 +111,7 @@ public class WorldRenderer
 			ChunkModel model = generateQueue.peek();
 			generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
 			//new ThreadedChunkGenerator(generateQueue.pop()).run();
-			System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
+			//System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
 		}
 		
 		/*if (!generateQueue.isEmpty())

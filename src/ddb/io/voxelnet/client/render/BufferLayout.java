@@ -7,6 +7,13 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class BufferLayout
 {
+	// Some default buffer layouts
+	/** Position : 2(float), TexCoord : 2(ushort), Color : 4(float) */
+	public static final BufferLayout QUAD_LAYOUT = new BufferLayout()
+			.addAttribute(EnumAttribType.FLOAT, 2, false)
+			.addAttribute(EnumAttribType.USHORT, 2, true)
+			.addAttribute(EnumAttribType.FLOAT, 4, false);
+	
 	// Layout of the buffer
 	private final List<BufferAttrib> layout = new ArrayList<>();
 	// Stride of the buffer layout
@@ -26,14 +33,15 @@ public class BufferLayout
 	 * @param count The number of components for the attribute. Must be between
 	 *              1 and 4, inclusive
 	 * @param normalized If the data values will be normalized to [0,1]
+	 * @return This for chaining
 	 */
-	public void addAttribute(EnumAttribType type, int count, boolean normalized)
+	public BufferLayout addAttribute(EnumAttribType type, int count, boolean normalized)
 	{
 		// Validate the attribute parameters
 		if (count < 1 || count > 4)
 		{
 			System.out.println("Error: Bad number of buffer attribute components");
-			return;
+			return this;
 		}
 		
 		BufferAttrib attrib = new BufferAttrib(nextIndex++, count, type, normalized, stride);
@@ -41,8 +49,13 @@ public class BufferLayout
 		
 		// Calculate the new stride
 		stride += type.bytes * count;
+		return this;
 	}
 	
+	/**
+	 * Gets the stride of the buffer layout
+	 * @return The total stride of the buffer layout, in bytes
+	 */
 	int getStride()
 	{
 		return stride;
