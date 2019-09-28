@@ -10,6 +10,8 @@ import ddb.io.voxelnet.event.input.MouseEvent;
 import ddb.io.voxelnet.util.AABBCollider;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.util.Vec3i;
+import ddb.io.voxelnet.world.World;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -36,7 +38,7 @@ public class PlayerController
 	public int blockX = 0;
 	public int blockY = 0;
 	public int blockZ = 0;
-	Facing hitFace = Facing.NORTH;
+	public Facing hitFace = Facing.NORTH;
 	byte placeID = 1;
 	public boolean showHit = false;
 	
@@ -171,7 +173,7 @@ public class PlayerController
 				player.world.setBlock(blockX, blockY, blockZ, (byte) 0);
 				
 				// Update the hit selection
-				showHit = raycast();
+				//showHit = raycast();
 				
 				// 0.25s between block breaks
 				breakTimer = 0.25f;
@@ -212,7 +214,7 @@ public class PlayerController
 						blockZ + hitFace.getOffsetZ());
 				
 				// Update the hit selection
-				showHit = raycast();
+				//showHit = raycast();
 				
 				// 0.25s between block breaks
 				placeTimer = 0.25f;
@@ -251,157 +253,178 @@ public class PlayerController
 	
 	private boolean raycast()
 	{
-		// TODO: Only get the block closest to the player
 		
 		// Calculate the pointing vector
-		Vector3f point = new Vector3f(0.0f, 0.0f, -1.0f);
-		point.rotateAxis((float) Math.toRadians(player.pitch), 1f, 0f, 0f);
-		point.rotateAxis((float) Math.toRadians(player.yaw),   0f, 1f, 0f);
+		Vector3d point = new Vector3d(0.0f, 0.0f, -1.0f);
+		point.rotateAxis(Math.toRadians(player.pitch), 1f, 0f, 0f);
+		point.rotateAxis(Math.toRadians(player.yaw),   0f, 1f, 0f);
 		
-		point.mul(0.125f);
+		World world = player.world;
+		// Range of 7 blocks
+		final int range = 7;
 		
-		float rayX = player.xPos;
-		float rayY = player.yPos + player.eyeHeight;
-		float rayZ = player.zPos;
+		// From https://gamedev.stackexchange.com/questions/47362/cast-ray-to-select-block-in-voxel-game/49423#49423
 		
-		int x, y, z;
+		double dx = point.x, dy = point.y, dz = point.z;
+		double startX = player.xPos, startY = player.yPos + player.eyeHeight, startZ = player.zPos;
+		int blockX = (int)Math.floor(startX), blockY = (int)Math.floor(startY), blockZ = (int)Math.floor(startZ);
 		
-		AABBCollider rayBB = new AABBCollider(rayBox);
-		List<Vector3f> potentialHits = new ArrayList<>();
-		List<Vec3i> seen = new ArrayList<>();
+		// Orthogonal step
+		int stepX = (int)Math.signum(dx), stepY = (int)Math.signum(dy), stepZ = (int)Math.signum(dz);
 		
-		// Step for 5 blocks
-		for(int i = 0; i < 7 * 8; i++)
+		// Calculate the initial max t's
+		// t = p_inv(p) = (p(t) - p_0) / dp
+		double tMaxX = intBound(startX, dx);
+		double tMaxY = intBound(startY, dy);
+		double tMaxZ = intBound(startZ, dz);
+		
+		// Calculate the delta t's
+		// dt = (1 - 0) / dp
+		double tDeltaX = stepX / dx;
+		double tDeltaY = stepY / dy;
+		double tDeltaZ = stepZ / dz;
+		
+		// Scale range to allow direct comparison between 't' values
+		double radius = range / Math.sqrt(dx*dx + dy*dy + dz*dz);
+		
+		Facing hitFace = Facing.UP;
+		
+		double rayOffX = 0;
+		double rayOffY = 0;
+		double rayOffZ = 0;
+		
+		// Step while in range
+		System.out.println("Start");
+		while (true)
 		{
-			// Move the ray box to the current position
-			rayBB.setPosition(rayX - (rayBox.width / 2f), rayY - (rayBox.height / 2f), rayZ - (rayBox.depth / 2f));
+			byte id = world.getBlock(blockX, blockY, blockZ);
+			Block block = Block.idToBlock(id);
 			
-			// Go through the 8 corners
-			for (int c = 7; c >= 0; --c)
+			if (id != Blocks.AIR.getId() && block.getHitBox() != null)
 			{
-				float offX = rayBB.width  * ((c >> 0) & 1);
-				float offY = rayBB.height * ((c >> 2) & 1);
-				float offZ = rayBB.depth  * ((c >> 1) & 1);
+				// Perform fine stepping to detect if the hit really landed
+				// Ray position (for intersection testing)
+				double rayX = rayOffX + startX;
+				double rayY = rayOffY + startY;
+				double rayZ = rayOffZ + startZ;
+				// Accumulated distance
+				double dist = 0;
+				final double MAX_DIST = 1.5d;
 				
-				x = Math.round((rayBB.x + offX) - 0.5f);
-				y = Math.round((rayBB.y + offY) - 0.5f);
-				z = Math.round((rayBB.z + offZ) - 0.5f);
+				Vector3d ray = new Vector3d(rayX, rayY, rayZ);
+				Vector3d step = new Vector3d(point);
+				// Step in 1/32nds (half a unit)
+				step.mul(1d/32d);
 				
-				// Fetch the block at the current corner
-				byte id = player.world.getBlock(x, y, z);
+				AABBCollider blockBox = new AABBCollider(block.getHitBox());
+				blockBox.setPosition(blockX, blockY, blockZ);
 				
-				// TODO:
-				// Fetch collision box
-				// Grow collision box to add some bias
-				// Test for relative collision
+				double deltaDist = step.length();
 				
-				if (id != Blocks.AIR.getId())
+				// Step until the hitbox of the block is intersected
+				while(dist < MAX_DIST)
 				{
-					Block block = Block.idToBlock(id);
-					Vec3i pos = new Vec3i(x, y, z);
-					if(seen.contains(pos))
-						continue;
-					seen.add(pos);
-					
-					// Don't select blocks without a hitbox
-					if (block.getHitBox() == null)
-						continue;
-					
-					// Test the hit box for collision with the ray
-					AABBCollider box = new AABBCollider(block.getHitBox());
-					box.setPosition(x, y, z);
-					box.add(-0.0625f, -0.0625f, -0.0625f);
-					box.grow(0.125f, 0.125f, 0.125f);
-					
-					if (box.intersectsWith(rayBB))
+					if (blockBox.intersectsWith((float)ray.x, (float)ray.y, (float)ray.z))
 					{
-						// Add the hit to the potential list
-						Vector3f hit = new Vector3f((rayBB.x + offX) - 0.5f, (rayBB.y + offY) - 0.5f, (rayBB.z + offZ) - 0.5f);
-						potentialHits.add(hit);
+						System.out.println("In " + ray.x + ", " + ray.y + ", " + ray.z);
+						
+						// Found block, stop
+						this.blockX = blockX;
+						this.blockY = blockY;
+						this.blockZ = blockZ;
+						this.hitFace = hitFace;
+						
+						return true;
 					}
+					
+					ray.add(step);
+					dist += deltaDist;
 				}
+				
+				// Block not found, continue
 			}
 			
-			if (potentialHits.size() > 0)
+			// Perform orthogonal step
+			boolean doXStep = false, doYStep = false, doZStep = false;
+			
+			if (tMaxX < tMaxY)
 			{
-				//System.out.println("Hits: (" + potentialHits.size() + ")");
-				
-				if (potentialHits.size() > 1)
-				{
-					// Sort the hit list by distance to the player
-					// Have player be in the middle of the block for consistency
-					Vector3f origin = new Vector3f(Math.round(player.xPos - 0.5), player.yPos + player.eyeHeight, Math.round(player.zPos - 0.5));
-					potentialHits.sort((vA, vB) -> Float.compare(taxicabDistance(vA, origin), taxicabDistance(vB, origin)));
-					//System.out.println("FINDING! (" + potentialHits.size() + ")");
-				}
-				
-				// Select the first hit
-				Vector3f hit = potentialHits.get(0);
-				
-				// Move the hit back by 1 position
-				rayX -= point.x;
-				rayY -= point.y;
-				rayZ -= point.z;
-				
-				// Get the block hit
-				blockX = Math.round(hit.x);
-				blockY = Math.round(hit.y);
-				blockZ = Math.round(hit.z);
-				
-				// Move the hit point relative to the block position
-				// ray - hit - (0.5f, 0.5f, 0.5f) -> -hit + ray - (0.5f, 0.5f, 0.5f)
-				hit.set(rayX, rayY, rayZ).sub(blockX, blockY, blockZ).sub(0.5f, 0.5f, 0.5f);
-				hitX = hit.x;
-				hitY = hit.y;
-				hitZ = hit.z;
-				
-				// Get the face hit
-				final Vector3f xAxis = new Vector3f(0.5f, 0.0f, 0.0f);
-				final Vector3f yAxis = new Vector3f(0.0f, 0.5f, 0.0f);
-				final Vector3f zAxis = new Vector3f(0.0f, 0.0f, 0.5f);
-				
-				float dotX = hit.dot(xAxis);
-				float dotY = hit.dot(yAxis);
-				float dotZ = hit.dot(zAxis);
-				
-				if (Math.abs(dotZ) > Math.abs(dotY) && Math.abs(dotZ) > Math.abs(dotX))
-				{
-					if (dotZ > 0) hitFace = Facing.SOUTH;
-					else hitFace = Facing.NORTH;
-				} else if (Math.abs(dotX) > Math.abs(dotY) && Math.abs(dotX) > Math.abs(dotZ))
-				{
-					if (dotX > 0) hitFace = Facing.EAST;
-					else hitFace = Facing.WEST;
-				} else if (Math.abs(dotY) >= Math.abs(dotX) && Math.abs(dotY) >= Math.abs(dotZ))
-				{
-					if (dotY > 0) hitFace = Facing.UP;
-					else hitFace = Facing.DOWN;
-				}
-				return true;
+				if (tMaxX < tMaxZ)
+					doXStep = true;
+				else
+					doZStep = true;
+			}
+			else
+			{
+				if (tMaxY < tMaxZ)
+					doYStep = true;
+				else
+					doZStep = true;
 			}
 			
-			rayX += point.x;
-			rayY += point.y;
-			rayZ += point.z;
+			if (doXStep)
+			{
+				if (tMaxX > radius)
+					break;
+				
+				rayOffX = tMaxX * dx;
+				rayOffY = tMaxX * dy;
+				rayOffZ = tMaxX * dz;
+				
+				tMaxX += tDeltaX;
+				blockX += stepX;
+				
+				// Keep track of face
+				hitFace = Facing.WEST;
+				if (stepX < 0)
+					hitFace = Facing.EAST;
+			}
+			else if (doYStep)
+			{
+				if (tMaxY > radius)
+					break;
+				
+				rayOffX = tMaxY * dx;
+				rayOffY = tMaxY * dy;
+				rayOffZ = tMaxY * dz;
+				
+				tMaxY += tDeltaY;
+				blockY += stepY;
+				
+				// Keep track of face
+				hitFace = Facing.DOWN;
+				if (stepY < 0)
+					hitFace = Facing.UP;
+			}
+			else if (doZStep)
+			{
+				if (tMaxZ > radius)
+					break;
+				
+				rayOffX = tMaxZ * dx;
+				rayOffY = tMaxZ * dy;
+				rayOffZ = tMaxZ * dz;
+				
+				tMaxZ += tDeltaZ;
+				blockZ += stepZ;
+				
+				// Keep track of face
+				hitFace = Facing.NORTH;
+				if (stepZ < 0)
+					hitFace = Facing.SOUTH;
+			}
 		}
 		
-		blockX = -1;
-		blockY = -1;
-		blockZ = -1;
+		this.blockX = -1;
+		this.blockY = -1;
+		this.blockZ = -1;
 		return false;
 	}
 	
-	/**
-	 * Finds the taxicab distance between two points
-	 * || a - b || = d
-	 *
-	 * @param a Point a
-	 * @param b Point b
-	 * @return The taxicab distance between the points
-	 */
-	private float taxicabDistance(Vector3f a, Vector3f b)
+	// Finds integer boundary
+	private double intBound(double p, double dp)
 	{
-		return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z);
+		return (dp > 0? Math.ceil(p)-p: p-Math.floor(p)) / Math.abs(dp);
 	}
 	
 }

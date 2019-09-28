@@ -37,6 +37,20 @@ public class AABBCollider
 	}
 	
 	/**
+	 * Checks if the point intersects with this box
+	 * @param x The x position to check for intersection
+	 * @param y The y position to check for intersection
+	 * @param z The z position to check for intersection
+	 * @return True if the point intersects this box
+	 */
+	public boolean intersectsWith(float x, float y, float z)
+	{
+		return     this.x <= x  && x <= this.x + this.width
+				&& this.y <= y  && y <= this.y + this.height
+				&& this.z <= z  && z <= this.z + this.depth;
+	}
+	
+	/**
 	 * Checks if this box intersects with the other box
 	 * @param other The other box to check for intersection
 	 * @return True if the boxes intersect
