@@ -17,8 +17,7 @@ public class ChunkModel
 	
 	Matrix4f modelMatrix;
 	Chunk chunk;
-	private Model opaqueLayer;
-	private Model transparentLayer;
+	private Model[] modelLayers = new Model[RenderLayer.values().length];
 	private volatile boolean isDirty = false;
 	private volatile boolean updatePending = false;
 	private volatile boolean updateInProgress = false;
@@ -27,7 +26,7 @@ public class ChunkModel
 	
 	private ReentrantLock updateLock;
 	// Layers that need updates
-	private boolean[] layerNeedsUpdate = new boolean[2];
+	private boolean[] layerNeedsUpdate = new boolean[RenderLayer.values().length];
 	
 	/**
 	 * Creates a chunk model
@@ -36,13 +35,14 @@ public class ChunkModel
 	public ChunkModel(Chunk chunk)
 	{
 		this.chunk = chunk;
-		this.opaqueLayer = new Model(BlockRenderer.BLOCK_LAYOUT);
-		this.transparentLayer = new Model(BlockRenderer.BLOCK_LAYOUT);
 		this.modelMatrix = new Matrix4f();
 		this.modelMatrix.translate(chunk.chunkX * 16, chunk.chunkY * 16, chunk.chunkZ * 16);
 		
-		this.opaqueLayer.setTransform(this.modelMatrix);
-		this.transparentLayer.setTransform(this.modelMatrix);
+		for (RenderLayer layer : RenderLayer.values())
+		{
+			modelLayers[layer.ordinal()] = new Model(BlockRenderer.BLOCK_LAYOUT);
+			modelLayers[layer.ordinal()].setTransform(this.modelMatrix);
+		}
 		
 		this.updateLock = new ReentrantLock();
 	}
@@ -66,16 +66,14 @@ public class ChunkModel
 			return false;
 		}
 		
-		// Reset the models
-		if (opaqueLayer.getIndexCount() > 0)
-			opaqueLayer.reset();
-		
-		if (transparentLayer.getIndexCount() > 0)
-			transparentLayer.reset();
-		
-		// All layers initially need updates
-		layerNeedsUpdate[0] = true;
-		layerNeedsUpdate[1] = true;
+		// Reset the model layers
+		for (int i = 0; i < modelLayers.length; i++)
+		{
+			if (modelLayers[i].getIndexCount() > 0)
+				modelLayers[i].reset();
+			// All layers initially need updates
+			layerNeedsUpdate[i] = true;
+		}
 		
 		// Check if the chunk has been made empty
 		if (chunk.isEmpty())
@@ -113,14 +111,10 @@ public class ChunkModel
 						continue;
 					
 					Block block = Block.idToBlock(id);
-					Model targetModel = opaqueLayer;
+					Model targetModel = modelLayers[block.getRenderLayer().ordinal()];
 					
 					if (block.isTransparent())
-					{
-						// Change the vertex target
-						targetModel = transparentLayer;
 						hasTransparency = true;
-					}
 					
 					int[] faceTextures = block.getFaceTextures();
 					BlockRenderer.addCube(targetModel, chunk, block, x, y, z, faceTextures, atlas);
@@ -154,21 +148,13 @@ public class ChunkModel
 	}
 	
 	/**
-	 * Gets the model associated with this chunk model
-	 * @return The model associated with this chunk model
+	 * Gets the model for the appropriate layer
+	 * @param layer The layer to fetch the model for
+	 * @return The layer's model
 	 */
-	public Model getOpaqueLayer()
+	public Model getModelForLayer(RenderLayer layer)
 	{
-		return opaqueLayer;
-	}
-	
-	/**
-	 * Gets the model holding all of the transparent blocks for this chunk
-	 * @return The model holding the transparent blocks
-	 */
-	public Model getTransparentModel()
-	{
-		return transparentLayer;
+		return modelLayers[layer.ordinal()];
 	}
 	
 	public boolean isDirty()
@@ -237,29 +223,23 @@ public class ChunkModel
 	
 	/**
 	 * Updates the layer's vertices
-	 * @param i The layer to update (0 = solid, 1 = transparent, 2 = fluid)
+	 * @param layer The layer to update
 	 */
-	public void updateLayer(int i)
+	public void updateLayer(RenderLayer layer)
 	{
-		// Don't update non-existent layers
-		if (i < 0 || i > 1)
-			return;
-		
 		updateLock.lock();
 		try
 		{
-			Model updatingModel;
-			if (i == 0) updatingModel = opaqueLayer;
-			else updatingModel = transparentLayer;
+			Model updatingModel = modelLayers[layer.ordinal()];
 			
 			// Update the model & clear the vertices
-			if (layerNeedsUpdate[i])
+			if (layerNeedsUpdate[layer.ordinal()])
 			{
 				updatingModel.updateVertices();
 				updatingModel.freeData();
 			}
 			
-			layerNeedsUpdate[i] = false;
+			layerNeedsUpdate[layer.ordinal()] = false;
 		}
 		finally
 		{

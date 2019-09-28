@@ -30,8 +30,6 @@ public class BlockRenderer
 	 */
 	public static void addCube(Model model, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
 	{
-		final double LN_4 = Math.log(4);
-		
 		for (Facing face : Facing.values())
 		{
 			// If the specified face is -1, the face isn't supposed to be rendered

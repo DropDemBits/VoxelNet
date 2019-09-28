@@ -151,16 +151,13 @@ public class WorldRenderer
 			if (chunkModel.hasTransparency())
 				transparentChunks.add(chunkModel);
 			
-			Model model = chunkModel.getOpaqueLayer();
+			Model model = chunkModel.getModelForLayer(RenderLayer.OPAQUE);
 			
 			model.bind();
 			
 			// Update the vertices if an update is not in progress
 			if (!chunkModel.isUpdateInProgress())
-			{
-				// Update the opaque layer
-				chunkModel.updateLayer(0);
-			}
+				chunkModel.updateLayer(RenderLayer.OPAQUE);
 			
 			renderer.drawModel(model);
 			
@@ -182,16 +179,13 @@ public class WorldRenderer
 			
 			long transparentStart = System.nanoTime();
 			boolean isUpdating = chunkModel.isUpdateInProgress();
-			Model model = chunkModel.getTransparentModel();
+			Model model = chunkModel.getModelForLayer(RenderLayer.TRANSPARENT);
 			
 			// Update the vertices if a model update is not in progress (have
 			// not been updated above)
 			model.bind();
 			if (!chunkModel.isUpdateInProgress())
-			{
-				// Update transparent layer
-				chunkModel.updateLayer(1);
-			}
+				chunkModel.updateLayer(RenderLayer.TRANSPARENT);
 			
 			renderer.drawModel(model);
 			

@@ -33,8 +33,8 @@ const float AMBIENT = 0.03;
 void main (void) {
     vec4 clr = texture2D(texture0, frag_texCoord);
 
-    /*if (clr.a < 0.001)
-        discard;*/
+    if (clr.a < 0.001)
+        discard;
 
     gl_FragColor = vec4(clr.rgb * clamp(frag_lightIntensity + AMBIENT, 0.f, 1.f), clr.a);
 

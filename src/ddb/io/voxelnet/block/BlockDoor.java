@@ -1,5 +1,6 @@
 package ddb.io.voxelnet.block;
 
+import ddb.io.voxelnet.client.render.RenderLayer;
 import ddb.io.voxelnet.world.World;
 
 public class BlockDoor extends Block
@@ -66,4 +67,11 @@ public class BlockDoor extends Block
 		return     world.getBlock(x, y, z) == Blocks.AIR.getId()
 				&& world.getBlock(x, y + 1, z) == Blocks.AIR.getId();
 	}
+	
+	@Override
+	public RenderLayer getRenderLayer()
+	{
+		return RenderLayer.TRANSPARENT;
+	}
+	
 }

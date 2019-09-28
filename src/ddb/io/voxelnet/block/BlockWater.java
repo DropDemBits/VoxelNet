@@ -1,5 +1,6 @@
 package ddb.io.voxelnet.block;
 
+import ddb.io.voxelnet.client.render.RenderLayer;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.World;
@@ -49,6 +50,12 @@ public class BlockWater extends Block
 			Vec3i nextPos = availableBlocks.pop();
 			world.setBlock(nextPos.getX(), nextPos.getY(), nextPos.getZ(), Blocks.WATER.getId());
 		}
+	}
+	
+	@Override
+	public RenderLayer getRenderLayer()
+	{
+		return RenderLayer.TRANSPARENT;
 	}
 	
 }

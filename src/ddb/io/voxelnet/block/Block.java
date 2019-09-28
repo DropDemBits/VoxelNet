@@ -1,5 +1,6 @@
 package ddb.io.voxelnet.block;
 
+import ddb.io.voxelnet.client.render.RenderLayer;
 import ddb.io.voxelnet.util.AABBCollider;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.World;
@@ -23,7 +24,7 @@ public class Block
 		Blocks.CLAY_BRICKS  = addBlock(6,  new Block().setSolid(true).setFaceTextures(new int[] {6, 6, 6, 6, 6, 6}));
 		Blocks.DOOR_LOWER   = addBlock(7,  new BlockDoor().setUpper(false));
 		Blocks.DOOR_UPPER   = addBlock(8,  new BlockDoor().setUpper(true));
-		Blocks.GLASS        = addBlock(9,  new Block().setSolid(true).setFaceTextures(new int[] {10, 10, 10, 10, 10, 10}).setTransparent(true));
+		Blocks.GLASS        = addBlock(9,  new BlockGlass());
 		Blocks.SAND         = addBlock(10, new BlockFalling().setSolid(true).setFaceTextures(new int[] {11, 11, 11, 11, 11, 11}));
 		Blocks.GRAVEL       = addBlock(11, new BlockFalling().setSolid(true).setFaceTextures(new int[] {12, 12, 12, 12, 12, 12}));
 		Blocks.WATER        = addBlock(12, new BlockWater());
@@ -115,7 +116,7 @@ public class Block
 	 * @param hitBox The new hit box of the block
 	 * @return Instance of this to allow for chaining
 	 */
-	public Block setHitBox (AABBCollider hitBox)
+	protected Block setHitBox (AABBCollider hitBox)
 	{
 		this.hitBox = hitBox;
 		return this;
@@ -174,6 +175,12 @@ public class Block
 	 * @return The hit box of this block
 	 */
 	public AABBCollider getHitBox() { return hitBox; }
+	
+	/**
+	 * Gets the render layer for this block
+	 * @return The layer to render the block on
+	 */
+	public RenderLayer getRenderLayer() { return RenderLayer.OPAQUE; }
 	
 	/**
 	 * Gets the ID of the block
