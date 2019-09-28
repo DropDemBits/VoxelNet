@@ -30,7 +30,7 @@ public class Game {
 	private static final int INITIAL_WIDTH = 854;
 	private static final int INITIAL_HEIGHT = 480;
 	
-	private static final float FOV   = 70.0f;
+	private static final float FOV   = 90.0f;
 	private static final float ZNEAR = 0.05f;
 	private static final float ZFAR  = 1000.0f;
 	
@@ -430,17 +430,23 @@ public class Game {
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
 		fontRenderer.putString("VoxelNet\n"+timeStr+posStr+lokStr, 0, 0);
 		
-		String builtStr =
-				/*"According to all known laws of aviation,\n" +
+		StringBuilder builtStr = new StringBuilder();
+		/*builtStr.append("According to all known laws of aviation,\n" +
 				"it is impossible for a bee to fly.\n" +
 				"public static void main(String[] args) {\n" +
 				"    System.out.println(\"Hello, world!\");\n" +
-				"}";*/
-				"The quick brown fox jumped over the lazy dogs\n"+
+				"}");//*/
+		builtStr.append("The quick brown fox jumped over the lazy dogs\n"+
 				"THE QUICK BROWN FOX JUMPED OVER THE LAZY DOGS\n"+
 				"the quick brown fox jumped over the lazy dogs\n"+
-				"qpwmnleqjp_ block_grass";
-		fontRenderer.putString(builtStr, 300, 0);
+				"qpwmnleqjp_ block_grass");//*/
+				
+		/*for (int i = 0; i < 256; i++)
+		{
+			if(i != '\n') builtStr.append((char) i);
+			if(i % 16 == 15) builtStr.append('\n');
+		}*/
+		fontRenderer.putString(builtStr.toString(), 300, 0);
 		
 		fontRenderer.flush();
 		renderer.finishShader();

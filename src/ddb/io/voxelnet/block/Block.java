@@ -234,8 +234,26 @@ public class Block
 	 */
 	public boolean canPlaceBlock(World world, int x, int y, int z)
 	{
-		// By default, the block can only be placed if there is air
-		return world.getBlock(x, y, z) == Blocks.AIR.getId();
+		// By default, the block can only be placed if there is air if canBeReplacedWith returns true
+		Block block = idToBlock(world.getBlock(x, y, z));
+		if (block == Blocks.AIR)
+			return true;
+		
+		return block.canBeReplacedBy(world, this, x, y, z);
+	}
+	
+	/**
+	 * Checks if the block in the specified location can be replaced by the current one
+	 * @param world The world that the block would be replaced in
+	 * @param block The block to place
+	 * @param x The x coordinate of the block
+	 * @param y The y coordinate of the block
+	 * @param z The z coordinate of the block
+	 * @return True if the block can be replaced by the specified block
+	 */
+	public boolean canBeReplacedBy(World world, Block block, int x, int y, int z)
+	{
+		return false;
 	}
 	
 }

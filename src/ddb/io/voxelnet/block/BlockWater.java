@@ -53,6 +53,13 @@ public class BlockWater extends Block
 	}
 	
 	@Override
+	public boolean canBeReplacedBy(World world, Block block, int x, int y, int z)
+	{
+		// Water can be replaced by anything
+		return true;
+	}
+	
+	@Override
 	public RenderLayer getRenderLayer()
 	{
 		return RenderLayer.TRANSPARENT;
