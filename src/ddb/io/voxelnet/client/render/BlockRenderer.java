@@ -72,7 +72,7 @@ public class BlockRenderer
 					(float) (z),
 					face,
 					texCoords,
-					(byte)(((faceLight + 1f) / 16f) * faceIntensities[face.ordinal()] * 255));
+					(byte)(((faceLight) / 15f) * faceIntensities[face.ordinal()] * 255));
 		}
 	}
 	

@@ -26,7 +26,7 @@ public class FontRenderer
 	private int iboHandle;
 	
 	final float FontScale = 2f;
-	final float Riser = 12;
+	final float Riser = 13;
 	final float Spacer = 6;
 	
 	/**
@@ -81,22 +81,31 @@ public class FontRenderer
 	 */
 	public void putChar(char chr, float x, float y)
 	{
-		// Replace bad characters with the empty char
+		// Replace bad characters with the replacement char
 		if (chr >= 256)
 			chr = 255;
+		
+		// Skip control characters
+		if (Character.isISOControl(chr))
+			return;
+		
+		// Snap the positions
+		float xMin = (float)Math.round((x+ 0f*FontScale));
+		float xMax = (float)Math.round((x+16f*FontScale));
+		float yMin = (float)Math.round((y+ 0f*FontScale));
+		float yMax = (float)Math.round((y+16f*FontScale));
 		
 		short[] texCoords = fontAtlas.getPixelPositions(chr);
 		// Add the quad
 		// 0-3
 		// |\|
 		// 1-2
-		quadBuffer.putFloat(x+ 0f*FontScale).putFloat(y+ 0f*FontScale).putShort(texCoords[0]).putShort(texCoords[3]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 0
-		quadBuffer.putFloat(x+ 0f*FontScale).putFloat(y+16f*FontScale).putShort(texCoords[0]).putShort(texCoords[1]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 1
-		quadBuffer.putFloat(x+16f*FontScale).putFloat(y+16f*FontScale).putShort(texCoords[2]).putShort(texCoords[1]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 2
-		
-		quadBuffer.putFloat(x+16f*FontScale).putFloat(y+16f*FontScale).putShort(texCoords[2]).putShort(texCoords[1]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 2
-		quadBuffer.putFloat(x+16f*FontScale).putFloat(y+ 0f*FontScale).putShort(texCoords[2]).putShort(texCoords[3]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 3
-		quadBuffer.putFloat(x+ 0f*FontScale).putFloat(y+ 0f*FontScale).putShort(texCoords[0]).putShort(texCoords[3]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 0
+		quadBuffer.putFloat(xMin).putFloat(yMin).putShort(texCoords[0]).putShort(texCoords[3]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 0
+		quadBuffer.putFloat(xMin).putFloat(yMax).putShort(texCoords[0]).putShort(texCoords[1]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 1
+		quadBuffer.putFloat(xMax).putFloat(yMax).putShort(texCoords[2]).putShort(texCoords[1]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 2
+		quadBuffer.putFloat(xMax).putFloat(yMax).putShort(texCoords[2]).putShort(texCoords[1]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 2
+		quadBuffer.putFloat(xMax).putFloat(yMin).putShort(texCoords[2]).putShort(texCoords[3]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 3
+		quadBuffer.putFloat(xMin).putFloat(yMin).putShort(texCoords[0]).putShort(texCoords[3]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 0
 		
 		if (!quadBuffer.hasRemaining())
 			flush();
@@ -115,14 +124,16 @@ public class FontRenderer
 		
 		for (char c : text.toCharArray())
 		{
-			putChar(c, posX, posY);
-			// Since the font is monospace, add constval to x
-			posX += Spacer * FontScale;
-			
 			if (c == '\n')
 			{
 				posX = x;
 				posY += Riser * FontScale;
+			}
+			else
+			{
+				putChar(c, posX, posY);
+				// Since the font is monospace, add constval to x
+				posX += Spacer * FontScale;
 			}
 		}
 	}

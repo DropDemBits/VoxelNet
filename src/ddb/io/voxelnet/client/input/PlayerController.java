@@ -253,7 +253,6 @@ public class PlayerController
 	
 	private boolean raycast()
 	{
-		
 		// Calculate the pointing vector
 		Vector3d point = new Vector3d(0.0f, 0.0f, -1.0f);
 		point.rotateAxis(Math.toRadians(player.pitch), 1f, 0f, 0f);
@@ -294,7 +293,6 @@ public class PlayerController
 		double rayOffZ = 0;
 		
 		// Step while in range
-		System.out.println("Start");
 		while (true)
 		{
 			byte id = world.getBlock(blockX, blockY, blockZ);
@@ -326,8 +324,6 @@ public class PlayerController
 				{
 					if (blockBox.intersectsWith((float)ray.x, (float)ray.y, (float)ray.z))
 					{
-						System.out.println("In " + ray.x + ", " + ray.y + ", " + ray.z);
-						
 						// Found block, stop
 						this.blockX = blockX;
 						this.blockY = blockY;
