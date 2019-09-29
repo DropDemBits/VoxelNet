@@ -153,11 +153,24 @@ public class World
 	 */
 	public void setBlock (int x, int y, int z, byte id)
 	{
-		setBlock(x, y, z, id, 7);
+		setBlock(x, y, z, id, (byte)0, 7);
 	}
 	
 	/**
-	 * Sets the block id at the given position, with some flags
+	 * Sets the block id at the given position, with some metadata
+	 * @param x The x position of the block
+	 * @param y The y position of the block
+	 * @param z The z position of the block
+	 * @param id The id of the block
+	 * @param meta The metadata of the block
+	 */
+	public void setBlock (int x, int y, int z, byte id, byte meta)
+	{
+		setBlock(x, y, z, id, meta, 7);
+	}
+	
+	/**
+	 * Sets the block id at the given position, with some metadata and flags
 	 * The flags are defined to be as follows:
 	 * Bit 0: When set, updates the lighting
 	 * Bit 1: When set, updates the adjacent chunks
@@ -167,9 +180,10 @@ public class World
 	 * @param y The y position of the block
 	 * @param z The z position of the block
 	 * @param id The id of the block
+	 * @param meta The metadata of the block
 	 * @param flags The bitmap of the flags to use
 	 */
-	public void setBlock (int x, int y, int z, byte id, int flags)
+	public void setBlock (int x, int y, int z, byte id, byte meta, int flags)
 	{
 		// If a lighting update needs to occur
 		boolean lightingUpdate = false;
@@ -202,8 +216,9 @@ public class World
 		int blockY = y & 0xF;
 		int blockZ = z & 0xF;
 		
-		// Set the block
+		// Set the block & meta
 		chunk.setBlock(blockX, blockY, blockZ, id);
+		chunk.setBlockMeta(blockX, blockY, blockZ, meta);
 		
 		// Update the chunk column
 		Vec3i columnPos = new Vec3i(x >> 4, 0, z >> 4);
@@ -306,7 +321,7 @@ public class World
 			{
 				byte neighbor = getBlock(x + face.getOffsetX(), y + face.getOffsetY(), z + face.getOffsetZ());
 				
-				// Update the neigh bor if it's not air
+				// Update the neighbor if it's not air
 				if (neighbor != Blocks.AIR.getId())
 					Block.idToBlock(neighbor).onNeighborUpdated(
 							this,
@@ -316,6 +331,62 @@ public class World
 							face.getOpposite());
 			}
 		}
+	}
+	
+	/**
+	 * Sets the block metadata for the given position
+	 * @param x The x position of the target block
+	 * @param y The y position of the target block
+	 * @param z The z position of the target block
+	 * @param meta The new metadata for the block
+	 */
+	public void setBlockMeta (int x, int y, int z, byte meta)
+	{
+		// Don't set block below or above the world
+		if (y < 0 || y > 255)
+			return;
+		
+		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
+		Chunk chunk = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK);
+		
+		if (chunk == EMPTY_CHUNK)
+			return;
+		
+		// Block positions within the chunk
+		int blockX = x & 0xF;
+		int blockY = y & 0xF;
+		int blockZ = z & 0xF;
+		
+		// Set the block meta
+		chunk.setBlockMeta(blockX, blockY, blockZ, meta);
+	}
+	
+	/**
+	 * Gets the block metadata for the given position
+	 * @param x The x position of the target block
+	 * @param y The y position of the target block
+	 * @param z The z position of the target block
+	 * @return  The metadata for the block position
+	 */
+	public byte getBlockMeta (int x, int y, int z)
+	{
+		// Don't fetch data below or above the world
+		if (y < 0 || y > 255)
+			return 0;
+		
+		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
+		Chunk chunk = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK);
+		
+		if (chunk == EMPTY_CHUNK)
+			return 0;
+		
+		// Block positions within the chunk
+		int blockX = x & 0xF;
+		int blockY = y & 0xF;
+		int blockZ = z & 0xF;
+		
+		// Get the block meta
+		return chunk.getBlockMeta(blockX, blockY, blockZ);
 	}
 	
 	public Chunk getChunk(int cx, int cy, int cz)
@@ -413,7 +484,7 @@ public class World
 					block = Blocks.WATER;
 				}
 				
-				setBlock((cx << 4) + x, y, (cz << 4) + z, block.getId(), 0);
+				setBlock((cx << 4) + x, y, (cz << 4) + z, block.getId(), (byte)0, 0);
 				
 				if (!foundTallest)
 				{
@@ -447,7 +518,7 @@ public class World
 					int dist = x*x + y*y + z*z;
 					if (dist > radius*radius)
 						continue;
-					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId(), 1);
+					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId(), (byte)0, 1);
 				}
 			}
 		}
@@ -464,7 +535,7 @@ public class World
 					if (dist < (radius*radius) - 2*radius + 1 || dist > (radius*radius))
 						continue;
 					
-					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId(), 7);
+					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId(), (byte)0, 7);
 				}
 			}
 		}

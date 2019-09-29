@@ -21,6 +21,8 @@ public class Chunk
 	private short blockCount = 0;
 	// Actual chunk data
 	private byte[] blockData = new byte[16 * 16 * 16];
+	// Block metadata (2 block clusters)
+	private byte[] blockMeta = new byte[8 * 16 * 16];
 	// If the chunk holds data (by default, they are empty)
 	private boolean isEmpty = true;
 	// If the chunk needs to be re-rendered
@@ -177,6 +179,52 @@ public class Chunk
 		byte baseLevel = (byte)((blockLights[(x >> 3) + z * 2 + y * 2 * 16] >> (x & 0x7)) & 1);
 		
 		return baseLevel == 0 ? (byte)3 : (byte)15;
+	}
+	
+	// ???: Should there be a change to a flattened model? (i.e. 1 block-id = 1 state)
+	/**
+	 * Gets the block metadata for the given position
+	 * @param x The x position to change
+	 * @param y The y position to change
+	 * @param z The z position to change
+	 * @return The block metadata for the position
+	 */
+	public byte getBlockMeta(int x, int y, int z)
+	{
+		// Check for out of bounds access
+		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
+			return 0;
+		
+		int packed = Byte.toUnsignedInt(blockMeta[(x >> 1) + z * 8 + y * 8 * 16]);
+		return (byte)((packed >> ((x & 1) * 4)) & 0x0F);
+	}
+	
+	/**
+	 * Sets the block metadata for the given position
+	 * @param x The x position to change
+	 * @param y The y position to change
+	 * @param z The z position to change
+	 * @param meta The new metadata value
+	 */
+	public void setBlockMeta(int x, int y, int z, byte meta)
+	{
+		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
+			return;
+		
+		meta &= 0xF;
+		
+		int index = (x >> 1) + z * 8 + y * 8 * 16;
+		byte mask = 0x0F;
+		int shift = 0x00;
+		
+		if ((x & 1) != 0)
+		{
+			mask = (byte)0xF0;
+			shift = ((x & 1) * 4);
+		}
+		
+		blockMeta[index] &= ~mask;
+		blockMeta[index] |= meta << shift;
 	}
 	
 	/**

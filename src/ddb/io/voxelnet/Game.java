@@ -425,10 +425,16 @@ public class Game {
 		renderer.useCamera(guiCamera);
 		renderer.useShader(quadShader);
 		renderer.prepareShader();
+		
+		int blockX = (int)Math.floor(player.xPos);
+		int blockY = (int)Math.floor(player.yPos);
+		int blockZ = (int)Math.floor(player.zPos);
+		
 		String timeStr = String.format("FT %-5.2f / UT %-5.2f\n", frameTime * 1000d, updTime * 1000d);
 		String posStr = String.format("Pos %.2f / %.2f / %.2f\n", player.xPos, player.yPos, player.zPos);
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
-		fontRenderer.putString("VoxelNet\n"+timeStr+posStr+lokStr, 0, 0);
+		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ), Integer.toBinaryString(Byte.toUnsignedInt(world.getBlockMeta(blockX, blockY, blockZ))));
+		fontRenderer.putString("VoxelNet\n"+timeStr+posStr+lokStr+blkStr, 0, 0);
 		
 		StringBuilder builtStr = new StringBuilder();
 		/*builtStr.append("According to all known laws of aviation,\n" +
