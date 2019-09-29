@@ -88,6 +88,11 @@ public class GameRenderer
 		currentShader.setUniformMatrix4fv("PVMatrix", false, matrix);
 	}
 	
+	public Shader getCurrentShader()
+	{
+		return currentShader;
+	}
+	
 	/**
 	 * Finishes drawing models
 	 */

@@ -5,6 +5,7 @@ import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.Chunk;
 import ddb.io.voxelnet.world.World;
+import org.lwjgl.opengl.GL11;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -123,6 +124,8 @@ public class WorldRenderer
 		// List of chunks that have transparent blocks
 		List<ChunkModel> transparentChunks = new ArrayList<>();
 		
+		renderer.getCurrentShader().setUniform1i("inWater", player.isInWater() ? 1 : 0);
+		
 		long opaqueCount = 0;
 		long opaqueAccum = 0;
 		long updProgressCount = 0;
@@ -168,28 +171,38 @@ public class WorldRenderer
 		/*if (!transparentChunks.isEmpty())
 			transparentChunks.sort((a, b) -> -distanceSort(a, b));*/
 		
-		// Reverse iterate through the array
-		long transparentAccum = 0;
-		long transparentCount = transparentChunks.size();
-		ListIterator<ChunkModel> itr = transparentChunks.listIterator(transparentChunks.size());
-		
-		while (itr.hasPrevious())
+		// Reverse iterate through the array & other layers
+		final RenderLayer[] transparentLayers = new RenderLayer[] { RenderLayer.FLUID, RenderLayer.TRANSPARENT };
+		for (RenderLayer layer : transparentLayers)
 		{
-			ChunkModel chunkModel = itr.previous();
+			long transparentAccum = 0;
+			long transparentCount = transparentChunks.size();
+			ListIterator<ChunkModel> itr = transparentChunks.listIterator(transparentChunks.size());
 			
-			long transparentStart = System.nanoTime();
-			boolean isUpdating = chunkModel.isUpdateInProgress();
-			Model model = chunkModel.getModelForLayer(RenderLayer.TRANSPARENT);
+			if (layer == RenderLayer.FLUID)
+				GL11.glDisable(GL11.GL_CULL_FACE);
 			
-			// Update the vertices if a model update is not in progress (have
-			// not been updated above)
-			model.bind();
-			if (!chunkModel.isUpdateInProgress())
-				chunkModel.updateLayer(RenderLayer.TRANSPARENT);
+			while (itr.hasPrevious())
+			{
+				ChunkModel chunkModel = itr.previous();
+				
+				long transparentStart = System.nanoTime();
+				boolean isUpdating = chunkModel.isUpdateInProgress();
+				Model model = chunkModel.getModelForLayer(layer);
+				
+				// Update the vertices if a model update is not in progress (have
+				// not been updated above)
+				model.bind();
+				if (!chunkModel.isUpdateInProgress())
+					chunkModel.updateLayer(layer);
+				
+				renderer.drawModel(model);
+				
+				transparentAccum += System.nanoTime() - transparentStart;
+			}
 			
-			renderer.drawModel(model);
-			
-			transparentAccum += System.nanoTime() - transparentStart;
+			if (layer == RenderLayer.FLUID)
+				GL11.glEnable(GL11.GL_CULL_FACE);
 		}
 		
 		/*System.out.println("-----------------------------");

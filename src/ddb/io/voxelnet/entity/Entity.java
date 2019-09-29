@@ -1,6 +1,7 @@
 package ddb.io.voxelnet.entity;
 
 import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.util.AABBCollider;
 import ddb.io.voxelnet.world.World;
 
@@ -102,6 +103,11 @@ public class Entity
 	{
 		isDead = false;
 		isRemoved = false;
+	}
+	
+	public boolean isInWater()
+	{
+		return Block.idToBlock(world.getBlock((int)Math.floor(xPos), (int)Math.floor(yPos + eyeHeight), (int)Math.floor(zPos))) == Blocks.WATER;
 	}
 	
 	/// Utility (Move to separate util classes) ///

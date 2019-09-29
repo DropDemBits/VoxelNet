@@ -4,4 +4,5 @@ public enum RenderLayer
 {
 	OPAQUE,
 	TRANSPARENT,
+	FLUID,
 }
