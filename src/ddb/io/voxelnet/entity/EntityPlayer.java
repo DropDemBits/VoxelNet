@@ -1,5 +1,7 @@
 package ddb.io.voxelnet.entity;
 
+import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.util.AABBCollider;
 
 public class EntityPlayer extends Entity
@@ -9,19 +11,17 @@ public class EntityPlayer extends Entity
 	
 	// Speed Coefficient
 	public float speedCoef = 1f;
+	public float accelCoef = 1f;
 	
 	// Ramp Up/Down Coefficient
-	public float rampUpCoeff = 8.5f;
-	public float rampDownCoeff = 8.5f;
+	public float rampUpCoeff = 10.5f;
+	public float slipperiness = 10.5f;
 	
 	// Jump related
 	private float targetHeight = 1.25f;
 	private float targetTime = 3f;
 	
 	private float jumpVelocity = ((2.0f * targetHeight) * targetTime);
-	
-	// If the player is currently jumping
-	public boolean isJumping = false;
 	
 	// If the player is sneaking
 	public boolean isSneaking = false;
@@ -73,11 +73,15 @@ public class EntityPlayer extends Entity
 		
 		this.yVel = jumpVelocity;
 		onGround = false;
-		isJumping = true;
 	}
 	
 	public void update(float delta)
 	{
+		if (Block.idToBlock(world.getBlock((int)Math.floor(xPos), (int)Math.floor(yPos), (int)Math.floor(zPos))) == Blocks.WATER)
+			accelCoef = 0.375f;
+		else
+			accelCoef = 1f;
+		
 		// Change the yAccel if the player is flying or not
 		if (isFlying)
 			yAccel = 0f;
@@ -85,9 +89,13 @@ public class EntityPlayer extends Entity
 			yAccel = -gravity;
 		
 		// Apply the acceleration
-		xVel += xAccel * delta;
-		yVel += yAccel * delta;
-		zVel += zAccel * delta;
+		xVel += accelCoef * xAccel * delta;
+		zVel += accelCoef * zAccel * delta;
+		
+		if (yVel > 0)
+			yVel += 1f * yAccel * delta;
+		else
+			yVel += accelCoef * yAccel * delta;
 		
 		// Clamp the horizontal velocities
 		xVel = clamp(xVel, -speed * speedCoef, speed * speedCoef);
@@ -103,70 +111,21 @@ public class EntityPlayer extends Entity
 			yVel = -jumpVelocity;
 		
 		// Update the collision status
-		// Apply the response in the event of a collision
-		int zResponse, xResponse;
-		if ((zResponse = testForCollisionZ(delta)) != 0)
-		{
-			zPos += ((Math.abs(zResponse) - 2) / 16f) * zVel * delta;
-			zVel = 0;
-			zAccel = 0;
-		}
-		
-		if ((xResponse = testForCollisionX(delta)) != 0)
-		{
-			xPos += ((Math.abs(xResponse) - 2) / 16f) * xVel * delta;
-			xVel = 0;
-			xAccel = 0;
-		}
-		int yResponse = testForCollisionY(delta);
-		
-		onGround = yResponse < 0;
-		
-		if((onGround && yVel < 0) || (yResponse > 0 && yVel > 0))
-		{
-			// Apply the response
-			if ((Math.abs(yResponse) - 2) == -1)
-			{
-				// Snap to the nearest Y position, plus a bit
-				yPos = Math.round(yPos) - (1 / 16f) * yVel * delta;
-			}
-			else
-			{
-				// Do the normal response
-				yPos += ((Math.abs(yResponse) - 2) / 16f) * yVel * delta;
-			}
-			
-			yVel = 0;
-			
-			// Reset jumping status
-			isJumping = false;
-		}
+		updateCollision(delta);
 		
 		// Apply the velocity
 		xPos += xVel * delta;
 		yPos += yVel * delta;
 		zPos += zVel * delta;
 		
-		if (xVel != 0.0f || yVel != 0.0f || zVel != 0.0f)
-		{
-			int blockX = Math.round(xPos - 0.5f);
-			int blockY = Math.round(yPos);
-			int blockZ = Math.round(zPos - 0.5f);
-			
-			//System.out.println("P (" + xPos + ", " + yPos + ", " + zPos + ")");
-			//System.out.println("B (" + blockX + ", " + blockY + ", " + blockZ + ")");
-			//System.out.println("V (" + xVel + ", " + yVel + ", " + zVel + ")");
-			//System.out.println("-----------------------------------");
-		}
-		
-		// Apply decay to the velocity
-		if(Math.abs(xVel) > delta)
-			xVel = lerpf(xVel, 0, delta * rampDownCoeff);
+		// Apply exponential decay to the velocity
+		if(Math.abs(xVel) > 1/256f)
+			xVel = lerpf(xVel, 0, slipperiness * accelCoef * delta);
 		else
 			xVel = 0;
 		
-		if(Math.abs(zVel) > delta)
-			zVel = lerpf(zVel, 0, delta * rampDownCoeff);
+		if(Math.abs(zVel) > 1/256f)
+			zVel = lerpf(zVel, 0, slipperiness * accelCoef * delta);
 		else
 			zVel = 0;
 		

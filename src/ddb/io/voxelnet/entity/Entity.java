@@ -136,14 +136,45 @@ public class Entity
 			return 0.0f;
 	}
 	
-	protected int testForCollisionY(float delta)
+	protected void updateCollision (float delta)
+	{
+		float xResponse = testForCollisionX(delta);
+		float yResponse = testForCollisionY(delta);
+		float zResponse = testForCollisionZ(delta);
+		
+		onGround = yResponse >= 0 && yVel != yResponse;
+		
+		if (yResponse != yVel)
+		{
+			//System.out.println(yOff);
+			if (Math.abs(yResponse - yVel) > 1/64f)
+				yPos += yResponse;
+			yVel = 0;
+		}
+		
+		if (zResponse != zVel)
+		{
+			if (Math.abs(zResponse - zVel) > 1/64f)
+				zPos += zResponse;
+			zVel = 0;
+		}
+		
+		if (xResponse != xVel)
+		{
+			if (Math.abs(xResponse - xVel) > 1/64f)
+				xPos += xResponse;
+			xVel = 0;
+		}
+	}
+	
+	protected float testForCollisionY(float delta)
 	{
 		int yDir = (int)Math.signum(yVel);
 		int blockDelta = 0;
 		
 		// If the entity is not moving, no collision will happen
 		if (yDir == 0)
-			return 0;
+			return yVel;
 		
 		// Setup the block delta
 		if (yDir == -1)
@@ -152,9 +183,9 @@ public class Entity
 			blockDelta = Math.round(collisionBox.height);
 		
 		int blockX, blockY, blockZ;
-		blockX = Math.round(xPos - 0.5f);
-		blockY = Math.round(yPos);
-		blockZ = Math.round(zPos - 0.5f);
+		blockX = (int) Math.floor(xPos);
+		blockY = (int) Math.round(yPos);
+		blockZ = (int) Math.floor(zPos);
 		
 		// Move the collision box relative to the block position
 		collisionBox.setPosition(xPos, yPos, zPos);
@@ -185,7 +216,7 @@ public class Entity
 				blockCollider.setPosition(blockX + xOff, blockY + blockDelta, blockZ + zOff);
 				
 				// Do fine stepping
-				float stepY = (yVel * delta) / 16f;
+				/*float stepY = (yVel * delta) / 16f;
 				for (int step = 0; step <= 16; step++)
 				{
 					if (collisionBox.intersectsWith(blockCollider))
@@ -196,21 +227,24 @@ public class Entity
 					if (step == 16)
 						// No collision, even with optimizations
 						System.out.println("HOYY! Something's wrong w/ collision");
-				}
+				}*/
+				float yOff = collisionBox.offsetOnY(blockCollider, yVel);
+				if (yOff != yVel)
+					return yOff;
 			}
 		}
 		
-		// No collisions found
-		return 0;
+		// No collisions found, return same yVel
+		return yVel;
 	}
 	
-	// Return is a signed number of steps to the collision
-	protected int testForCollisionZ(float delta)
+	// Return is an offset to correct the collision
+	protected float testForCollisionZ(float delta)
 	{
 		int zDir = (int)Math.signum(zVel);
 		
 		if (zDir == 0)
-			return 0;
+			return zVel;
 		
 		int blockX, blockY, blockZ;
 		blockX = Math.round(xPos - 0.5f);
@@ -241,7 +275,7 @@ public class Entity
 					continue;
 				
 				// Collision will happen, do fine stepping
-				float stepZ = (zVel * delta) / 16f;
+				/*float stepZ = (zVel * delta) / 16f;
 				for (int step = 0; step <= 16; step++)
 				{
 					// Check for collision
@@ -253,21 +287,25 @@ public class Entity
 					
 					if (step == 16)
 						System.out.println("HOYZ! Somethings wrong here!");
-				}
+				}*/
+				
+				float zOff = collisionBox.offsetOnZ(blockCollider, zVel);
+				if (zOff != zVel)
+					return zOff;
 			}
 		}
 		
 		// No collision detected
-		return 0;
+		return zVel;
 	}
 	
 	// Return is a signed number of steps to the collision
-	protected int testForCollisionX(float delta)
+	protected float testForCollisionX(float delta)
 	{
 		int xDir = (int)Math.signum(xVel);
 		
 		if (xDir == 0)
-			return 0;
+			return xVel;
 		
 		int blockX, blockY, blockZ;
 		blockX = Math.round(xPos - 0.5f);
@@ -298,7 +336,7 @@ public class Entity
 					continue;
 				
 				// Collision will happen, do fine stepping
-				float stepX = (xVel * delta) / 16f;
+				/*float stepX = (xVel * delta) / 16f;
 				for (int step = 0; step <= 16; step++)
 				{
 					// Check for collision
@@ -310,12 +348,16 @@ public class Entity
 					
 					if (step == 16)
 						System.out.println("HOYX! Somethings wrong here!");
-				}
+				}*/
+				
+				float xOff = collisionBox.offsetOnX(blockCollider, xVel);
+				if (xOff != xVel)
+					return xOff;
 			}
 		}
 		
 		// No collision detected
-		return 0;
+		return xVel;
 	}
 	
 }

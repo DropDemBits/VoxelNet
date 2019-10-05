@@ -69,6 +69,111 @@ public class AABBCollider
 				&& (z - zOther) <= other.z + other.depth  && other.z <= (z - zOther) + depth;
 	}
 	
+	public float offsetOnX(AABBCollider other, float xVel)
+	{
+		float velocity = xVel;
+		
+		// Quick fail: Outside of box on the y & z axis?
+		if ((y > other.y + other.height || other.y > y + height)
+				|| (z > other.z + other.depth || other.z > z + depth))
+		{
+			// Outside, keep xVel
+			return velocity;
+		}
+		
+		// positive velocity, may intersect w/ left
+		if (xVel > 0 && (other.x + other.width) >= x)
+		{
+			float d = other.x - (x + width);
+			
+			// If distance is smaller, make it the offset
+			if (d < velocity)
+				velocity = d - 1/256f;
+		}
+		
+		// negative velocity, may intersect w/ right
+		if (xVel < 0 && (x + width) >= other.x)
+		{
+			float d = (other.x + other.width) - x;
+			
+			// If distance is smaller, make it the offset
+			if (d > velocity)
+				velocity = d + 1/256f;
+		}
+		
+		return velocity;
+	}
+	
+	public float offsetOnY(AABBCollider other, float yVel)
+	{
+		float velocity = yVel;
+		
+		// Quick fail: Outside of box on the x & z axis?
+		if ((x > other.x + other.width || other.x > x + width)
+				|| (z > other.z + other.depth || other.z > z + depth))
+		{
+			// Outside, keep yVel
+			return velocity;
+		}
+		
+		// positive velocity, may intersect w/ bottom
+		if (yVel > 0 && (other.y + other.height) >= y)
+		{
+			float d = other.y - (y + height);
+			
+			// If distance is smaller, make it the offset
+			if (d < velocity)
+				velocity = d - 1/256f;
+		}
+		
+		// negative velocity, may intersect w/ top
+		if (yVel < 0 && (y + height) >= other.y)
+		{
+			float d = (other.y + other.height) - y;
+			
+			// If distance is smaller, make it the offset
+			if (d > velocity)
+				velocity = d + 1/256f;
+		}
+		
+		return velocity;
+	}
+	
+	public float offsetOnZ(AABBCollider other, float zVel)
+	{
+		float velocity = zVel;
+		
+		// Quick fail: Outside of box on the x & y axis?
+		if ((y > other.y + other.height || other.y > y + height)
+				|| (x > other.x + other.width || other.x > x + width))
+		{
+			// Outside, keep zVel
+			return velocity;
+		}
+		
+		// positive velocity, may intersect w/ left
+		if (zVel > 0 && (other.z + other.depth) >= z)
+		{
+			float d = other.z - (z + depth);
+			
+			// If distance is smaller, make it the offset
+			if (d < velocity)
+				velocity = d - 1/256f;
+		}
+		
+		// negative velocity, may intersect w/ right
+		if (zVel < 0 && (z + depth) >= other.z)
+		{
+			float d = (other.z + other.depth) - z;
+			
+			// If distance is smaller, make it the offset
+			if (d > velocity)
+				velocity = d + 1/256f;
+		}
+		
+		return velocity;
+	}
+	
 	/**
 	 * Checks if this box intersects with the other box, accounting for
 	 * velocity.
