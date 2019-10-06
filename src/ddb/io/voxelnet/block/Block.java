@@ -27,7 +27,8 @@ public class Block
 		Blocks.GLASS        = addBlock(9,  new BlockGlass());
 		Blocks.SAND         = addBlock(10, new BlockFalling().setSolid(true).setFaceTextures(new int[] {11, 11, 11, 11, 11, 11}));
 		Blocks.GRAVEL       = addBlock(11, new BlockFalling().setSolid(true).setFaceTextures(new int[] {12, 12, 12, 12, 12, 12}));
-		Blocks.WATER        = addBlock(12, new BlockWater());
+		Blocks.UPDATING_WATER = addBlock(12, new BlockWater(true));
+		Blocks.WATER        = addBlock(13, new BlockWater(false));
 	}
 	
 	private static Block addBlock(int id, Block instance)
@@ -227,9 +228,9 @@ public class Block
 	/**
 	 * Checks if a player can place a block in the specified location
 	 * @param world The world that the block will be placed in
-	 * @param x The x coordinate of the block
-	 * @param y The y coordinate of the block
-	 * @param z The z coordinate of the block
+	 * @param x The x coordinate of the block to place
+	 * @param y The y coordinate of the block to place
+	 * @param z The z coordinate of the block to place
 	 * @return True if the block can be placed in the specified location
 	 */
 	public boolean canPlaceBlock(World world, int x, int y, int z)
@@ -246,14 +247,19 @@ public class Block
 	 * Checks if the block in the specified location can be replaced by the current one
 	 * @param world The world that the block would be replaced in
 	 * @param block The block to place
-	 * @param x The x coordinate of the block
-	 * @param y The y coordinate of the block
-	 * @param z The z coordinate of the block
+	 * @param x The x coordinate of the block to replace (the current block)
+	 * @param y The y coordinate of the block to replace (the current block)
+	 * @param z The z coordinate of the block to replace (the current block)
 	 * @return True if the block can be replaced by the specified block
 	 */
 	public boolean canBeReplacedBy(World world, Block block, int x, int y, int z)
 	{
 		return false;
+	}
+	
+	public boolean showFace(Block block, Facing dir)
+	{
+		return block != this;
 	}
 	
 }

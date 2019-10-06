@@ -107,7 +107,8 @@ public class Entity
 	
 	public boolean isInWater()
 	{
-		return Block.idToBlock(world.getBlock((int)Math.floor(xPos), (int)Math.floor(yPos + eyeHeight), (int)Math.floor(zPos))) == Blocks.WATER;
+		Block blockIn = Block.idToBlock(world.getBlock((int)Math.floor(xPos), (int)Math.floor(yPos + eyeHeight), (int)Math.floor(zPos)));
+		return blockIn == Blocks.WATER || blockIn == Blocks.UPDATING_WATER;
 	}
 	
 	/// Utility (Move to separate util classes) ///

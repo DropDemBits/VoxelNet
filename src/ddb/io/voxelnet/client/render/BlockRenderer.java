@@ -61,13 +61,13 @@ public class BlockRenderer
 			}
 			
 			// Don't show the face if it's the same block
-			if (adjacent == block)
+			if (!block.showFace(adjacent, face))
 				continue;
 			
 			short[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
 			final float[] faceIntensities = new float[] { 0.75f, 0.75f, 0.75f, 0.75f, 0.95f, 0.55f };
 			
-			if (block == Blocks.WATER)
+			if (block == Blocks.WATER || block == Blocks.UPDATING_WATER)
 			{
 				BlockRenderer.addFluidFace(
 						model,
