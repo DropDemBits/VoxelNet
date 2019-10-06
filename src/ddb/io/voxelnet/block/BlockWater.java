@@ -77,11 +77,11 @@ public class BlockWater extends Block
 				
 				if (facing == Facing.DOWN && (adjacent == Blocks.AIR || adjacent.canBeReplacedBy(world, this, blockX, blockY, blockZ)))
 					canConvertToSource = false;
-				if ((adjacent == Blocks.WATER || adjacent == Blocks.UPDATING_WATER) && (adjacentMeta & DISTANCE) == 0)
+				if (facing != Facing.DOWN && (adjacent == Blocks.WATER || adjacent == Blocks.UPDATING_WATER) && (adjacentMeta & DISTANCE) == 0)
 					adjacentSources++;
 			}
 			
-			if (canConvertToSource && adjacentSources > 1)
+			if (!isFalling && canConvertToSource && adjacentSources > 1)
 			{
 				// Convert into source water
 				availableBlocks.push(new FluidPlacement(new Vec3i(x, y, z), (byte) 0));
