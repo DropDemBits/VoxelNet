@@ -61,6 +61,7 @@ public class Game {
 	
 	double frameTime = 0;
 	double updTime = 0;
+	int currentFPS = 0;
 	
 	// Global Event Bus
 	public static final EventBus GLOBAL_BUS = new EventBus();
@@ -130,7 +131,7 @@ public class Game {
 		// Update the window context
 		glfwMakeContextCurrent(window);
 		// Setup vsync
-		glfwSwapInterval(1);
+		glfwSwapInterval(0);
 		// Show the window
 		glfwShowWindow(window);
 		
@@ -272,7 +273,7 @@ public class Game {
 		camera.updatePerspective((float) INITIAL_WIDTH / (float) INITIAL_HEIGHT);
 		
 		// Setup the view matrix
-		camera.asPlayer(player);
+		camera.asPlayer(player, 0);
 		camera.updateView();
 		
 		// Setup the main texture
@@ -325,13 +326,15 @@ public class Game {
 			
 			// Render Stage
 			double renderTick = glfwGetTime();
-			render(lag / MS_PER_UPDATE);
+			render(lag /* MS_PER_UPDATE*/);
 			frameTime = glfwGetTime() - renderTick;
 			fps++;
 			
 			if (now - secondTimer > 1)
 			{
 				// Update the things
+				currentFPS = fps;
+				
 				ups = 0;
 				fps = 0;
 				secondTimer = now;
@@ -365,14 +368,14 @@ public class Game {
 		controller.update(delta);
 		world.update(delta);
 		
-		camera.asPlayer(player);
-		camera.updateView();
-		
 		worldRenderer.update();
 	}
 	
 	private void render(double partialTicks)
 	{
+		camera.asPlayer(player, partialTicks);
+		camera.updateView();
+		
 		renderer.begin();
 		
 		// Draw the world
@@ -430,29 +433,11 @@ public class Game {
 		int blockY = (int)Math.floor(player.yPos);
 		int blockZ = (int)Math.floor(player.zPos);
 		
-		String timeStr = String.format("FT %-5.2f / UT %-5.2f\n", frameTime * 1000d, updTime * 1000d);
+		String timeStr = String.format("FT %-5.2f (%d | %.3f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, updTime * 1000d);
 		String posStr = String.format("Pos %.2f / %.2f / %.2f\n", player.xPos, player.yPos, player.zPos);
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
 		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ), Integer.toBinaryString(Byte.toUnsignedInt(world.getBlockMeta(blockX, blockY, blockZ))));
-		fontRenderer.putString("VoxelNet\n"+timeStr+posStr+lokStr+blkStr, 0, 0);
-		
-		StringBuilder builtStr = new StringBuilder();
-		/*builtStr.append("According to all known laws of aviation,\n" +
-				"it is impossible for a bee to fly.\n" +
-				"public static void main(String[] args) {\n" +
-				"    System.out.println(\"Hello, world!\");\n" +
-				"}");//*/
-		builtStr.append("The quick brown fox jumped over the lazy dogs\n"+
-				"THE QUICK BROWN FOX JUMPED OVER THE LAZY DOGS\n"+
-				"the quick brown fox jumped over the lazy dogs\n"+
-				"qpwmnleqjp_ block_grass");//*/
-				
-		/*for (int i = 0; i < 256; i++)
-		{
-			if(i != '\n') builtStr.append((char) i);
-			if(i % 16 == 15) builtStr.append('\n');
-		}*/
-		fontRenderer.putString(builtStr.toString(), 300, 0);
+		fontRenderer.putString("VoxelNet\n(adhesion / videospan / forte / mezzoforte / piano / pianissimo)\n"+timeStr+posStr+lokStr+blkStr, 0, 0);
 		
 		fontRenderer.flush();
 		renderer.finishShader();

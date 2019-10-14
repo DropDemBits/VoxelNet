@@ -10,7 +10,7 @@ varying vec4 frag_color;
 uniform mat4 PVMatrix;
 
 void main (void) {
-    gl_Position = PVMatrix * vec4(position, 0, 1);
+    gl_Position = PVMatrix * vec4(position, -1, 1);
     frag_texCoord = texCoord;
     frag_color = color;
 }
