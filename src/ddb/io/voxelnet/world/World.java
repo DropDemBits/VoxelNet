@@ -389,6 +389,13 @@ public class World
 		return chunk.getBlockMeta(blockX, blockY, blockZ);
 	}
 	
+	/**
+	 * Gets the chunk for the requested position
+	 * @param cx The x position of the target chunk (in chunks)
+	 * @param cy The y position of the target chunk (in chunks)
+	 * @param cz The z position of the target chunk (in chunks)
+	 * @return The requested chunk
+	 */
 	public Chunk getChunk(int cx, int cy, int cz)
 	{
 		Vec3i pos = new Vec3i(cx, cy, cz);

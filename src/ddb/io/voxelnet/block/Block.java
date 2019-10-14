@@ -1,5 +1,6 @@
 package ddb.io.voxelnet.block;
 
+import ddb.io.voxelnet.client.render.BlockRenderModel;
 import ddb.io.voxelnet.client.render.RenderLayer;
 import ddb.io.voxelnet.util.AABBCollider;
 import ddb.io.voxelnet.util.Facing;
@@ -182,6 +183,11 @@ public class Block
 	 * @return The layer to render the block on
 	 */
 	public RenderLayer getRenderLayer() { return RenderLayer.OPAQUE; }
+	
+	public BlockRenderModel getRenderModel()
+	{
+		return BlockRenderModel.CUBE;
+	}
 	
 	/**
 	 * Gets the ID of the block

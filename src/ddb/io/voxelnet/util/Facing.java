@@ -9,6 +9,8 @@ public enum Facing
 	UP      ( 0,  1,  0),
 	DOWN    ( 0, -1,  0);
 	
+	public static final Facing[] CARDINAL_FACES = new Facing[] { SOUTH, NORTH, EAST, WEST };
+	
 	int xOff;
 	int yOff;
 	int zOff;

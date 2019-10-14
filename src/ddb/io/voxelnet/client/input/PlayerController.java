@@ -132,7 +132,7 @@ public class PlayerController
 		final Block[] placeBlocks = new Block[] {
 				Blocks.GRASS, Blocks.DIRT, Blocks.STONE,
 				Blocks.PLANKS, Blocks.STONE_BRICKS, Blocks.CLAY_BRICKS,
-				Blocks.DOOR_LOWER, Blocks.GLASS, Blocks.SAND, Blocks.GRAVEL
+				Blocks.DOOR_LOWER, Blocks.GLASS, Blocks.SAND, Blocks.UPDATING_WATER
 		};
 		
 		if (e.keycode >= GLFW_KEY_1 && e.keycode <= (GLFW_KEY_0 + placeBlocks.length))

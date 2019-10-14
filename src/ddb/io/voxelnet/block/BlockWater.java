@@ -1,5 +1,6 @@
 package ddb.io.voxelnet.block;
 
+import ddb.io.voxelnet.client.render.BlockRenderModel;
 import ddb.io.voxelnet.client.render.RenderLayer;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.util.Vec3i;
@@ -10,7 +11,7 @@ import java.util.Stack;
 public class BlockWater extends Block
 {
 	// Masks
-	public static final int IS_FALLING = 0b1000;
+	private static final int IS_FALLING = 0b1000;
 	public static final int DISTANCE = 0b0111;
 	
 	// XXX: BAD! Replace with something better
@@ -244,6 +245,12 @@ public class BlockWater extends Block
 	}
 	
 	@Override
+	public BlockRenderModel getRenderModel()
+	{
+		return BlockRenderModel.FLUID;
+	}
+	
+	@Override
 	public boolean showFace(Block block, Facing dir)
 	{
 		return block != Blocks.WATER && block != Blocks.UPDATING_WATER;
@@ -269,6 +276,8 @@ public class BlockWater extends Block
 		@Override
 		public boolean equals(Object obj)
 		{
+			if (!(obj instanceof FluidPlacement))
+				return false;
 			return pos.equals(obj);
 		}
 	}
