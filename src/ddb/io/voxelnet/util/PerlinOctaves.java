@@ -16,9 +16,9 @@ public class PerlinOctaves
 	private final short[] p2 = new short[512];
 	
 	// Persistence of higher octaves;
-	private double persistence;
+	private final double persistence;
 	// Number of octaves to use
-	private int octaves;
+	private final int octaves;
 	
 	// Whether to enable repeating or not
 	private boolean repeat = false;
@@ -183,13 +183,15 @@ public class PerlinOctaves
 			case 0x6: return  x - z;
 			case 0x7: return -x - z;
 			case 0x8: return  y + z;
-			case 0x9: return -y + z;
+			case 0x9:
+			case 0xD:
+				return -y + z;
 			case 0xA: return  y - z;
-			case 0xB: return -y - z;
+			case 0xB:
+			case 0xF:
+				return -y - z;
 			case 0xC: return  y + x;
-			case 0xD: return -y + z;
 			case 0xE: return  y - x;
-			case 0xF: return -y - z;
 			default: return 0; // never happens
 		}
 	}

@@ -14,18 +14,18 @@ public class Entity
 	public float xVel = 0.0f, yVel = 0.0f, zVel = 0.0f;
 	
 	// The acceleration of the entity
-	public float xAccel = 0.0f, yAccel = 0.0f, zAccel = 0.0f;
+	public float xAccel = 0.0f, yAccel, zAccel = 0.0f;
 	
 	// The gravity of the entity
 	// Derived from the player's jump height
 	// g = 2 * h * t^2
-	public float gravity = ((2.0f * 1.25f) * (3f * 3f));
+	public final float gravity = ((2.0f * 1.25f) * (3f * 3f));
 	
 	// The orientation of the entity
 	public float pitch = 0.0f, yaw = 0.0f;
 	
 	// Eye height of the entity
-	public float eyeHeight = 1.45f;
+	public final float eyeHeight = 1.45f;
 	
 	// If the entity is on the ground
 	public boolean onGround = false;

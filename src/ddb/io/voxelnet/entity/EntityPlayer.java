@@ -1,27 +1,26 @@
 package ddb.io.voxelnet.entity;
 
-import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.util.AABBCollider;
 
 public class EntityPlayer extends Entity
 {
 	// Horizontal speed
-	public float speed = 3f;
+	public final float speed = 3f;
 	
 	// Speed Coefficient
 	public float speedCoef = 1f;
 	public float accelCoef = 1f;
 	
 	// Ramp Up/Down Coefficient
-	public float rampUpCoeff = 10.5f;
-	public float slipperiness = 10.5f;
+	public final float rampUpCoeff = 10.5f;
+	public final float slipperiness = 10.5f;
 	
 	// Jump related
-	private float targetHeight = 1.25f;
-	private float targetTime = 3f;
+	private final float targetHeight = 1.25f;
+	private final float targetTime = 3f;
 	
-	private float jumpVelocity = ((2.0f * targetHeight) * targetTime);
+	private final float jumpVelocity = ((2.0f * targetHeight) * targetTime);
 	
 	// If the player is sneaking
 	public boolean isSneaking = false;

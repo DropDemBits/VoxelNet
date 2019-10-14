@@ -25,9 +25,9 @@ public class Camera
 	public float zFar = 0.0f;
 	
 	// Matrices
-	public Matrix4f perspectiveMatrix;
-	public Matrix4f viewMatrix;
-	private Matrix4f pvMatrix;
+	public final Matrix4f perspectiveMatrix;
+	public final Matrix4f viewMatrix;
+	private final Matrix4f pvMatrix;
 	
 	// View frustum
 	public Frustum viewFrustum;

@@ -10,21 +10,20 @@ import org.lwjgl.opengl.GL11;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Predicate;
 
 public class WorldRenderer
 {
 	// Player that the world is rendered around
 	private EntityPlayer player;
 	// List of all chunk models
-	private Map<Vec3i, ChunkModel> renderChunks = new LinkedHashMap<>();
+	private final Map<Vec3i, ChunkModel> renderChunks = new LinkedHashMap<>();
 	// List of chunk models to render
-	private List<ChunkModel> renderList = new ArrayList<>();
+	private final List<ChunkModel> renderList = new ArrayList<>();
 	// List of chunks that need model updates
-	private Stack<ChunkModel> generateQueue = new Stack<>();
-	private ExecutorService generatePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
-	private TextureAtlas atlas;
-	private World world;
+	private final Stack<ChunkModel> generateQueue = new Stack<>();
+	private final ExecutorService generatePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+	private final TextureAtlas atlas;
+	private final World world;
 	
 	// Last chunk position of the player
 	private int lastChunkX = 0, lastChunkY = 0, lastChunkZ = 0;
@@ -45,9 +44,9 @@ public class WorldRenderer
 		boolean newChunks = false;
 		
 		// Generate chunks in a 16x16 radius around the player
-		/*for (int cx = -8; cx < 8; cx++)
+		/*for (int cx = -3; cx <= 3; cx++)
 		{
-			for (int cz = -8; cz < 8; cz++)
+			for (int cz = -3; cz <= 3; cz++)
 			{
 				int cxOff = (int)(player.xPos / 16f);
 				int czOff = (int)(player.zPos / 16f);
@@ -134,6 +133,11 @@ public class WorldRenderer
 			// Perform empty check
 			if (chunkModel.chunk.isEmpty())
 				continue;
+			
+			// Render around a certain radius
+			/*if (((chunkModel.chunk.chunkX << 4) + 8.5f - player.xPos)*((chunkModel.chunk.chunkX << 4) + 8.5f - player.xPos)+
+					((chunkModel.chunk.chunkZ << 4) + 8.5f - player.zPos)*((chunkModel.chunk.chunkZ << 4) + 8.5f - player.zPos) > (48 * 48))
+				continue;*/
 			
 			// Perform frustum culling
 			if (!renderer.getCamera().getViewFrustum().isSphereInside(

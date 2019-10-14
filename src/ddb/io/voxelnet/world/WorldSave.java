@@ -3,7 +3,6 @@ package ddb.io.voxelnet.world;
 import ddb.io.voxelnet.util.Vec3i;
 
 import java.io.*;
-import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
@@ -20,9 +19,9 @@ public class WorldSave
 	private static final int COLUMN_ENTRY_SIZE = 4 * 2 + 256;
 	
 	// The world to save / load
-	private World world;
+	private final World world;
 	// The file to save / load the world in
-	private String saveFile;
+	private final String saveFile;
 	
 	public WorldSave(World world, String saveFile)
 	{

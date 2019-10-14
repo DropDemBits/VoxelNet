@@ -8,7 +8,7 @@ public class EntityFallingBlock extends Entity
 {
 	// TODO: Preserve meta
 	// The block that this entity represents
-	public Block falling;
+	public final Block falling;
 	
 	public EntityFallingBlock(Block block)
 	{

@@ -16,8 +16,8 @@ public class GameRenderer
 	private final float[] matrix = new float[16];
 	private Camera camera;
 	private Shader currentShader;
-	private Map<Class<? extends Entity>, EntityRenderer> entityRenderers;
-	public TextureAtlas tileAtlas;
+	private final Map<Class<? extends Entity>, EntityRenderer> entityRenderers;
+	public final TextureAtlas tileAtlas;
 	
 	public GameRenderer(TextureAtlas tileAtlas)
 	{

@@ -13,16 +13,16 @@ public class Chunk
 	public final World world;
 	
 	// Number of solid blocks on each layer
-	private short[] blockLayers = new short[16];
+	private final short[] blockLayers = new short[16];
 	// Light levels of each block
 	// Right now, x-axis is crushed down into 8 block clusters
-	private byte[] blockLights = new byte[2 * 16 * 16];
+	private final byte[] blockLights = new byte[2 * 16 * 16];
 	// The number of blocks in the chunk
 	private short blockCount = 0;
 	// Actual chunk data
-	private byte[] blockData = new byte[16 * 16 * 16];
+	private final byte[] blockData = new byte[16 * 16 * 16];
 	// Block metadata (2 block clusters)
-	private byte[] blockMeta = new byte[8 * 16 * 16];
+	private final byte[] blockMeta = new byte[8 * 16 * 16];
 	// If the chunk holds data (by default, they are empty)
 	private boolean isEmpty = true;
 	// If the chunk needs to be re-rendered

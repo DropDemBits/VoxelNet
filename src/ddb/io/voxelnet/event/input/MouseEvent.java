@@ -14,11 +14,13 @@ public abstract class MouseEvent extends Event
 	public static class Move extends MouseEvent
 	{
 		// Mouse location on the screen at the time of the event, in sub-pixels
-		public double x, y;
+		public final double x;
+		public final double y;
 		// Change in the mouse location relative to the last event
-		public double dx, dy;
+		public final double dx;
+		public final double dy;
 		// Whether the mouse was dragged at the time of this event
-		public boolean wasDragged;
+		public final boolean wasDragged;
 		
 		public Move(double x, double y, double dx, double dy, boolean dragged)
 		{
@@ -41,13 +43,13 @@ public abstract class MouseEvent extends Event
 		
 		// The mouse button that is related to this event. Maps to the
 		// GLFW_BUTTON_ enums
-		public int button;
+		public final int button;
 		// The new state of the mouse button (RELEASED, PRESSED, CLICKED)
-		public int state;
+		public final int state;
 		// The key modifiers that were pressed at the time of the event
-		public int mods;
+		public final int mods;
 		// The time of the current mouse event
-		public long time;
+		public final long time;
 		
 		public Button(int button, int state, int mods, long time)
 		{

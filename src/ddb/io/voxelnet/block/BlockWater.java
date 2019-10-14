@@ -15,13 +15,13 @@ public class BlockWater extends Block
 	public static final int DISTANCE = 0b0111;
 	
 	// XXX: BAD! Replace with something better
-	public static Stack<FluidPlacement> availableBlocks = new Stack<>();
-	public static Stack<FluidPlacement> makeStatic = new Stack<>();
-	public static Stack<FluidPlacement> makeClear = new Stack<>();
+	private static final Stack<FluidPlacement> availableBlocks = new Stack<>();
+	private static final Stack<FluidPlacement> makeStatic = new Stack<>();
+	private static final Stack<FluidPlacement> makeClear = new Stack<>();
 	
-	private boolean isUpdating;
+	private final boolean isUpdating;
 	
-	public BlockWater(boolean isUpdating)
+	BlockWater(boolean isUpdating)
 	{
 		this.isUpdating = isUpdating;
 		
@@ -302,8 +302,6 @@ public class BlockWater extends Block
 	public boolean canBeReplacedBy(World world, Block block, byte newMeta, int x, int y, int z)
 	{
 		// Water can be replaced by anything but water, unless the distance is smaller (handled above)
-		byte srcMeta = world.getBlockMeta(x, y, z);
-		
 		return !(block instanceof BlockWater);
 	}
 	
@@ -325,9 +323,9 @@ public class BlockWater extends Block
 		return !(block instanceof BlockWater);
 	}
 	
-	private class FluidPlacement
+	private static class FluidPlacement
 	{
-		Vec3i pos;
+		final Vec3i pos;
 		byte newMeta;
 		
 		FluidPlacement(Vec3i pos, byte newMeta)

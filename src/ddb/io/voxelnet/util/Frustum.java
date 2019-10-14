@@ -16,7 +16,7 @@ public class Frustum
 	// z is FAR  or NEAR
 	// y is TOP  or BOTTOM
 	// x is LEFT or RIGHT
-	public Vector3f[][][] frustumPoints = new Vector3f[2][2][2];
+	public final Vector3f[][][] frustumPoints = new Vector3f[2][2][2];
 	
 	// Normal indices
 	public static final int TOP = 0;
@@ -27,9 +27,9 @@ public class Frustum
 	public static final int NEAR = 5;
 	
 	// Frustum normals
-	public Vector3f[] frustumNormals = new Vector3f[6];
+	public final Vector3f[] frustumNormals = new Vector3f[6];
 	// Frustum D values
-	public float[] frustumDvals = new float[6];
+	public final float[] frustumDvals = new float[6];
 	
 	public Frustum()
 	{

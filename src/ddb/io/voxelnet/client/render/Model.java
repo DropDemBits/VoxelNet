@@ -4,8 +4,6 @@ import org.joml.Matrix4f;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Vector;
 
 import static org.lwjgl.opengl.GL15.*;
@@ -31,15 +29,15 @@ public class Model
 	/// Model Data ///
 	// Vertex Data
 	// Vertex position (in byte[])
-	private Vector<byte[]> vertexData;
+	private final Vector<byte[]> vertexData;
 	
 	// Indices
-	private Vector<Integer> indices;
+	private final Vector<Integer> indices;
 	private int indiciesCount = 0;
 	
 	// GL *BO Handles
-	private int vboHandle;
-	private int iboHandle;
+	private final int vboHandle;
+	private final int iboHandle;
 	
 	// Binding state of the buffer
 	private boolean isBound = false;

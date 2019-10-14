@@ -24,14 +24,14 @@ public class World
 	private float accumulatedWorldTick;
 	
 	// List of entities that are waiting to be added
-	public List<Entity> pendingEntities;
+	public final List<Entity> pendingEntities;
 	// List of currently loaded entities
-	public List<Entity> loadedEntities;
+	public final List<Entity> loadedEntities;
 	
 	// WorldGen
 	private long worldSeed;
-	private Random worldRandom;
-	private PerlinOctaves perlinNoise;
+	private final Random worldRandom;
+	private final PerlinOctaves perlinNoise;
 	
 	public World()
 	{

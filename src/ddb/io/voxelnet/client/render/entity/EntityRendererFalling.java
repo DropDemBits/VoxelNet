@@ -8,7 +8,7 @@ import org.joml.Matrix4f;
 
 public class EntityRendererFalling extends EntityRenderer
 {
-	private Model model;
+	private final Model model;
 	
 	public EntityRendererFalling()
 	{

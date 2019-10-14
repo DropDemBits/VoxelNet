@@ -1,6 +1,5 @@
 package ddb.io.voxelnet.client.render;
 
-import java.awt.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -14,16 +13,16 @@ import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
  */
 public class FontRenderer
 {
-	private Texture fontTexture;
-	private TextureAtlas fontAtlas;
+	private final Texture fontTexture;
+	private final TextureAtlas fontAtlas;
 	
 	// Internal buffer for quads
-	private ByteBuffer quadBuffer;
+	private final ByteBuffer quadBuffer;
 	
 	// TEMPORARY: Use model/sprite batcher for handling the buffers
 	// GL *BO Handles
-	private int vboHandle;
-	private int iboHandle;
+	private final int vboHandle;
+	private final int iboHandle;
 	
 	final float FontScale = 2f;
 	final float Riser = 13;

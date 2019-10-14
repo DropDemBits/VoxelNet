@@ -10,8 +10,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class EventBus
 {
 	// List of all event handlers for the event queue
-	private Map<Class<? extends Event>, List<IEventHandler>> eventHandlers;
-	private Queue<Event> pendingEvents;
+	private final Map<Class<? extends Event>, List<IEventHandler>> eventHandlers;
+	private final Queue<Event> pendingEvents;
 	
 	public EventBus()
 	{

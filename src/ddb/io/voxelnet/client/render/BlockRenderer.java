@@ -305,7 +305,7 @@ public class BlockRenderer
 		return retval;
 	}
 	
-	public static void addFluidFace(Model model, float x, float y, float z, float nw, float sw, float se, float ne, Facing face, short[] texCoords, float intensity)
+	private static void addFluidFace(Model model, float x, float y, float z, float nw, float sw, float se, float ne, Facing face, short[] texCoords, float intensity)
 	{
 		model.beginPoly();
 		switch (face)

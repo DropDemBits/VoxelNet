@@ -11,9 +11,9 @@ public class GLContext
 {
 	public static final GLContext INSTANCE = new GLContext();
 	
-	private List<Integer> buffers;
-	private List<Integer> shaders;
-	private List<Integer> textures;
+	private final List<Integer> buffers;
+	private final List<Integer> shaders;
+	private final List<Integer> textures;
 	
 	private GLContext()
 	{

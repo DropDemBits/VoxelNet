@@ -1,11 +1,11 @@
 package ddb.io.voxelnet.world;
 
-public class ChunkColumn
+class ChunkColumn
 {
 	// 1 Column is defined to be a vertical stack of 256 blocks
 	
 	// Tallest opaque block in each column
-	public byte[] opaqueColumns = new byte[16 * 16];
+	public final byte[] opaqueColumns = new byte[16 * 16];
 	// Tallest block in each column, can be either transparent or opaque
 	public byte[] blockColumns = new byte[16 * 16];
 	

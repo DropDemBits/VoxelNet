@@ -7,29 +7,28 @@ import java.awt.*;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
-import java.util.Random;
 
 public class PerlinTest extends Canvas
 {
 	private static final int MAP_WIDTH = 48;
 	private static final int MAP_HEIGHT = 48;
-	private static float DRAW_SCALE = 8.0f;
+	private static final float DRAW_SCALE = 8.0f;
 	private static final double GEN_SCALE_X = 32;
 	private static final double GEN_SCALE_Y = 0.5;
 	
-	BufferedImage image;
-	byte[] imageData;
+	final BufferedImage image;
+	final byte[] imageData;
 
 	// Generation seed
 	private long seed = 0;
 	// Permutation map
 	short[] permutation = new short[256];
 	// Doubled permutation map
-	short[] p = new short[512];
+	final short[] p = new short[512];
 	// Repetition limit
-	double repeatLimit = 16;
+	final double repeatLimit = 16;
 	
-	PerlinOctaves perlinNoise;
+	final PerlinOctaves perlinNoise;
 	
 	private PerlinTest()
 	{
@@ -240,7 +239,7 @@ public class PerlinTest extends Canvas
 		generate();
 	}
 	
-	public boolean doRun = true;
+	public final boolean doRun = true;
 	public static void main(String[] args)
 	{
 		PerlinTest p = new PerlinTest();

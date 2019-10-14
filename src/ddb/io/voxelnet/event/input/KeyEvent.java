@@ -14,13 +14,13 @@ public class KeyEvent extends Event
 		public static final int REPEATED = 2;
 		
 		// The keyboard-specific keycode of the event
-		public int keycode;
+		public final int keycode;
 		// The scancode of the event
-		public int scancode;
+		public final int scancode;
 		// The new state of the key
-		public int state;
+		public final int state;
 		// The modifiers pressed at the time of the event
-		public int mods;
+		public final int mods;
 		
 		public Button(int keycode, int scancode, int state, int mods)
 		{

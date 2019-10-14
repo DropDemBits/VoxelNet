@@ -9,13 +9,8 @@ import ddb.io.voxelnet.event.input.KeyEvent;
 import ddb.io.voxelnet.event.input.MouseEvent;
 import ddb.io.voxelnet.util.AABBCollider;
 import ddb.io.voxelnet.util.Facing;
-import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.World;
 import org.joml.Vector3d;
-import org.joml.Vector3f;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static ddb.io.voxelnet.Game.showThings;
 import static org.lwjgl.glfw.GLFW.*;
@@ -27,8 +22,8 @@ public class PlayerController
 {
 	private static final float MOUSE_SENSITIVITY = 0.45f;
 	
-	long window = 0;
-	EntityPlayer player;
+	long window;
+	final EntityPlayer player;
 	
 	double lastX = 0.0f, lastY = 0.0f;
 	
@@ -63,13 +58,13 @@ public class PlayerController
 			Game.GLOBAL_BUS.postEvent(new MouseEvent.Move(x, y, dx, dy, false));
 		});
 		
-		glfwSetMouseButtonCallback(window, (window, button, action, mods) -> {
-			Game.GLOBAL_BUS.postEvent(new MouseEvent.Button(button, action, mods, System.currentTimeMillis()));
-		});
+		glfwSetMouseButtonCallback(window, (window, button, action, mods) ->
+				Game.GLOBAL_BUS.postEvent(new MouseEvent.Button(button, action, mods, System.currentTimeMillis()))
+		);
 		
-		glfwSetKeyCallback(window, (window, keycode, scancode, action, mods) -> {
-			Game.GLOBAL_BUS.postEvent(new KeyEvent.Button(keycode, scancode, action, mods));
-		});
+		glfwSetKeyCallback(window, (window, keycode, scancode, action, mods) ->
+			Game.GLOBAL_BUS.postEvent(new KeyEvent.Button(keycode, scancode, action, mods))
+		);
 		
 		this.player = player;
 		// Register the input handlers

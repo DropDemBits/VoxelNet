@@ -53,7 +53,7 @@ public class Block
 	}
 	
 	/// Per-Block variables ///
-	private static AABBCollider DEFAULT_COLLIDER = new AABBCollider(0f, 0f, 0f, 1f, 1f, 1f);
+	private static final AABBCollider DEFAULT_COLLIDER = new AABBCollider(0f, 0f, 0f, 1f, 1f, 1f);
 	private int[] faceTextures;
 	
 	// Conditional Setters

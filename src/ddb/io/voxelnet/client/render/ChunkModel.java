@@ -10,25 +10,25 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Model of a chunk being rendered
  */
-public class ChunkModel
+class ChunkModel
 {
 	// Worst case scenario model size: 688128 B / 672 KiB
-	public static long generateAccum = 0;
-	public static long generateCount = 0;
+	private static long generateAccum = 0;
+	private static long generateCount = 0;
 	
-	Matrix4f modelMatrix;
-	Chunk chunk;
-	private Model[] modelLayers = new Model[RenderLayer.values().length];
+	private final Matrix4f modelMatrix;
+	final Chunk chunk;
+	private final Model[] modelLayers = new Model[RenderLayer.values().length];
 	private volatile boolean isDirty = false;
 	private volatile boolean updatePending = false;
 	private volatile boolean updateInProgress = false;
 	private volatile boolean hasTransparency = false;
 	private int updateAttempts = 0;
 	
-	private ReentrantLock updateLock;
+	private final ReentrantLock updateLock;
 	// Layers that need updates
-	private boolean[] layerNeedsUpdate = new boolean[RenderLayer.values().length];
-	Chunk[] adjacentChunks = new Chunk[Facing.values().length];
+	private final boolean[] layerNeedsUpdate = new boolean[RenderLayer.values().length];
+	private final Chunk[] adjacentChunks = new Chunk[Facing.values().length];
 	
 	/**
 	 * Creates a chunk model
