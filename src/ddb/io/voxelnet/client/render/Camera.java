@@ -107,11 +107,11 @@ public class Camera
 	 * Updates the camera position to be the same as the player
 	 * @param player The player to set the camera position to
 	 */
-	public void asPlayer(EntityPlayer player)
+	public void asPlayer(EntityPlayer player, double pt)
 	{
-		this.x = (float) (player.xPos);
-		this.y = (float) (player.yPos);
-		this.z = (float) (player.zPos);
+		this.x = (float) (player.xPos + player.xVel * pt);
+		this.y = (float) (player.yPos + player.yVel * pt);
+		this.z = (float) (player.zPos + player.zVel * pt);
 		
 		this.pitch = player.pitch;
 		this.yaw = player.yaw;

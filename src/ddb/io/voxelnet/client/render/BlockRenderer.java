@@ -139,10 +139,6 @@ public class BlockRenderer
 	
 	public static void addFluid(Model model, Chunk[] adjacentChunks, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
 	{
-		//Block adj = getAdjacentBlock(x, y, z, Facing.UP, adjacentChunks, chunk);
-		//if (adj == Blocks.WATER || adj == Blocks.UPDATING_WATER)
-		//	return;
-		
 		byte meta = chunk.getBlockMeta(x, y, z);
 		// x = i % 3
 		// z = i / 3
@@ -152,13 +148,25 @@ public class BlockRenderer
 		// SW(6) S(7)  SE(8)
 		byte[] adjacentMetas = new byte[9];
 		
+		// Current level of the block
 		int level = 8 - (meta & BlockWater.DISTANCE);
 		final double HEIGHT_VAL = ((15f / 8f) / 16f);
 		
+		// NW(0) N(1)  NE(2)
+		//  W(3) -(4)  E (5)
+		// SW(6) S(7)  SE(8)
+		// Corner heights
+		float heightNW = 1f;
+		float heightSW = 1f;
+		float heightSE = 1f;
+		float heightNE = 1f;
+		
+		// Get the water levels of the neighboring water blocks
 		for (int off = 0; off < 9; off++)
 		{
 			if (off == 4)
 			{
+				// Current block, no need to fetch
 				adjacentMetas[off] = (byte) (8 - (meta & BlockWater.DISTANCE));
 				continue;
 			}
@@ -171,6 +179,7 @@ public class BlockRenderer
 			int adjacentZ = chunk.chunkZ * 16 + z + zOff;
 			
 			byte adjacentBlock = chunk.getBlock(x + xOff, y, z + zOff);
+			byte adjacentAbove = chunk.getBlock(x + xOff, y + 1, z + zOff);
 			byte adjacentMeta = chunk.getBlockMeta(x + xOff, y, z + zOff);
 			
 			if (adjacentBlock == -1)
@@ -180,30 +189,46 @@ public class BlockRenderer
 				adjacentMeta = chunk.world.getBlockMeta(adjacentX, adjacentY, adjacentZ);
 			}
 			
+			if (adjacentAbove == -1)
+			{
+				adjacentAbove = chunk.world.getBlock(adjacentX, adjacentY + 1, adjacentZ);
+			}
+			
 			Block adjacent = Block.idToBlock(adjacentBlock);
+			Block adjacentUp = Block.idToBlock(adjacentAbove);
+			
 			if (adjacent != Blocks.WATER && adjacent != Blocks.UPDATING_WATER)
+				// Neighbor block isn't water at all
 				adjacentMetas[off] = (byte)-1;
 			else
-				adjacentMetas[off] = (byte)(8 - (adjacentMeta & BlockWater.DISTANCE));
+			{
+				if (adjacentUp == Blocks.WATER || adjacentUp == Blocks.UPDATING_WATER)
+					// Neighbor & neighbor's above block are water, probably falling
+					adjacentMetas[off] = 16;
+				else
+					// Not falling, get the regular distance
+					adjacentMetas[off] = (byte) (8 - (adjacentMeta & BlockWater.DISTANCE));
+			}
 		}
 		
-		// NW(0) N(1)  NE(2)
-		//  W(3) -(4)  E (5)
-		// SW(6) S(7)  SE(8)
-		float heightNW = 1f;
-		float heightSW = 1f;
-		float heightSE = 1f;
-		float heightNE = 1f;
-		
-		Block adjUp = getAdjacentBlock(x, y, z, Facing.UP, adjacentChunks, chunk);
-		if (adjUp != Blocks.WATER && adjUp != Blocks.UPDATING_WATER)
+		// Check the above block
+		Block aboveBlock = getAdjacentBlock(x, y, z, Facing.UP, adjacentChunks, chunk);
+		if (aboveBlock != Blocks.WATER && aboveBlock != Blocks.UPDATING_WATER)
 		{
+			// Water is not falling
 			heightNW = (float)(tripleAverage(adjacentMetas[1], adjacentMetas[0], adjacentMetas[3], level) * HEIGHT_VAL); // N + NW + W
 			heightSW = (float)(tripleAverage(adjacentMetas[7], adjacentMetas[6], adjacentMetas[3], level) * HEIGHT_VAL); // S + SW + W
 			heightSE = (float)(tripleAverage(adjacentMetas[7], adjacentMetas[8], adjacentMetas[5], level) * HEIGHT_VAL); // S + SE + E
 			heightNE = (float)(tripleAverage(adjacentMetas[1], adjacentMetas[2], adjacentMetas[5], level) * HEIGHT_VAL); // N + NE + E
+			
+			// If neighbor is falling, hoist up the corner height
+			if(adjacentMetas[1] == 16 || adjacentMetas[0] == 16 || adjacentMetas[3] == 16) heightNW = 1f;
+			if(adjacentMetas[7] == 16 || adjacentMetas[6] == 16 || adjacentMetas[3] == 16) heightSW = 1f;
+			if(adjacentMetas[7] == 16 || adjacentMetas[8] == 16 || adjacentMetas[5] == 16) heightSE = 1f;
+			if(adjacentMetas[1] == 16 || adjacentMetas[2] == 16 || adjacentMetas[5] == 16) heightNE = 1f;
 		}
 		
+		// Build the faces
 		for (Facing face : Facing.values())
 		{
 			int adjacentX = chunk.chunkX * 16 + x + face.getOffsetX();
@@ -227,61 +252,19 @@ public class BlockRenderer
 			short[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
 			final float[] faceIntensities = new float[] { 0.75f, 0.75f, 0.75f, 0.75f, 0.95f, 0.55f };
 			
-			addFluidFace(model, x, y, z, heightNW, heightSW, heightSE, heightNE, face, texCoords, (byte)(((faceLight) / 15f) * faceIntensities[face.ordinal()] * 255));
-		}
-		
-		/*
-		model.beginPoly();
-		model.addVertex(x + 0f, y + heightNW, z + 0f, texCoords[2], texCoords[1], 255);
-		model.addVertex(x + 0f, y + heightSW, z + 1f, texCoords[0], texCoords[1], 255);
-		model.addVertex(x + 1f, y + heightSE, z + 1f, texCoords[0], texCoords[3], 255);
-		model.addVertex(x + 1f, y + heightNE, z + 0f, texCoords[2], texCoords[3], 255);
-		model.endPoly();*/
-		
-		/*for (Facing face : Facing.values())
-		{
-			// If the specified face is -1, the face isn't supposed to be rendered
-			if(faceTextures[face.ordinal()] == -1)
-				continue;
-			
-			int adjacentX = chunk.chunkX * 16 + x + face.getOffsetX();
-			int adjacentY = chunk.chunkY * 16 + y + face.getOffsetY();
-			int adjacentZ = chunk.chunkZ * 16 + z + face.getOffsetZ();
-			
-			byte faceLight = chunk.world.getBlockLight(adjacentX, adjacentY, adjacentZ);
-			byte adjacentBlock = chunk.getBlock(x + face.getOffsetX(), y + face.getOffsetY(), z + face.getOffsetZ());
-			
-			if (adjacentBlock == -1)
-			{
-				// Check the nearby chunk for the appropriate block id & lighting
-				adjacentBlock = adjacentChunks[face.ordinal()].getBlock(adjacentX & 0xF, adjacentY & 0xF, adjacentZ & 0xF); //chunk.world.getBlock(adjacentX, adjacentY, adjacentZ);
-			}
-			
-			Block adjacent = Block.idToBlock(adjacentBlock);
-			if (adjacent.isSolid() && !adjacent.isTransparent())
-			{
-				// Don't add the face if the adjacent block is
-				// solid and not transparent
-				continue;
-			}
-			
-			// Don't show the face if it's the same block
-			if (!block.showFace(adjacent, face) && face != Facing.UP)
-				continue;
-			
-			short[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
-			final float[] faceIntensities = new float[] { 0.75f, 0.75f, 0.75f, 0.75f, 0.95f, 0.55f };
-			
-			BlockRenderer.addFluidFace(
+			addFluidFace(
 					model,
-					(float) (x),
-					(float) (y),
-					(float) (z),
-					meta,
+					x,
+					y,
+					z,
+					heightNW,
+					heightSW,
+					heightSE,
+					heightNE,
 					face,
 					texCoords,
 					(byte)(((faceLight) / 15f) * faceIntensities[face.ordinal()] * 255));
-		}*/
+		}
 	}
 	
 	private static double tripleAverage(double a, double b, double c, double def)

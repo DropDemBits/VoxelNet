@@ -112,10 +112,11 @@ public class BlockWater extends Block
 			byte adjacentMeta = world.getBlockMeta(blockX, blockY, blockZ);
 			
 			// Flow to the adjacent dir if:
-			// - The block is water & the path is smaller
+			// - The block is water & the path is smaller & the max flow limit
+			//   hasn't been reached
 			// - The block is air
 			// - The block can be replaced by water
-			if (((block == Blocks.WATER || block == Blocks.UPDATING_WATER) && (srcMeta & DISTANCE) <= (adjacentMeta & DISTANCE) && (newMeta & DISTANCE) < (adjacentMeta & DISTANCE))
+			if (((block == Blocks.WATER || block == Blocks.UPDATING_WATER) && (srcMeta & DISTANCE) < 7 && (srcMeta & DISTANCE) <= (adjacentMeta & DISTANCE) && (newMeta & DISTANCE) < (adjacentMeta & DISTANCE))
 					|| block == Blocks.AIR
 					|| block.canBeReplacedBy(world, this, blockX, blockY, blockZ))
 			{
@@ -128,7 +129,7 @@ public class BlockWater extends Block
 				
 				Block adjBelow = Block.idToBlock(world.getBlock(blockX, blockY - off, blockZ));
 				if (adjBelow == Blocks.AIR || adjBelow == Blocks.UPDATING_WATER || adjBelow == Blocks.WATER)
-					newMeta = IS_FALLING | 1;
+					newMeta |= IS_FALLING;
 				
 				if (facing == Facing.DOWN)
 				{
@@ -158,52 +159,23 @@ public class BlockWater extends Block
 		if (isFalling && stopFalling)
 		{
 			noChange = false;
-			int averageLevel = 0;
-			int waterCount = 0;
 			
-			// Find the average water level
-			for (Facing dir : dirs)
+			FluidPlacement replace = new FluidPlacement(new Vec3i(x, y, z), (byte) 0);
+			Block above = Block.idToBlock(world.getBlock(x, y + 1, z));
+			if (!(above instanceof BlockWater))
 			{
-				if (dir == Facing.DOWN)
-					continue;
-				
-				int adjacentX = x + dir.getOffsetX();
-				int adjacentY = y + dir.getOffsetY();
-				int adjacentZ = z + dir.getOffsetZ();
-				
-				if (!world.isChunkPresent(adjacentX >> 4, adjacentY >> 4, adjacentZ >> 4))
-					continue;
-				
-				Block adjacent = Block.idToBlock(world.getBlock(adjacentX, adjacentY, adjacentZ));
-				if (adjacent != Blocks.WATER)
-					continue;
-				
-				byte adjacentMeta = world.getBlockMeta(adjacentX, adjacentY, adjacentZ);
-				
-				if ((adjacentMeta & IS_FALLING) == 0)
-				{
-					// Only account for things that don't fall
-					waterCount++;
-					averageLevel += adjacentMeta & DISTANCE;
-				}
-			}
-			
-			if (waterCount > 0)
-			{
-				averageLevel /= waterCount;
-				++averageLevel;
-				
-				if (averageLevel > 7)
-					averageLevel = 7;
-				
-				// Apply average water level and update adjacents
-				world.setBlock(x, y, z, Blocks.UPDATING_WATER.getId(), (byte) (averageLevel & 0xF));
+				// Restore old water level
+				replace.newMeta = (byte) (srcMeta & ~IS_FALLING);
 			}
 			else
 			{
-				// Stop falling
-				world.setBlockMeta(x, y, z, (byte) (srcMeta & ~IS_FALLING));
+				// Spread!
+				replace.newMeta = 1;
 			}
+			
+			if (!availableBlocks.contains(replace))
+				availableBlocks.push(replace);
+			
 		}
 		
 		// Make the current fluid block static
