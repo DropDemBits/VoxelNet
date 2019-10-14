@@ -197,12 +197,12 @@ public class BlockRenderer
 			Block adjacent = Block.idToBlock(adjacentBlock);
 			Block adjacentUp = Block.idToBlock(adjacentAbove);
 			
-			if (adjacent != Blocks.WATER && adjacent != Blocks.UPDATING_WATER)
+			if (!(adjacent instanceof BlockWater))
 				// Neighbor block isn't water at all
 				adjacentMetas[off] = (byte)-1;
 			else
 			{
-				if (adjacentUp == Blocks.WATER || adjacentUp == Blocks.UPDATING_WATER)
+				if (adjacentUp instanceof BlockWater)
 					// Neighbor & neighbor's above block are water, probably falling
 					adjacentMetas[off] = 16;
 				else
@@ -213,7 +213,7 @@ public class BlockRenderer
 		
 		// Check the above block
 		Block aboveBlock = getAdjacentBlock(x, y, z, Facing.UP, adjacentChunks, chunk);
-		if (aboveBlock != Blocks.WATER && aboveBlock != Blocks.UPDATING_WATER)
+		if (!(aboveBlock instanceof BlockWater))
 		{
 			// Water is not falling
 			heightNW = (float)(tripleAverage(adjacentMetas[1], adjacentMetas[0], adjacentMetas[3], level) * HEIGHT_VAL); // N + NW + W

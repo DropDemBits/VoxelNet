@@ -246,7 +246,7 @@ public class Block
 		if (block == Blocks.AIR)
 			return true;
 		
-		return block.canBeReplacedBy(world, this, x, y, z);
+		return block.canBeReplacedBy(world, this, (byte)0, x, y, z);
 	}
 	
 	/**
@@ -258,7 +258,7 @@ public class Block
 	 * @param z The z coordinate of the block to replace (the current block)
 	 * @return True if the block can be replaced by the specified block
 	 */
-	public boolean canBeReplacedBy(World world, Block block, int x, int y, int z)
+	public boolean canBeReplacedBy(World world, Block block, byte newMeta, int x, int y, int z)
 	{
 		return false;
 	}

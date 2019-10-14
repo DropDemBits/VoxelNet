@@ -25,7 +25,10 @@ public class BlockWater extends Block
 		this.isUpdating = isUpdating;
 		
 		setSolid(false);
-		setFaceTextures(new int[] {13, 13, 13, 13, 13, 13});
+		if (isUpdating)
+			setFaceTextures(new int[] {3, 3, 3, 3, 3, 3});
+		else
+			setFaceTextures(new int[] {13, 13, 13, 13, 13, 13});
 		setTransparent(true);
 		setHitBox(null);
 		setTickable(isUpdating);
@@ -76,9 +79,11 @@ public class BlockWater extends Block
 				Block adjacent = Block.idToBlock(world.getBlock(blockX, blockY, blockZ));
 				byte adjacentMeta = world.getBlockMeta(blockX, blockY, blockZ);
 				
-				if (facing == Facing.DOWN && (adjacent == Blocks.AIR || adjacent.canBeReplacedBy(world, this, blockX, blockY, blockZ)))
+				if (facing == Facing.DOWN && (adjacent == Blocks.AIR || adjacent.canBeReplacedBy(world, this, srcMeta, blockX, blockY, blockZ)))
+					// Direction is down & water can spread there, don't convert to source
 					canConvertToSource = false;
-				if (facing != Facing.DOWN && (adjacent == Blocks.WATER || adjacent == Blocks.UPDATING_WATER) && (adjacentMeta & DISTANCE) == 0)
+				// TODO: Remember to change this when adding other fluids
+				if (facing != Facing.DOWN && adjacent instanceof BlockWater && (adjacentMeta & DISTANCE) == 0)
 					adjacentSources++;
 			}
 			
@@ -109,16 +114,22 @@ public class BlockWater extends Block
 			Block block = Block.idToBlock(world.getBlock(blockX, blockY, blockZ));
 			byte newMeta = (byte)(srcMeta & DISTANCE);
 			++newMeta;
+			
+			// Cap the new distance
+			if (newMeta > 7)
+				newMeta = 7;
+			
 			byte adjacentMeta = world.getBlockMeta(blockX, blockY, blockZ);
 			
 			// Flow to the adjacent dir if:
-			// - The block is water & the path is smaller & the max flow limit
+			// - The block is water & the path is smaller
 			//   hasn't been reached
 			// - The block is air
 			// - The block can be replaced by water
-			if (((block == Blocks.WATER || block == Blocks.UPDATING_WATER) && (srcMeta & DISTANCE) < 7 && (srcMeta & DISTANCE) <= (adjacentMeta & DISTANCE) && (newMeta & DISTANCE) < (adjacentMeta & DISTANCE))
+			
+			if (((block instanceof BlockWater) && (newMeta & DISTANCE) < (adjacentMeta & DISTANCE))
 					|| block == Blocks.AIR
-					|| block.canBeReplacedBy(world, this, blockX, blockY, blockZ))
+					|| block.canBeReplacedBy(world, this, newMeta, blockX, blockY, blockZ))
 			{
 				noChange = false;
 				
@@ -128,7 +139,9 @@ public class BlockWater extends Block
 					off = 0;
 				
 				Block adjBelow = Block.idToBlock(world.getBlock(blockX, blockY - off, blockZ));
-				if (adjBelow == Blocks.AIR || adjBelow == Blocks.UPDATING_WATER || adjBelow == Blocks.WATER)
+				
+				// Make the new water fall
+				if (adjBelow == Blocks.AIR || adjBelow instanceof BlockWater)
 					newMeta |= IS_FALLING;
 				
 				if (facing == Facing.DOWN)
@@ -148,7 +161,7 @@ public class BlockWater extends Block
 			if (facing == Facing.DOWN)
 			{
 				// Revert to not falling
-				if (block != Blocks.AIR && block != Blocks.UPDATING_WATER && block != Blocks.WATER)
+				if (block != Blocks.AIR && !(block instanceof BlockWater))
 					stopFalling = true;
 			}
 			
@@ -164,12 +177,12 @@ public class BlockWater extends Block
 			Block above = Block.idToBlock(world.getBlock(x, y + 1, z));
 			if (!(above instanceof BlockWater))
 			{
-				// Restore old water level
+				// Restore old water level, not falling
 				replace.newMeta = (byte) (srcMeta & ~IS_FALLING);
 			}
 			else
 			{
-				// Spread!
+				// Spread! (Stopped falling)
 				replace.newMeta = 1;
 			}
 			
@@ -204,10 +217,12 @@ public class BlockWater extends Block
 	}
 	
 	@Override
-	public boolean canBeReplacedBy(World world, Block block, int x, int y, int z)
+	public boolean canBeReplacedBy(World world, Block block, byte newMeta, int x, int y, int z)
 	{
 		// Water can be replaced by anything but water, unless the distance is smaller (handled above)
-		return block != Blocks.WATER && block != Blocks.UPDATING_WATER;
+		byte srcMeta = world.getBlockMeta(x, y, z);
+		
+		return !(block instanceof BlockWater);
 	}
 	
 	@Override
@@ -225,7 +240,7 @@ public class BlockWater extends Block
 	@Override
 	public boolean showFace(Block block, Facing dir)
 	{
-		return block != Blocks.WATER && block != Blocks.UPDATING_WATER;
+		return !(block instanceof BlockWater);
 	}
 	
 	private class FluidPlacement

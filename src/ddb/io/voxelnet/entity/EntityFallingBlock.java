@@ -6,6 +6,7 @@ import ddb.io.voxelnet.util.AABBCollider;
 
 public class EntityFallingBlock extends Entity
 {
+	// TODO: Preserve meta
 	// The block that this entity represents
 	public Block falling;
 	
@@ -46,7 +47,7 @@ public class EntityFallingBlock extends Entity
 			int yOff = 0;
 			Block block = Block.idToBlock(world.getBlock(blockX, blockY, blockZ));
 			
-			if (block != Blocks.AIR && !block.canBeReplacedBy(world, falling, blockX, blockY, blockZ))
+			if (block != Blocks.AIR && !block.canBeReplacedBy(world, falling, (byte) 0, blockX, blockY, blockZ))
 			{
 				// Search for the next air block position if the current one is
 				// occupied

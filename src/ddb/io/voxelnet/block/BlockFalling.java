@@ -24,7 +24,7 @@ public class BlockFalling extends Block
 	{
 		// If the block below isn't air or water, don't do anything
 		Block block = Block.idToBlock(world.getBlock(x, y - 1, z));
-		if(block != Blocks.AIR && block != Blocks.WATER && block != Blocks.UPDATING_WATER)
+		if(block != Blocks.AIR && !(block instanceof BlockWater))
 			return;
 		
 		// Set the old position to air
