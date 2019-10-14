@@ -45,7 +45,7 @@ public class EntityFallingBlock extends Entity
 			int blockZ = Math.round(zPos - 0.5f);
 			
 			int yOff = 0;
-			Block block = Block.idToBlock(world.getBlock(blockX, blockY, blockZ));
+			Block block = world.getBlock(blockX, blockY, blockZ);
 			
 			if (block != Blocks.AIR && !block.canBeReplacedBy(world, falling, (byte) 0, blockX, blockY, blockZ))
 			{
@@ -53,7 +53,7 @@ public class EntityFallingBlock extends Entity
 				// occupied
 				for (; yOff + blockY < 256; yOff++)
 				{
-					if (world.getBlock(blockX, blockY + yOff, blockZ) == Blocks.AIR.getId())
+					if (world.getBlock(blockX, blockY + yOff, blockZ) == Blocks.AIR)
 						break;
 				}
 				
@@ -66,7 +66,7 @@ public class EntityFallingBlock extends Entity
 				}
 			}
 			
-			world.setBlock(blockX, blockY + yOff, blockZ, falling.getId());
+			world.setBlock(blockX, blockY + yOff, blockZ, falling);
 			
 			// No longer needed
 			setDead();

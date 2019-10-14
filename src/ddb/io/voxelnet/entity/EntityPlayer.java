@@ -77,7 +77,7 @@ public class EntityPlayer extends Entity
 	
 	public void update(float delta)
 	{
-		if (Block.idToBlock(world.getBlock((int)Math.floor(xPos), (int)Math.floor(yPos), (int)Math.floor(zPos))) == Blocks.WATER)
+		if (world.getBlock((int)Math.floor(xPos), (int)Math.floor(yPos), (int)Math.floor(zPos)) == Blocks.WATER)
 			accelCoef = 0.375f;
 		else
 			accelCoef = 1f;

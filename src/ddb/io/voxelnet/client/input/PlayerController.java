@@ -39,7 +39,7 @@ public class PlayerController
 	public int blockY = 0;
 	public int blockZ = 0;
 	public Facing hitFace = Facing.NORTH;
-	byte placeID = 1;
+	Block placeBlock = Blocks.GRASS;
 	public boolean showHit = false;
 	
 	float breakTimer = 0.0f;
@@ -136,9 +136,9 @@ public class PlayerController
 		};
 		
 		if (e.keycode >= GLFW_KEY_1 && e.keycode <= (GLFW_KEY_0 + placeBlocks.length))
-			placeID = placeBlocks[e.keycode - GLFW_KEY_1].getId();
+			placeBlock = placeBlocks[e.keycode - GLFW_KEY_1];
 		else if(e.keycode == GLFW_KEY_0)
-			placeID = placeBlocks[9].getId();
+			placeBlock = placeBlocks[9];
 		
 		// Toggle flying
 		if (e.keycode == GLFW_KEY_F)
@@ -168,9 +168,9 @@ public class PlayerController
 			
 			if (isBreaking && raycast())
 			{
-				Block block = Block.idToBlock(player.world.getBlock(blockX, blockY, blockZ));
+				Block block = player.world.getBlock(blockX, blockY, blockZ);
 				block.onBlockBroken(player.world, blockX, blockY, blockZ);
-				player.world.setBlock(blockX, blockY, blockZ, (byte) 0);
+				player.world.setBlock(blockX, blockY, blockZ, Blocks.AIR);
 				
 				// Update the hit selection
 				//showHit = raycast();
@@ -192,7 +192,7 @@ public class PlayerController
 			{
 				isPlacing = true;
 				
-				Block block = Block.idToBlock(placeID);
+				Block block = placeBlock;
 				
 				// If the block can't be placed, don't place it
 				if(!block.canPlaceBlock(
@@ -206,7 +206,7 @@ public class PlayerController
 						blockX + hitFace.getOffsetX(),
 						blockY + hitFace.getOffsetY(),
 						blockZ + hitFace.getOffsetZ(),
-						placeID);
+						placeBlock);
 				block.onBlockPlaced(
 						player.world,
 						blockX + hitFace.getOffsetX(),
@@ -295,10 +295,9 @@ public class PlayerController
 		// Step while in range
 		while (true)
 		{
-			byte id = world.getBlock(blockX, blockY, blockZ);
-			Block block = Block.idToBlock(id);
+			Block block = world.getBlock(blockX, blockY, blockZ);
 			
-			if (id != Blocks.AIR.getId() && block.getHitBox() != null)
+			if (block != Blocks.AIR && block.getHitBox() != null)
 			{
 				// Perform fine stepping to detect if the hit really landed
 				// Ray position (for intersection testing)

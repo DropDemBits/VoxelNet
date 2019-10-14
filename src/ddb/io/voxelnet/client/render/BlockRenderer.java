@@ -178,24 +178,24 @@ public class BlockRenderer
 			int adjacentY = chunk.chunkY * 16 + y;
 			int adjacentZ = chunk.chunkZ * 16 + z + zOff;
 			
-			byte adjacentBlock = chunk.getBlock(x + xOff, y, z + zOff);
-			byte adjacentAbove = chunk.getBlock(x + xOff, y + 1, z + zOff);
+			Block adjacentBlock = Block.idToBlock(chunk.getBlock(x + xOff, y, z + zOff));
+			Block adjacentAbove = Block.idToBlock(chunk.getBlock(x + xOff, y + 1, z + zOff));
 			byte adjacentMeta = chunk.getBlockMeta(x + xOff, y, z + zOff);
 			
-			if (adjacentBlock == -1)
+			if (adjacentBlock == Blocks.VOID)
 			{
 				// Check the nearby chunk for the appropriate block id & lighting
 				adjacentBlock = chunk.world.getBlock(adjacentX, adjacentY, adjacentZ);
 				adjacentMeta = chunk.world.getBlockMeta(adjacentX, adjacentY, adjacentZ);
 			}
 			
-			if (adjacentAbove == -1)
+			if (adjacentAbove == Blocks.VOID)
 			{
 				adjacentAbove = chunk.world.getBlock(adjacentX, adjacentY + 1, adjacentZ);
 			}
 			
-			Block adjacent = Block.idToBlock(adjacentBlock);
-			Block adjacentUp = Block.idToBlock(adjacentAbove);
+			Block adjacent = adjacentBlock;
+			Block adjacentUp = adjacentAbove;
 			
 			if (!(adjacent instanceof BlockWater))
 				// Neighbor block isn't water at all

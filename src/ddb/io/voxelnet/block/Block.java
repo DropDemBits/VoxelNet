@@ -12,10 +12,11 @@ import java.util.List;
 public class Block
 {
 	/// Global Block Registry ///
-	private static final List<Block> idToBlockMap = new ArrayList<>(255);
+	private static final List<Block> idToBlockMap = new ArrayList<>(256);
 	
 	public static void init()
 	{
+		Blocks.VOID         = addBlock(-1, new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}).setTransparent(true)).setHitBox(null);
 		Blocks.AIR          = addBlock(0,  new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}).setTransparent(true)).setHitBox(null);
 		Blocks.GRASS        = addBlock(1,  new Block().setSolid(true).setFaceTextures(new int[] {1, 1, 1, 1, 0, 2}));
 		Blocks.DIRT         = addBlock(2,  new Block().setSolid(true).setFaceTextures(new int[] {2, 2, 2, 2, 2, 2}));
@@ -35,14 +36,18 @@ public class Block
 	private static Block addBlock(int id, Block instance)
 	{
 		instance.setId((byte) id);
-		idToBlockMap.add(id, instance);
+		
+		if (id == -1)
+			return instance;
+		
+		idToBlockMap.add((byte)id, instance);
 		return instance;
 	}
 	
 	public static Block idToBlock(byte id)
 	{
 		if (id == -1)
-			return Blocks.AIR;
+			return Blocks.VOID;
 		
 		return idToBlockMap.get(Byte.toUnsignedInt(id));
 	}
@@ -242,7 +247,7 @@ public class Block
 	public boolean canPlaceBlock(World world, int x, int y, int z)
 	{
 		// By default, the block can only be placed if there is air if canBeReplacedWith returns true
-		Block block = idToBlock(world.getBlock(x, y, z));
+		Block block = world.getBlock(x, y, z);
 		if (block == Blocks.AIR)
 			return true;
 		

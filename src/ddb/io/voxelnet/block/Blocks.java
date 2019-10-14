@@ -6,6 +6,7 @@ package ddb.io.voxelnet.block;
  */
 public class Blocks
 {
+	public static Block VOID;
 	public static Block AIR;
 	public static Block GRASS;
 	public static Block DIRT;

@@ -42,7 +42,7 @@ public class BlockWater extends Block
 		if (!isUpdating)
 		{
 			// Make it an updating block! (Same block, just a different state)
-			world.setBlock(x, y, z, Blocks.UPDATING_WATER.getId(), world.getBlockMeta(x, y, z), 0);
+			world.setBlock(x, y, z, Blocks.UPDATING_WATER, world.getBlockMeta(x, y, z), 0);
 		}
 		
 	}
@@ -76,7 +76,7 @@ public class BlockWater extends Block
 				int blockY = y + facing.getOffsetY();
 				int blockZ = z + facing.getOffsetZ();
 				
-				Block adjacent = Block.idToBlock(world.getBlock(blockX, blockY, blockZ));
+				Block adjacent = world.getBlock(blockX, blockY, blockZ);
 				byte adjacentMeta = world.getBlockMeta(blockX, blockY, blockZ);
 				
 				if (facing == Facing.DOWN && (adjacent == Blocks.AIR || adjacent.canBeReplacedBy(world, this, srcMeta, blockX, blockY, blockZ)))
@@ -111,7 +111,7 @@ public class BlockWater extends Block
 			if (!world.isChunkPresent(blockX >> 4, blockY >> 4, blockZ >> 4))
 				continue;
 			
-			Block block = Block.idToBlock(world.getBlock(blockX, blockY, blockZ));
+			Block block = world.getBlock(blockX, blockY, blockZ);
 			byte newMeta = (byte)(srcMeta & DISTANCE);
 			++newMeta;
 			
@@ -138,7 +138,7 @@ public class BlockWater extends Block
 				if (facing == Facing.DOWN)
 					off = 0;
 				
-				Block adjBelow = Block.idToBlock(world.getBlock(blockX, blockY - off, blockZ));
+				Block adjBelow = world.getBlock(blockX, blockY - off, blockZ);
 				
 				// Make the new water fall
 				if (adjBelow == Blocks.AIR || adjBelow instanceof BlockWater)
@@ -174,7 +174,7 @@ public class BlockWater extends Block
 			noChange = false;
 			
 			FluidPlacement replace = new FluidPlacement(new Vec3i(x, y, z), (byte) 0);
-			Block above = Block.idToBlock(world.getBlock(x, y + 1, z));
+			Block above = world.getBlock(x, y + 1, z);
 			if (!(above instanceof BlockWater))
 			{
 				// Restore old water level, not falling
@@ -206,13 +206,13 @@ public class BlockWater extends Block
 		while (!makeStatic.isEmpty())
 		{
 			FluidPlacement nextPlace = makeStatic.pop();
-			world.setBlock(nextPlace.pos.getX(), nextPlace.pos.getY(), nextPlace.pos.getZ(), Blocks.WATER.getId(), nextPlace.newMeta, 0);
+			world.setBlock(nextPlace.pos.getX(), nextPlace.pos.getY(), nextPlace.pos.getZ(), Blocks.WATER, nextPlace.newMeta, 0);
 		}
 		
 		while (!availableBlocks.isEmpty())
 		{
 			FluidPlacement nextPlace = availableBlocks.pop();
-			world.setBlock(nextPlace.pos.getX(), nextPlace.pos.getY(), nextPlace.pos.getZ(), Blocks.UPDATING_WATER.getId(), nextPlace.newMeta, 7);
+			world.setBlock(nextPlace.pos.getX(), nextPlace.pos.getY(), nextPlace.pos.getZ(), Blocks.UPDATING_WATER, nextPlace.newMeta, 7);
 		}
 	}
 	

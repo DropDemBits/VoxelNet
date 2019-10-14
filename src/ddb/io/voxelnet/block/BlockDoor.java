@@ -40,19 +40,19 @@ public class BlockDoor extends Block
 		
 		// Let the lower half place the upper half
 		if(!isUpper)
-			world.setBlock(x, y + 1, z, Blocks.DOOR_UPPER.getId());
+			world.setBlock(x, y + 1, z, Blocks.DOOR_UPPER);
 	}
 	
 	public void onBlockBroken(World world, int x, int y, int z)
 	{
 		if(isUpper)
 		{
-			world.setBlock(x, y - 1, z, Blocks.AIR.getId());
+			world.setBlock(x, y - 1, z, Blocks.AIR);
 			System.out.println("UPPER -> LOWER");
 		}
 		else
 		{
-			world.setBlock(x, y + 1, z, Blocks.AIR.getId());
+			world.setBlock(x, y + 1, z, Blocks.AIR);
 			System.out.println("LOWER -> UPPER");
 		}
 	}
@@ -64,8 +64,8 @@ public class BlockDoor extends Block
 		if(isUpper)
 			return false;
 		
-		return     world.getBlock(x, y, z) == Blocks.AIR.getId()
-				&& world.getBlock(x, y + 1, z) == Blocks.AIR.getId();
+		return     world.getBlock(x, y, z) == Blocks.AIR
+				&& world.getBlock(x, y + 1, z) == Blocks.AIR;
 	}
 	
 	@Override

@@ -197,7 +197,7 @@ public class Game {
 		
 		for (; spawnY < 256; spawnY++)
 		{
-			if (!Block.idToBlock(world.getBlock(0, spawnY, 0)).isSolid())
+			if (!world.getBlock(0, spawnY, 0).isSolid())
 				break;
 		}
 		
@@ -436,7 +436,7 @@ public class Game {
 		String timeStr = String.format("FT %-5.2f (%d | %.3f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, updTime * 1000d);
 		String posStr = String.format("Pos %.2f / %.2f / %.2f\n", player.xPos, player.yPos, player.zPos);
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
-		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ), Integer.toBinaryString(Byte.toUnsignedInt(world.getBlockMeta(blockX, blockY, blockZ))));
+		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ).getId(), Integer.toBinaryString(Byte.toUnsignedInt(world.getBlockMeta(blockX, blockY, blockZ))));
 		fontRenderer.putString("VoxelNet\n(adhesion / videospan / forte / mezzoforte / piano / pianissimo)\n"+timeStr+posStr+lokStr+blkStr, 0, 0);
 		
 		fontRenderer.flush();

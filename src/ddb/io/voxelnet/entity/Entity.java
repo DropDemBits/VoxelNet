@@ -107,7 +107,7 @@ public class Entity
 	
 	public boolean isInWater()
 	{
-		Block blockIn = Block.idToBlock(world.getBlock((int)Math.floor(xPos), (int)Math.floor(yPos + eyeHeight), (int)Math.floor(zPos)));
+		Block blockIn = world.getBlock((int)Math.floor(xPos), (int)Math.floor(yPos + eyeHeight), (int)Math.floor(zPos));
 		return blockIn == Blocks.WATER || blockIn == Blocks.UPDATING_WATER;
 	}
 	
@@ -197,7 +197,7 @@ public class Entity
 		{
 			for (int zOff = -1; zOff <= 1; zOff++)
 			{
-				Block block = Block.idToBlock(world.getBlock(blockX + xOff, blockY + blockDelta, blockZ + zOff));
+				Block block = world.getBlock(blockX + xOff, blockY + blockDelta, blockZ + zOff);
 				
 				// Check if the colliding block is solid
 				if (!block.isSolid())
@@ -260,7 +260,7 @@ public class Entity
 		{
 			for (int xOff = -1; xOff <= 1; xOff++)
 			{
-				Block block = Block.idToBlock(world.getBlock(blockX + xOff, blockY + yOff, blockZ + zDir));
+				Block block = world.getBlock(blockX + xOff, blockY + yOff, blockZ + zDir);
 				
 				if (!block.isSolid())
 					continue;
@@ -321,7 +321,7 @@ public class Entity
 		{
 			for (int zOff = -1; zOff <= 1; zOff++)
 			{
-				Block block = Block.idToBlock(world.getBlock(blockX + xDir, blockY + yOff, blockZ + zOff));
+				Block block = world.getBlock(blockX + xDir, blockY + yOff, blockZ + zOff);
 				
 				if (!block.isSolid())
 					continue;

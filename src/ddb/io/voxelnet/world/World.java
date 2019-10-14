@@ -129,19 +129,19 @@ public class World
 	 * @param x The x position of the block
 	 * @param y The y position of the block
 	 * @param z The z position of the block
-	 * @return The block id of the specified block, or Blocks.AIR.getId() if
+	 * @return The specified block, or Blocks.VOID if
 	 * the position is out of bounds
 	 */
-	public byte getBlock (int x, int y, int z)
+	public Block getBlock (int x, int y, int z)
 	{
 		if (y < 0)
-			return Blocks.AIR.getId();
+			return Blocks.VOID;
 		
 		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
 		if (!loadedChunks.containsKey(chunkPos))
-			return Blocks.AIR.getId();
+			return Blocks.AIR;
 		
-		return loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK).getBlock(x & 0xF, y & 0xF, z & 0xF);
+		return Block.idToBlock(loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK).getBlock(x & 0xF, y & 0xF, z & 0xF));
 	}
 	
 	/**
@@ -149,11 +149,11 @@ public class World
 	 * @param x The x position of the block
 	 * @param y The y position of the block
 	 * @param z The z position of the block
-	 * @param id The id of the block
+	 * @param block The block to placek
 	 */
-	public void setBlock (int x, int y, int z, byte id)
+	public void setBlock (int x, int y, int z, Block block)
 	{
-		setBlock(x, y, z, id, (byte)0, 7);
+		setBlock(x, y, z, block, (byte)0, 7);
 	}
 	
 	/**
@@ -161,12 +161,12 @@ public class World
 	 * @param x The x position of the block
 	 * @param y The y position of the block
 	 * @param z The z position of the block
-	 * @param id The id of the block
+	 * @param block The block to place
 	 * @param meta The metadata of the block
 	 */
-	public void setBlock (int x, int y, int z, byte id, byte meta)
+	public void setBlock (int x, int y, int z, Block block, byte meta)
 	{
-		setBlock(x, y, z, id, meta, 7);
+		setBlock(x, y, z, block, meta, 7);
 	}
 	
 	/**
@@ -179,11 +179,11 @@ public class World
 	 * @param x The x position of the block
 	 * @param y The y position of the block
 	 * @param z The z position of the block
-	 * @param id The id of the block
+	 * @param block The block to place
 	 * @param meta The metadata of the block
 	 * @param flags The bitmap of the flags to use
 	 */
-	public void setBlock (int x, int y, int z, byte id, byte meta, int flags)
+	public void setBlock (int x, int y, int z, Block block, byte meta, int flags)
 	{
 		// If a lighting update needs to occur
 		boolean lightingUpdate = false;
@@ -197,14 +197,14 @@ public class World
 		if (y < 0 || y > 255)
 			return;
 		
-		// Do nothing for this id
-		if (id == -1)
+		// Do nothing for void
+		if (block == Blocks.VOID)
 			return;
 		
 		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
 		Chunk chunk = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK);
 		
-		if (chunk == EMPTY_CHUNK && id != 0)
+		if (chunk == EMPTY_CHUNK && block != Blocks.AIR)
 		{
 			// Add a new chunk if the id is not zero
 			chunk = new Chunk(this, chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
@@ -217,7 +217,7 @@ public class World
 		int blockZ = z & 0xF;
 		
 		// Set the block & meta
-		chunk.setBlock(blockX, blockY, blockZ, id);
+		chunk.setBlock(blockX, blockY, blockZ, block.getId());
 		chunk.setBlockMeta(blockX, blockY, blockZ, meta);
 		
 		// Update the chunk column
@@ -226,7 +226,7 @@ public class World
 		
 		if (chunkColumn == null)
 		{
-			if (id == 0)
+			if (block == Blocks.AIR)
 				return; // Don't need to add a column if air is being placed
 			
 			// Add a new chunk column if the block isn't air
@@ -252,8 +252,6 @@ public class World
 			//    Otherwise, nothing happens
 			// If no match is found, set the tallest opaque block to zero.
 			
-			Block block = Block.idToBlock(id);
-			
 			if (y > tallestOpaque)
 			{
 				// Only do update for opaque blocks
@@ -271,7 +269,7 @@ public class World
 				
 				for (; height != y; height = (--height) & 0xFF)
 				{
-					if (!Block.idToBlock(getBlock(x, height, z)).isTransparent())
+					if (!getBlock(x, height, z).isTransparent())
 						break;
 				}
 				
@@ -319,11 +317,11 @@ public class World
 			// Update the neighboring blocks
 			for (Facing face : Facing.values())
 			{
-				byte neighbor = getBlock(x + face.getOffsetX(), y + face.getOffsetY(), z + face.getOffsetZ());
+				Block neighbor = getBlock(x + face.getOffsetX(), y + face.getOffsetY(), z + face.getOffsetZ());
 				
 				// Update the neighbor if it's not air
-				if (neighbor != Blocks.AIR.getId())
-					Block.idToBlock(neighbor).onNeighborUpdated(
+				if (neighbor != Blocks.AIR)
+					neighbor.onNeighborUpdated(
 							this,
 							x + face.getOffsetX(),
 							y + face.getOffsetY(),
@@ -491,7 +489,7 @@ public class World
 					block = Blocks.WATER;
 				}
 				
-				setBlock((cx << 4) + x, y, (cz << 4) + z, block.getId(), (byte)0, 0);
+				setBlock((cx << 4) + x, y, (cz << 4) + z, block, (byte)0, 0);
 				
 				if (!foundTallest)
 				{
@@ -525,7 +523,7 @@ public class World
 					int dist = x*x + y*y + z*z;
 					if (dist > radius*radius)
 						continue;
-					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId(), (byte)0, 1);
+					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR, (byte)0, 1);
 				}
 			}
 		}
@@ -542,7 +540,7 @@ public class World
 					if (dist < (radius*radius) - 2*radius + 1 || dist > (radius*radius))
 						continue;
 					
-					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR.getId(), (byte)0, 7);
+					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR, (byte)0, 7);
 				}
 			}
 		}
