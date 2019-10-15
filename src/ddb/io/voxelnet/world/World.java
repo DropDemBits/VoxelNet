@@ -114,7 +114,7 @@ public class World
 		if (column == null)
 			canSeeSky = true; // If a column is missing, the blocks can definitely see the sky
 		else
-			canSeeSky = y >= Byte.toUnsignedInt(column.opaqueColumns[blockX + blockZ * 16]);
+			canSeeSky = y > Byte.toUnsignedInt(column.opaqueColumns[blockX + blockZ * 16]); // Can't see at the opaque
 		
 		if (canSeeSky)
 			baseLight = 15;
@@ -286,14 +286,14 @@ public class World
 		{
 			// Update the adjacent in the column chunks if the block is at one of the chunk edges
 			if (blockY == 15)
-				loadedChunks.getOrDefault(chunkPos.add(0, 1, 0), EMPTY_CHUNK).forceRebuild();
+				loadedChunks.getOrDefault(chunkPos.add(0, 1, 0), EMPTY_CHUNK).forceLayerRebuild();
 			
 			for (int yPos = chunkPos.getY(); yPos >= 0; yPos--)
 			{
 				int yOff = yPos - chunkPos.getY();
 				
 				if (yOff != 0)
-					loadedChunks.getOrDefault(chunkPos.add(0, yOff, 0), EMPTY_CHUNK).forceRebuild();
+					loadedChunks.getOrDefault(chunkPos.add(0, yOff, 0), EMPTY_CHUNK).forceLayerRebuild();
 				
 				// If there was no lighting update, only update the directly
 				// adjacent chunks
@@ -301,14 +301,14 @@ public class World
 					break;
 				
 				if (blockX == 0)
-					loadedChunks.getOrDefault(chunkPos.add(-1, yOff, 0), EMPTY_CHUNK).forceRebuild();
+					loadedChunks.getOrDefault(chunkPos.add(-1, yOff, 0), EMPTY_CHUNK).forceLayerRebuild();
 				else if (blockX == 15)
-					loadedChunks.getOrDefault(chunkPos.add(1, yOff, 0), EMPTY_CHUNK).forceRebuild();
+					loadedChunks.getOrDefault(chunkPos.add(1, yOff, 0), EMPTY_CHUNK).forceLayerRebuild();
 				
 				if (blockZ == 0)
-					loadedChunks.getOrDefault(chunkPos.add(0, yOff, -1), EMPTY_CHUNK).forceRebuild();
+					loadedChunks.getOrDefault(chunkPos.add(0, yOff, -1), EMPTY_CHUNK).forceLayerRebuild();
 				else if (blockZ == 15)
-					loadedChunks.getOrDefault(chunkPos.add(0, yOff, 1), EMPTY_CHUNK).forceRebuild();
+					loadedChunks.getOrDefault(chunkPos.add(0, yOff, 1), EMPTY_CHUNK).forceLayerRebuild();
 			}
 		}
 		

@@ -16,8 +16,8 @@ public class Block
 	
 	public static void init()
 	{
-		Blocks.VOID         = addBlock(-1, new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}).setTransparent(true)).setHitBox(null);
-		Blocks.AIR          = addBlock(0,  new Block().setSolid(false).setFaceTextures(new int[] {-1, -1, -1, -1, -1, -1}).setTransparent(true)).setHitBox(null);
+		Blocks.VOID         = addBlock(-1, new BlockAir());
+		Blocks.AIR          = addBlock(0,  new BlockAir());
 		Blocks.GRASS        = addBlock(1,  new Block().setSolid(true).setFaceTextures(new int[] {1, 1, 1, 1, 0, 2}));
 		Blocks.DIRT         = addBlock(2,  new Block().setSolid(true).setFaceTextures(new int[] {2, 2, 2, 2, 2, 2}));
 		Blocks.STONE        = addBlock(3,  new Block().setSolid(true).setFaceTextures(new int[] {3, 3, 3, 3, 3, 3}));
@@ -268,9 +268,9 @@ public class Block
 		return false;
 	}
 	
-	public boolean showFace(Block block, Facing dir)
+	public boolean showFace(Block adjacent, Facing dir)
 	{
-		return block != this;
+		return (!adjacent.isSolid() && adjacent.isTransparent()) && adjacent != this;
 	}
 	
 }

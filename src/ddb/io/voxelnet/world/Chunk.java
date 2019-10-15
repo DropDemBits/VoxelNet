@@ -1,6 +1,9 @@
 package ddb.io.voxelnet.world;
 
 import ddb.io.voxelnet.Game;
+import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.block.Blocks;
+import ddb.io.voxelnet.client.render.RenderLayer;
 
 import java.util.Arrays;
 
@@ -25,8 +28,8 @@ public class Chunk
 	private final byte[] blockMeta = new byte[8 * 16 * 16];
 	// If the chunk holds data (by default, they are empty)
 	private boolean isEmpty = true;
-	// If the chunk needs to be re-rendered
-	private boolean needsRebuild = false;
+	// If the chunk needs to be re-rendered (per-layer)
+	private boolean[] layerNeedsRebuild = new boolean[RenderLayer.values().length];
 	// If the chunk needs to be saved to disk
 	private boolean isDirty = false;
 	// If the chunk was recently generated
@@ -69,7 +72,7 @@ public class Chunk
 		System.arraycopy(blockLights, 0, this.blockLights, 0, this.blockLights.length);
 		
 		// Update the rebuild state
-		needsRebuild = true;
+		forceLayerRebuild();
 		
 		// Most likely not empty
 		isEmpty = false;
@@ -83,6 +86,8 @@ public class Chunk
 	 * @return The block data for this chunk
 	 */
 	public byte[] getData() { return blockData; }
+	
+	public short[] getLayerData() { return blockLayers; }
 	
 	/**
 	 * Gets the per-block light data in the chunk
@@ -110,23 +115,24 @@ public class Chunk
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16 || id == -1)
 			return;
 		
-		byte lastBlock = blockData[x + z * 16 + y * 256];
+		Block block = Block.idToBlock(id);
+		Block lastBlock = Block.idToBlock(blockData[x + z * 16 + y * 256]);
 		blockData[x + z * 16 + y * 256] = id;
 		
 		// Update the dirty & rebuild states
 		isDirty = true;
-		needsRebuild = true;
+		layerNeedsRebuild[block.getRenderLayer().ordinal()] = true;
 		
 		if(Game.showThings)
 			System.out.println("block ("+x+", "+y+", "+z+") "+id);
 		
 		// Update the block count & isEmpty
-		if (lastBlock == 0 && id != 0)
+		if (lastBlock == Blocks.AIR && block != Blocks.AIR)
 		{
 			++blockCount;
 			isEmpty = false;
 		}
-		else if (lastBlock != 0 && id == 0)
+		else if (lastBlock != Blocks.AIR && block == Blocks.AIR)
 		{
 			--blockCount;
 			
@@ -135,6 +141,23 @@ public class Chunk
 			
 			if (blockCount == 0)
 				isEmpty = true;
+		}
+		
+		if (lastBlock.isTransparent() && !block.isTransparent())
+		{
+			if (block.getRenderLayer() == RenderLayer.OPAQUE)
+				++blockLayers[y];
+			
+			if (blockLayers[y] > 16 * 16)
+				blockLayers[y] = 16 * 16;
+		}
+		else if (!lastBlock.isTransparent() && block.isTransparent())
+		{
+			if (lastBlock.getRenderLayer() == RenderLayer.OPAQUE)
+				--blockLayers[y];
+			
+			if (blockLayers[y] < 0)
+				blockLayers[y] = 0;
 		}
 	}
 	
@@ -253,28 +276,42 @@ public class Chunk
 	}
 	
 	/**
+	 * Checks if the chunk render layer needs to be rebuilt
+	 * @return True if the chunk render layer needs to be rebuilt
+	 */
+	public boolean layerNeedsRebuild(RenderLayer layer)
+	{
+		return layerNeedsRebuild[layer.ordinal()];
+	}
+	
+	/**
 	 * Checks if the chunk needs to be re-rendered
 	 * @return True if the chunk needs to be re-rendered
 	 */
 	public boolean needsRebuild()
 	{
-		return needsRebuild;
+		for (RenderLayer layer : RenderLayer.values())
+			if (layerNeedsRebuild[layer.ordinal()])
+				return true;
+		
+		return false;
 	}
 	
 	/**
 	 * Resets the chunk rebuild status
 	 */
-	public void resetRebuildStatus()
+	public void resetLayerRebuildStatus(RenderLayer layer)
 	{
-		needsRebuild = false;
+		layerNeedsRebuild[layer.ordinal()] = false;
 	}
 	
 	/**
 	 * Forces a chunk rebuild to occur
 	 */
-	public void forceRebuild()
+	public void forceLayerRebuild()
 	{
-		needsRebuild = true;
+		for (int i = 0; i < RenderLayer.values().length; i++)
+			layerNeedsRebuild[i] = true;
 	}
 	
 	/**
@@ -307,6 +344,7 @@ public class Chunk
 	{
 		System.out.println("ChunkDump (" + chunkX + ", " + chunkY + ", " + chunkZ + ")");
 		System.out.println("Bcnt " + blockCount);
-		System.out.println("Empt " + isEmpty + " | Rbld " + needsRebuild + " | Drty " + isDirty + " | Rgen " + recentlyGenerated);
+		System.out.println("Empt " + isEmpty + " | Rbld " + layerNeedsRebuild + " | Drty " + isDirty + " | Rgen " + recentlyGenerated);
 	}
+	
 }

@@ -16,6 +16,10 @@ public class BlockRenderer
 			// Intensity
 			.addAttribute(BufferLayout.EnumAttribType.UBYTE, 1, true);
 	
+	public static int statNear = 0;
+	public static int statSolid = 0;
+	public static int statNoShow = 0;
+	
 	// No instance can be made
 	private BlockRenderer() {}
 	
@@ -49,19 +53,17 @@ public class BlockRenderer
 			{
 				// Check the nearby chunk for the appropriate block id & lighting
 				adjacentBlock = adjacentChunks[face.ordinal()].getBlock(adjacentX & 0xF, adjacentY & 0xF, adjacentZ & 0xF); //chunk.world.getBlock(adjacentX, adjacentY, adjacentZ);
+				++statNear;
 			}
 			
 			Block adjacent = Block.idToBlock(adjacentBlock);
-			if (adjacent.isSolid() && !adjacent.isTransparent())
-			{
-				// Don't add the face if the adjacent block is
-				// solid and not transparent
-				continue;
-			}
 			
 			// Don't show the face if it's the same block
 			if (!block.showFace(adjacent, face))
+			{
+				++statNoShow;
 				continue;
+			}
 			
 			short[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
 			final float[] faceIntensities = new float[] { 0.75f, 0.75f, 0.75f, 0.75f, 0.95f, 0.55f };
@@ -238,15 +240,8 @@ public class BlockRenderer
 			Block adjacent = getAdjacentBlock(x, y, z, face, adjacentChunks, chunk);
 			byte faceLight = chunk.world.getBlockLight(adjacentX, adjacentY, adjacentZ);
 			
-			if (adjacent.isSolid() && !adjacent.isTransparent())
-			{
-				// Don't add the face if the adjacent block is
-				// solid and not transparent
-				continue;
-			}
-			
 			// Don't show the face if it's the same block
-			if (!(face == Facing.UP && adjacent == Blocks.AIR) && !block.showFace(adjacent, face))
+			if (!block.showFace(adjacent, face))
 				continue;
 			
 			short[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);

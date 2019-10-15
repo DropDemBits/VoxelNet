@@ -104,15 +104,18 @@ public class WorldRenderer
 		}
 		
 		// Enqueue all the changed chunks
-		while(!generateQueue.isEmpty())
+		if (!generateQueue.isEmpty())
 		{
-			// TODO: Fix concurrent access during model generation
-			// TODO: Fix model updates not being propageted
-			ChunkModel model = generateQueue.peek();
-			generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
-			//new ThreadedChunkGenerator(generateQueue.pop()).run();
-			//System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
+			
+			while (!generateQueue.isEmpty())
+			{
+				ChunkModel model = generateQueue.peek();
+				System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
+				generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
+				//new ThreadedChunkGenerator(generateQueue.pop()).run();
+			}
 		}
+		
 		
 		/*if (!generateQueue.isEmpty())
 			new ThreadedChunkGenerator(generateQueue.pop()).run();*/

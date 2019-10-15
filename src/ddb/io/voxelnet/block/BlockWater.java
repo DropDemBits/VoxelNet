@@ -26,7 +26,7 @@ public class BlockWater extends Block
 		this.isUpdating = isUpdating;
 		
 		setSolid(false);
-		if (isUpdating)
+		if (isUpdating && false)
 			setFaceTextures(new int[] {3, 3, 3, 3, 3, 3});
 		else
 			setFaceTextures(new int[] {13, 13, 13, 13, 13, 13});
@@ -318,9 +318,12 @@ public class BlockWater extends Block
 	}
 	
 	@Override
-	public boolean showFace(Block block, Facing dir)
+	public boolean showFace(Block adjacent, Facing dir)
 	{
-		return !(block instanceof BlockWater);
+		if (dir == Facing.UP)
+			return !(adjacent instanceof BlockWater);
+		
+		return !(adjacent instanceof BlockWater) && (!adjacent.isSolid() && adjacent.isTransparent());
 	}
 	
 	private static class FluidPlacement

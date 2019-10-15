@@ -59,49 +59,38 @@ class ChunkModel
 		updateLock.lock();
 		++updateAttempts;
 		
-		// Check if the chunk actually needs to be re-rendered
-		if (!chunk.needsRebuild())
-		{
-			System.out.println("UPD InP" + updateAttempts);
-			--updateAttempts;
-			updateLock.unlock();
-			return false;
-		}
-		
-		// Reset the model layers
-		for (int i = 0; i < modelLayers.length; i++)
-		{
-			if (modelLayers[i].getIndexCount() > 0)
-				modelLayers[i].reset();
-			// All layers initially need updates
-			layerNeedsUpdate[i] = true;
-		}
-		
 		// Check if the chunk has been made empty
 		if (chunk.isEmpty())
 		{
 			// Defer the vertex buffer update to the render stage
 			isDirty = true;
 			
-			// Indicate that the chunk has been rebuilt
-			chunk.resetRebuildStatus();
+			// Reset all the layers and indicate that the chunk has been rebuilt
+			for (RenderLayer layer : RenderLayer.values())
+			{
+				chunk.resetLayerRebuildStatus(layer);
+				layerNeedsUpdate[layer.ordinal()] = true;
+				
+				if (modelLayers[layer.ordinal()].getIndexCount() > 0)
+					modelLayers[layer.ordinal()].reset();
+			}
 			
 			--updateAttempts;
 			updateLock.unlock();
 			return true;
 		}
 		
+		// Take a snapshot of the layer rebuild statuses
+		boolean[] rebuildSnapshot = new boolean[RenderLayer.values().length];
+		
+		for (RenderLayer layer : RenderLayer.values())
+		{
+			rebuildSnapshot[layer.ordinal()] = chunk.layerNeedsRebuild(layer);
+		}
+		
 		//System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
 		
-		// Reset transparency status
-		hasTransparency = false;
-		
-		// Chunk is not empty, update the things
-		long blockGenAccum = 0;
-		long blockGenCount = 0;
-		
-		// TODO: Rework so that the adjacent chunks are fetched once
-		
+		// Fetch the adjacent chunks only once
 		for (Facing face : Facing.values())
 		{
 			adjacentChunks[face.ordinal()] = chunk.world.getChunk(
@@ -111,13 +100,89 @@ class ChunkModel
 			);
 		}
 		
-		// TODO: Rework so that the adjacent blocks & metas are fetched once per block
+		// Rebuild each layer individually
 		long start = System.nanoTime();
+		hasTransparency = false;
+		
+		for (RenderLayer layer : RenderLayer.values())
+		{
+			// Since the opaque layer is the most frequently updated layer,
+			// allow changes to it to rebuild the other layers
+			if (rebuildSnapshot[layer.ordinal()] || rebuildSnapshot[RenderLayer.OPAQUE.ordinal()])
+				rebuildLayer(layer, atlas);
+		}
+		
+		// Defer the vertex buffer update to the render stage
+		isDirty = true;
+		
+		long currentGenerate = System.nanoTime() - start;
+		generateAccum += currentGenerate;
+		generateCount += 1;
+		
+		if ((generateCount % 8) == 0)
+		{
+			System.out.print("\tAvg Generate Time: " + (((double) generateAccum / (double) generateCount) / 1000000.0d) + "ms");
+			System.out.println(", Current Generate Time: " + (currentGenerate) / 1000000.0d);
+			System.out.println(BlockRenderer.statNear + ", " + BlockRenderer.statSolid + ", " + BlockRenderer.statNoShow);
+			System.out.println("---------------------------------");
+		}
+		
+		--updateAttempts;
+		updateLock.unlock();
+		return true;
+	}
+	
+	private void rebuildLayer(RenderLayer layer, TextureAtlas atlas)
+	{
+		Model targetModel = modelLayers[layer.ordinal()];
+		
+		// Reset the model layer
+		if (targetModel.getIndexCount() > 0)
+			targetModel.reset();
+		
+		// Current layer will need update
+		layerNeedsUpdate[layer.ordinal()] = true;
+		
+		// Chunk is not empty, update the things
+		// TODO: Rework so that the adjacent blocks & metas are fetched once per block
 		for (int y = 0; y < 16; y++)
 		{
+			boolean skipLayer = false;
+			boolean layerAboveFilled = false;
+			boolean layerBelowFilled = false;
+			
+			// Check if a layer can be skipped
+			if (y < 15 && chunk.getLayerData()[y + 1] == 16 * 16)
+				layerAboveFilled = true;
+			else if (y == 15 && adjacentChunks[Facing.UP.ordinal()].getLayerData()[0] == 16 * 16)
+				layerAboveFilled = true;
+			
+			if (y > 0 && chunk.getLayerData()[y - 1] == 16 * 16)
+				layerBelowFilled = true;
+			else if (y == 0 && adjacentChunks[Facing.DOWN.ordinal()].getLayerData()[15] == 16 * 16)
+				layerBelowFilled = true;
+			
+			if (layerAboveFilled && layerBelowFilled)
+			{
+				skipLayer = true;
+				
+				// Check if the current layer can actually be skipped
+				for (Facing adjacentDir : Facing.CARDINAL_FACES)
+				{
+					if (adjacentChunks[adjacentDir.ordinal()].getLayerData()[y] < 16 * 16)
+					{
+						skipLayer = false;
+						break;
+					}
+				}
+			}
+			
+			if (skipLayer)
+				continue;
+			
+			// Do all the blocks for the layer
 			for (int z = 0; z < 16; z++)
 			{
-				//long blockNow = System.nanoTime();
 				for (int x = 0; x < 16; x++)
 				{
 					byte id = chunk.getData()[x + (z << 4) + (y << 8)];
@@ -125,7 +190,9 @@ class ChunkModel
 						continue;
 					
 					Block block = Block.idToBlock(id);
-					Model targetModel = modelLayers[block.getRenderLayer().ordinal()];
+					// Skip blocks not part of the requested layer
+					if (block.getRenderLayer() != layer)
+						continue;
 					
 					if (block.isTransparent())
 						hasTransparency = true;
@@ -142,32 +209,11 @@ class ChunkModel
 							break;
 					}
 				}
-				/*blockGenAccum += System.nanoTime() - blockNow;
-				blockGenCount += 16;*/
 			}
 		}
 		
-		long currentGenerate = System.nanoTime() - start;
-		generateAccum += currentGenerate;
-		generateCount += 1;
-		
-		if ((generateCount % 8) == 0)
-		{
-			System.out.print("\tAvg Generate Time: " + (((double) generateAccum / (double) generateCount) / 1000000.0d) + "ms");
-			System.out.println(", Current Generate Time: " + (currentGenerate) / 1000000.0d);
-			System.out.println("\tAvg Block Gen Time: " + (((double) blockGenAccum / (double) blockGenCount) / 1000.0d) + "us");
-			System.out.println("\tExtrapolate BlockGen Time: " + (((double) blockGenAccum / (double) blockGenCount) / 1000.0d) * 256.0d + "us");
-			System.out.println("---------------------------------");
-		}
-		
-		// Defer the vertex buffer update to the render stage
-		isDirty = true;
 		// Indicate that the chunk has been updated
-		chunk.resetRebuildStatus();
-		
-		--updateAttempts;
-		updateLock.unlock();
-		return true;
+		chunk.resetLayerRebuildStatus(layer);
 	}
 	
 	/**
