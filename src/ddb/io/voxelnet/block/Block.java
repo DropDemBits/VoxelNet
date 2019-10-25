@@ -18,7 +18,7 @@ public class Block
 	{
 		Blocks.VOID         = addBlock(-1, new BlockAir());
 		Blocks.AIR          = addBlock(0,  new BlockAir());
-		Blocks.GRASS        = addBlock(1,  new Block().setSolid(true).setFaceTextures(new int[] {1, 1, 1, 1, 0, 2}));
+		Blocks.GRASS        = addBlock(1,  new BlockGrass());
 		Blocks.DIRT         = addBlock(2,  new Block().setSolid(true).setFaceTextures(new int[] {2, 2, 2, 2, 2, 2}));
 		Blocks.STONE        = addBlock(3,  new Block().setSolid(true).setFaceTextures(new int[] {3, 3, 3, 3, 3, 3}));
 		Blocks.PLANKS       = addBlock(4,  new Block().setSolid(true).setFaceTextures(new int[] {4, 4, 4, 4, 4, 4}));
@@ -60,6 +60,7 @@ public class Block
 	private boolean isSolid = true;
 	private boolean isTransparent = false;
 	private boolean isTickable = false;
+	private boolean isRandomlyTickable = false;
 	
 	private AABBCollider hitBox = DEFAULT_COLLIDER;
 	private byte id;
@@ -118,6 +119,12 @@ public class Block
 		return this;
 	}
 	
+	public Block setRandomlyTickable(boolean isRandomlyTickable)
+	{
+		this.isRandomlyTickable = isRandomlyTickable;
+		return this;
+	}
+	
 	/**
 	 * Sets the hit box of the block
 	 * @param hitBox The new hit box of the block
@@ -164,6 +171,11 @@ public class Block
 	public boolean isTickable()
 	{
 		return isTickable;
+	}
+	
+	public boolean isRandomlyTickable()
+	{
+		return isRandomlyTickable;
 	}
 	
 	/**
@@ -270,7 +282,7 @@ public class Block
 	
 	public boolean showFace(Block adjacent, Facing dir)
 	{
-		return (!adjacent.isSolid() && adjacent.isTransparent()) && adjacent != this;
+		return (!adjacent.isSolid() || adjacent.isTransparent()) && adjacent != this;
 	}
 	
 }

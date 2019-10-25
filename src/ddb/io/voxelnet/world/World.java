@@ -30,7 +30,7 @@ public class World
 	
 	// WorldGen
 	private long worldSeed;
-	private final Random worldRandom;
+	public final Random worldRandom;
 	private final PerlinOctaves perlinNoise;
 	
 	public World()
@@ -63,6 +63,18 @@ public class World
 			}
 		}
 		System.out.println("Done base generation in " + (System.currentTimeMillis() - startGen) + " ms");
+		
+		// Old explosion generation
+		/*int explosionCount = worldRandom.nextInt(100) + 50;
+		for (int i = 0; i < explosionCount; i++)
+		{
+			int x = worldRandom.nextInt(256) - 128;
+			int y = worldRandom.nextInt(64);
+			int z = worldRandom.nextInt(256) - 128;
+			int radius = worldRandom.nextInt(20) + 5;
+			
+			explode(x, y, z, radius);
+		}*/
 		
 		startGen = System.currentTimeMillis();
 		System.out.println("Done generation in " + (System.currentTimeMillis() - startGen) + " ms");
@@ -216,6 +228,8 @@ public class World
 		int blockY = y & 0xF;
 		int blockZ = z & 0xF;
 		
+		int columnIdx = blockX + blockZ * 16;
+		
 		// Set the block & meta
 		chunk.setBlock(blockX, blockY, blockZ, block.getId());
 		chunk.setBlockMeta(blockX, blockY, blockZ, meta);
@@ -234,10 +248,11 @@ public class World
 			chunkColumns.put(columnPos, chunkColumn);
 		}
 		
+		int oldestHeight = Byte.toUnsignedInt(chunkColumn.opaqueColumns[columnIdx]);
+		
 		if (updateLighting)
 		{
 			// Update the appropriate column
-			int columnIdx = blockX + blockZ * 16;
 			int tallestOpaque = Byte.toUnsignedInt(chunkColumn.opaqueColumns[columnIdx]);
 			
 			// 3 Main Groups for Column placement
@@ -288,6 +303,10 @@ public class World
 			if (blockY == 15)
 				loadedChunks.getOrDefault(chunkPos.add(0, 1, 0), EMPTY_CHUNK).forceLayerRebuild();
 			
+			int limit = y - oldestHeight;
+			if (lightingUpdate)
+				System.out.println(limit);
+			
 			for (int yPos = chunkPos.getY(); yPos >= 0; yPos--)
 			{
 				int yOff = yPos - chunkPos.getY();
@@ -297,7 +316,7 @@ public class World
 				
 				// If there was no lighting update, only update the directly
 				// adjacent chunks
-				if (!lightingUpdate && yOff < -1)
+				if (!lightingUpdate && yOff <= -1)
 					break;
 				
 				if (blockX == 0)
@@ -592,6 +611,8 @@ public class World
 		List<Chunk> workingList = new ArrayList<>(loadedChunks.values());
 		workingList.iterator().forEachRemaining((chunk) ->
 		{
+			int randomTickCounts = 0;
+			
 			// y z x
 			for (int y = 0; y < 16; y++)
 			{
@@ -603,6 +624,16 @@ public class World
 						
 						if (block.isTickable())
 							block.onTick(this, x + chunk.chunkX * 16, y + chunk.chunkY * 16, z + chunk.chunkZ * 16);
+						
+						if (block.isRandomlyTickable() && worldRandom.nextFloat() < 1/16f)
+						{
+							randomTickCounts++;
+							
+							if (randomTickCounts < 128)
+							{
+								block.onRandomTick(this, x + chunk.chunkX * 16, y + chunk.chunkY * 16, z + chunk.chunkZ * 16);
+							}
+						}
 					}
 				}
 			}

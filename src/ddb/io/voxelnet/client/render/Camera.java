@@ -2,6 +2,7 @@ package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.util.Frustum;
+import org.joml.Math;
 import org.joml.Matrix4f;
 
 public class Camera
@@ -80,7 +81,7 @@ public class Camera
 	public void updatePerspective(float aspect)
 	{
 		this.perspectiveMatrix.identity();
-		this.perspectiveMatrix.perspective((float) Math.toRadians(fov), aspect, zNear, zFar);
+		this.perspectiveMatrix.setPerspective((float) Math.toRadians(fov), aspect, zNear, zFar);
 		this.viewFrustum.updateShape((float) Math.toRadians(fov), aspect, zNear, zFar);
 	}
 	

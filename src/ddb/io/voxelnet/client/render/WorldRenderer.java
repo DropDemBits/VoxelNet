@@ -10,6 +10,10 @@ import org.lwjgl.opengl.GL11;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.lwjgl.opengl.GL11.*;
 
 public class WorldRenderer
 {
@@ -21,7 +25,10 @@ public class WorldRenderer
 	private final List<ChunkModel> renderList = new ArrayList<>();
 	// List of chunks that need model updates
 	private final Stack<ChunkModel> generateQueue = new Stack<>();
-	private final ExecutorService generatePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+	private final ExecutorService generatePool = Executors.newWorkStealingPool(); //Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+	private final AtomicInteger modelUpdates = new AtomicInteger();
+	private int updates = 5;
+	
 	private final TextureAtlas atlas;
 	private final World world;
 	
@@ -103,19 +110,6 @@ public class WorldRenderer
 			lastChunkZ = (int)player.zPos >> 4;
 		}
 		
-		// Enqueue all the changed chunks
-		if (!generateQueue.isEmpty())
-		{
-			
-			while (!generateQueue.isEmpty())
-			{
-				ChunkModel model = generateQueue.peek();
-				System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
-				generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
-				//new ThreadedChunkGenerator(generateQueue.pop()).run();
-			}
-		}
-		
 		
 		/*if (!generateQueue.isEmpty())
 			new ThreadedChunkGenerator(generateQueue.pop()).run();*/
@@ -123,14 +117,42 @@ public class WorldRenderer
 	
 	public void render(GameRenderer renderer)
 	{
+		// Enqueue all the changed chunks
+		if (!generateQueue.isEmpty())
+		{
+			System.out.println("Model Upd (" + generateQueue.size() + ")");
+			while (!generateQueue.isEmpty())
+			{
+				ChunkModel model = generateQueue.peek();
+				//System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
+				generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
+				//new ThreadedChunkGenerator(generateQueue.pop()).run();
+			}
+		}
+		
 		// List of chunks that have transparent blocks
 		List<ChunkModel> transparentChunks = new ArrayList<>();
+		boolean canUpdateChunks = false;
+		
+		//if (modelUpdates.get() == 0)
+		/*	--updates;
+		else
+			updates = 5;*/
+		
+		//if (updates == 0)
+		{
+			//updates = 5;
+			canUpdateChunks = true;
+		}
 		
 		renderer.getCurrentShader().setUniform1i("inWater", player.isInWater() ? 1 : 0);
 		
 		long opaqueCount = 0;
 		long opaqueAccum = 0;
 		long updProgressCount = 0;
+		
+		glDisable(GL_BLEND);
+		
 		for (ChunkModel chunkModel : renderList)
 		{
 			// Perform empty check
@@ -166,7 +188,7 @@ public class WorldRenderer
 			model.bind();
 			
 			// Update the vertices if an update is not in progress
-			if (!chunkModel.isUpdateInProgress())
+			if (!chunkModel.isUpdateInProgress() && canUpdateChunks)
 				chunkModel.updateLayer(RenderLayer.OPAQUE);
 			
 			renderer.drawModel(model);
@@ -187,7 +209,20 @@ public class WorldRenderer
 			ListIterator<ChunkModel> itr = transparentChunks.listIterator(transparentChunks.size());
 			
 			if (layer == RenderLayer.FLUID)
-				GL11.glDisable(GL11.GL_CULL_FACE);
+			{
+				glDisable(GL11.GL_CULL_FACE);
+				//glDisable(GL_DEPTH_TEST);
+				//glDepthMask(false);
+				glEnable(GL_BLEND);
+				//glBlendFunc(GL_ZERO, GL_SRC_COLOR);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			}
+			
+			if (layer == RenderLayer.TRANSPARENT)
+			{
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			}
 			
 			while (itr.hasPrevious())
 			{
@@ -200,7 +235,7 @@ public class WorldRenderer
 				// Update the vertices if a model update is not in progress (have
 				// not been updated above)
 				model.bind();
-				if (!chunkModel.isUpdateInProgress())
+				if (!chunkModel.isUpdateInProgress() && canUpdateChunks)
 					chunkModel.updateLayer(layer);
 				
 				renderer.drawModel(model);
@@ -209,7 +244,18 @@ public class WorldRenderer
 			}
 			
 			if (layer == RenderLayer.FLUID)
+			{
 				GL11.glEnable(GL11.GL_CULL_FACE);
+				//glEnable(GL_DEPTH_TEST);
+				//glDepthMask(true);
+				glDisable(GL_BLEND);
+				//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			}
+			
+			if (layer == RenderLayer.TRANSPARENT)
+			{
+				glDisable(GL_BLEND);
+			}
 		}
 		
 		/*System.out.println("-----------------------------");
@@ -270,8 +316,12 @@ public class WorldRenderer
 		public void run()
 		{
 			model.setUpdateProgress(true);
+			
+			modelUpdates.incrementAndGet();
 			if(!model.updateModel(atlas))
 				System.err.println("OI, MODEL UPDATE DIDN'T HAPPEN @ " + new Vec3i(model.chunk.chunkX, model.chunk.chunkY, model.chunk.chunkZ).toString());
+			modelUpdates.decrementAndGet();
+			
 			model.setUpdateProgress(false);
 			model.setUpdatePending(false);
 		}

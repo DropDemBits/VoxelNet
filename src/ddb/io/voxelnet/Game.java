@@ -28,8 +28,10 @@ public class Game {
 	private static final int INITIAL_WIDTH = 854;
 	private static final int INITIAL_HEIGHT = 480;
 	
+	private static final boolean ENABLE_VSYNC = true;
+	
 	private static final float FOV   = 90.0f;
-	private static final float ZNEAR = 0.05f;
+	private static final float ZNEAR = 0.1f;
 	private static final float ZFAR  = 1000.0f;
 	
 	public static boolean showThings = false;
@@ -129,7 +131,7 @@ public class Game {
 		// Update the window context
 		glfwMakeContextCurrent(window);
 		// Setup vsync
-		glfwSwapInterval(0);
+		glfwSwapInterval(ENABLE_VSYNC ? 1 : 0);
 		// Show the window
 		glfwShowWindow(window);
 		
@@ -176,7 +178,7 @@ public class Game {
 		
 		// Setup the world, world save/loader, and world renderer
 		world = new World();
-		worldSave = new WorldSave(world, "world.dat");
+		worldSave = new WorldSave(world, "world-allthings/world.dat");
 		worldRenderer = new WorldRenderer(world, atlas);
 		
 		// Load / Generate the world
@@ -191,15 +193,16 @@ public class Game {
 		worldRenderer.setPlayer(player);
 		
 		// Spawn the player at the surface
-		int spawnY = 0;
+		int spawnY = 256;
 		
-		for (; spawnY < 256; spawnY++)
+		for (; spawnY >= 0; spawnY--)
 		{
-			if (!world.getBlock(0, spawnY, 0).isSolid())
+			boolean isSolid = world.getBlock(0, spawnY - 1, 0).isSolid();
+			if (isSolid)
 				break;
 		}
 		
-		player.setPos(0.5f, spawnY, 0.5f);
+		player.setPos(0.5f, spawnY + 0.5F, 0.5f);
 		
 		// Setup the controller
 		controller = new PlayerController(window, player);
@@ -358,7 +361,7 @@ public class Game {
 		worldRenderer.stop();
 		
 		// Save the world
-		//worldSave.save();
+		worldSave.save();
 	}
 	
 	private void update(float delta)
@@ -371,7 +374,7 @@ public class Game {
 	
 	private void render(double partialTicks)
 	{
-		camera.asPlayer(player, partialTicks);
+		camera.asPlayer(player, 0);
 		camera.updateView();
 		
 		renderer.begin();
@@ -383,6 +386,9 @@ public class Game {
 		renderer.prepareShader();
 		worldRenderer.render(renderer);
 		renderer.finishShader();
+		
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		
 		// ???: Is the hit box technically part of the HUD?
 		if (controller.showHit)

@@ -144,7 +144,9 @@ public class BlockWater extends Block
 				int drainRate = 1;
 				
 				// If there is more than one outflow or it is falling, increase the drain rate
-				if (outflows > 1 || isFalling)
+				if(isFalling)
+					drainRate = 4;
+				else if (outflows > 1)
 					drainRate = 2;
 				
 				byte newMeta = (byte) (srcLevel + drainRate);

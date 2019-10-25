@@ -139,15 +139,20 @@ public class Entity
 	
 	protected void updateCollision (float delta)
 	{
+		// Move the collision box to the current entity position
+		collisionBox.setPosition(xPos, yPos, zPos);
+		collisionBox.add(-collisionBox.width / 2f, 0, -collisionBox.depth / 2f);
+		
 		float xResponse = testForCollisionX(delta);
 		float yResponse = testForCollisionY(delta);
 		float zResponse = testForCollisionZ(delta);
 		
-		onGround = yResponse >= 0 && yVel != yResponse;
+		// Fix an entity being able to stick on a ceiling
+		// (check for yVel < 0)
+		onGround = yVel < 0 && yResponse >= 0 && yVel != yResponse;
 		
 		if (yResponse != yVel)
 		{
-			//System.out.println(yOff);
 			if (Math.abs(yResponse - yVel) > 1/64f)
 				yPos += yResponse;
 			yVel = 0;
@@ -188,9 +193,8 @@ public class Entity
 		blockY = (int) Math.round(yPos);
 		blockZ = (int) Math.floor(zPos);
 		
-		// Move the collision box relative to the block position
-		collisionBox.setPosition(xPos, yPos, zPos);
-		collisionBox.add(-collisionBox.width / 2f, 0, -collisionBox.depth / 2f);
+		// Have a dummy collision box setup
+		AABBCollider blockCollider = new AABBCollider(0, 0, 0, 0, 0, 0);
 		
 		// Check the 3x3 area around the entity
 		for (int xOff = -1; xOff <= 1; xOff++)
@@ -203,34 +207,12 @@ public class Entity
 				if (!block.isSolid())
 					continue;
 				
-				// Test for a rough collision
-				collisionBox.add(0, yVel * delta, 0);
-				boolean collides = collisionBox.relativeIntersectionWith(block.getCollisionBox(), blockX + xOff, blockY + blockDelta, blockZ + zOff);
-				collisionBox.add(0, -(yVel * delta), 0);
-				
-				// If no collision will happen, don't check for it
-				if (!collides)
-					continue;
-				
-				// Setup the collision box for fine stepping
-				AABBCollider blockCollider = new AABBCollider(block.getCollisionBox());
+				// Setup the collision box for the colliding block
+				blockCollider.asAABB(block.getCollisionBox());
 				blockCollider.setPosition(blockX + xOff, blockY + blockDelta, blockZ + zOff);
 				
-				// Do fine stepping
-				/*float stepY = (yVel * delta) / 16f;
-				for (int step = 0; step <= 16; step++)
-				{
-					if (collisionBox.intersectsWith(blockCollider))
-						return yDir * (step + 1);
-					
-					collisionBox.add(0, stepY, 0);
-					
-					if (step == 16)
-						// No collision, even with optimizations
-						System.out.println("HOYY! Something's wrong w/ collision");
-				}*/
-				float yOff = collisionBox.offsetOnY(blockCollider, yVel);
-				if (yOff != yVel)
+				float yOff = collisionBox.offsetOnY(blockCollider, yVel * delta);
+				if (yOff != yVel * delta)
 					return yOff;
 			}
 		}
@@ -252,9 +234,8 @@ public class Entity
 		blockY = Math.round(yPos);
 		blockZ = Math.round(zPos - 0.5f);
 		
-		// Move the collision box relative to the block position
-		collisionBox.setPosition(xPos, yPos, zPos);
-		collisionBox.add(-collisionBox.width / 2f, 0, -collisionBox.depth / 2f);
+		// Have a dummy collision box setup
+		AABBCollider blockCollider = new AABBCollider(0, 0, 0, 0, 0, 0);
 		
 		for(int yOff = -1; yOff <= 1; yOff++)
 		{
@@ -265,33 +246,12 @@ public class Entity
 				if (!block.isSolid())
 					continue;
 				
-				AABBCollider blockCollider = new AABBCollider(block.getCollisionBox());
+				// Setup the collision box for the colliding block
+				blockCollider.asAABB(block.getCollisionBox());
 				blockCollider.setPosition(blockX + xOff, blockY + yOff, blockZ + zDir);
 				
-				collisionBox.add(0, 0, zVel * delta);
-				boolean collidesZ = collisionBox.intersectsWith(blockCollider);
-				collisionBox.add(0, 0, -zVel * delta);
-				
-				if (!collidesZ)
-					continue;
-				
-				// Collision will happen, do fine stepping
-				/*float stepZ = (zVel * delta) / 16f;
-				for (int step = 0; step <= 16; step++)
-				{
-					// Check for collision
-					if (collisionBox.intersectsWith(blockCollider))
-						return zDir * (step + 1);
-					
-					// Only step on the colliding axis
-					collisionBox.add(0, 0, stepZ);
-					
-					if (step == 16)
-						System.out.println("HOYZ! Somethings wrong here!");
-				}*/
-				
-				float zOff = collisionBox.offsetOnZ(blockCollider, zVel);
-				if (zOff != zVel)
+				float zOff = collisionBox.offsetOnZ(blockCollider, zVel * delta);
+				if (zOff != zVel * delta)
 					return zOff;
 			}
 		}
@@ -313,9 +273,8 @@ public class Entity
 		blockY = Math.round(yPos);
 		blockZ = Math.round(zPos - 0.5f);
 		
-		// Move the collision box relative to the block position
-		collisionBox.setPosition(xPos, yPos, zPos);
-		collisionBox.add(-collisionBox.width / 2f, 0, -collisionBox.depth / 2f);
+		// Have a dummy collision box setup
+		AABBCollider blockCollider = new AABBCollider(0, 0, 0, 0, 0, 0);
 		
 		for(int yOff = -1; yOff <= 1; yOff++)
 		{
@@ -326,32 +285,11 @@ public class Entity
 				if (!block.isSolid())
 					continue;
 				
-				AABBCollider blockCollider = new AABBCollider(block.getCollisionBox());
+				// Setup the collision box for the colliding block
+				blockCollider.asAABB(block.getCollisionBox());
 				blockCollider.setPosition(blockX + xDir, blockY + yOff, blockZ + zOff);
 				
-				collisionBox.add(xVel * delta, 0, 0);
-				boolean collidesX = collisionBox.intersectsWith(blockCollider);
-				collisionBox.add(-xVel * delta, 0, 0);
-				
-				if (!collidesX)
-					continue;
-				
-				// Collision will happen, do fine stepping
-				/*float stepX = (xVel * delta) / 16f;
-				for (int step = 0; step <= 16; step++)
-				{
-					// Check for collision
-					if (collisionBox.intersectsWith(blockCollider))
-						return xDir * (step + 1);
-					
-					// Only step on the colliding axis
-					collisionBox.add(stepX, 0, 0);
-					
-					if (step == 16)
-						System.out.println("HOYX! Somethings wrong here!");
-				}*/
-				
-				float xOff = collisionBox.offsetOnX(blockCollider, xVel);
+				float xOff = collisionBox.offsetOnX(blockCollider, xVel * delta);
 				if (xOff != xVel)
 					return xOff;
 			}

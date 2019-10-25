@@ -42,6 +42,7 @@ void main (void) {
         clr *= WATER_COLOR;
 
     gl_FragColor = vec4(clr.rgb * clamp(frag_lightIntensity + AMBIENT, 0.f, 1.f), clr.a);
+    //gl_FragColor = vec4(vec3(gl_FragCoord.z), clr.a);
 
     // Fog-like effect
     //gl_FragColor = vec4(clamp((1.f - dbuff/5.f) * (frag_lightIntensity + AMBIENT), 0.f, 1.f) * clr.rgb, clr.a);

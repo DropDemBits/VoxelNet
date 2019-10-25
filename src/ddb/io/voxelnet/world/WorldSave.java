@@ -14,6 +14,7 @@ import java.nio.file.StandardCopyOption;
  */
 public class WorldSave
 {
+	//TODO: Pack lighting & meta together in world save (v1)
 	private static final byte[] SAVE_MAGIC = "VXNT".getBytes();
 	private static final int CHUNK_ENTRY_SIZE = 4*3 + 2 + 512 + 4096;
 	private static final int COLUMN_ENTRY_SIZE = 4 * 2 + 256;
@@ -163,6 +164,7 @@ public class WorldSave
 				return false;
 			}
 			
+			// TODO: Actually care about the save version now
 			// worldSeed (long): Seed used in world generation
 			
 			// Fetch the seed

@@ -11,12 +11,7 @@ public class AABBCollider
 	 */
 	public AABBCollider(AABBCollider other)
 	{
-		this.x = other.x;
-		this.y = other.y;
-		this.z = other.z;
-		this.width = other.width;
-		this.height = other.height;
-		this.depth = other.depth;
+		asAABB(other);
 	}
 	
 	public AABBCollider(float x0, float y0, float z0, float w, float h, float d)
@@ -27,6 +22,16 @@ public class AABBCollider
 		this.width  = w;
 		this.height = h;
 		this.depth  = d;
+	}
+	
+	public void asAABB(AABBCollider other)
+	{
+		this.x = other.x;
+		this.y = other.y;
+		this.z = other.z;
+		this.width = other.width;
+		this.height = other.height;
+		this.depth = other.depth;
 	}
 	
 	public void setPosition(float x, float y, float z)

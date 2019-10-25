@@ -121,7 +121,16 @@ public class Chunk
 		
 		// Update the dirty & rebuild states
 		isDirty = true;
-		layerNeedsRebuild[block.getRenderLayer().ordinal()] = true;
+		
+		if (block == Blocks.AIR)
+		{
+			forceLayerRebuild();
+		}
+		else
+		{
+			layerNeedsRebuild[block.getRenderLayer().ordinal()] = true;
+			layerNeedsRebuild[RenderLayer.OPAQUE.ordinal()] = true;
+		}
 		
 		if(Game.showThings)
 			System.out.println("block ("+x+", "+y+", "+z+") "+id);
