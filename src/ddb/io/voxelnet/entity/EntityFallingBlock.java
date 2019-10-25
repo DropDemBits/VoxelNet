@@ -10,6 +10,8 @@ public class EntityFallingBlock extends Entity
 	// The block that this entity represents
 	public final Block falling;
 	
+	private int lifetime = 0;
+	
 	public EntityFallingBlock(Block block)
 	{
 		this.falling = block;
@@ -20,6 +22,29 @@ public class EntityFallingBlock extends Entity
 	@Override
 	public void update(float delta)
 	{
+		int blockX = Math.round(xPos - 0.5f);
+		int blockY = Math.round(yPos);
+		int blockZ = Math.round(zPos - 0.5f);
+		
+		if (lifetime == 0)
+		{
+			// Block removal was deferred to here
+			
+			// Check if the current block is the same as the falling block
+			if (world.getBlock(blockX, blockY, blockZ) != falling)
+			{
+				// Not the same, kill it
+				setDead();
+				return;
+			}
+			else
+			{
+				// Current block is the same as the falling one, remove it
+				world.setBlock(blockX, blockY, blockZ, Blocks.AIR);
+			}
+		}
+		lifetime++;
+		
 		if (yPos < -64)
 		{
 			// Kill all falling blocks that are below y-level -64
@@ -40,10 +65,6 @@ public class EntityFallingBlock extends Entity
 		if (onGround)
 		{
 			// Final position found, place the block
-			int blockX = Math.round(xPos - 0.5f);
-			int blockY = Math.round(yPos);
-			int blockZ = Math.round(zPos - 0.5f);
-			
 			int yOff = 0;
 			Block block = world.getBlock(blockX, blockY, blockZ);
 			

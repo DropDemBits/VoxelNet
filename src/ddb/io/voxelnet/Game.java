@@ -178,7 +178,7 @@ public class Game {
 		
 		// Setup the world, world save/loader, and world renderer
 		world = new World();
-		worldSave = new WorldSave(world, "world-allthings/world.dat");
+		worldSave = new WorldSave(world, "world.dat");
 		worldRenderer = new WorldRenderer(world, atlas);
 		
 		// Load / Generate the world
@@ -361,7 +361,7 @@ public class Game {
 		worldRenderer.stop();
 		
 		// Save the world
-		worldSave.save();
+		//worldSave.save();
 	}
 	
 	private void update(float delta)

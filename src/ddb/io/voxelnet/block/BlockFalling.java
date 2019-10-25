@@ -27,14 +27,13 @@ public class BlockFalling extends Block
 		if(block != Blocks.AIR && !(block instanceof BlockWater))
 			return;
 		
-		// Set the old position to air
-		world.setBlock(x, y, z, Blocks.AIR);
-		
 		// Add a new falling entity
 		EntityFallingBlock falling = new EntityFallingBlock(this);
 		falling.setPos(x + 0.5f, y, z + 0.5f);
 		
 		world.addEntity(falling);
+		
+		// The current block will be removed by the falling entity
 	}
 	
 }
