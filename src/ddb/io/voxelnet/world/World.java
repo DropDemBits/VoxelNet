@@ -161,7 +161,7 @@ public class World
 	 * @param x The x position of the block
 	 * @param y The y position of the block
 	 * @param z The z position of the block
-	 * @param block The block to placek
+	 * @param block The block to place
 	 */
 	public void setBlock (int x, int y, int z, Block block)
 	{
@@ -304,8 +304,6 @@ public class World
 				loadedChunks.getOrDefault(chunkPos.add(0, 1, 0), EMPTY_CHUNK).forceLayerRebuild();
 			
 			int limit = y - oldestHeight;
-			if (lightingUpdate)
-				System.out.println(limit);
 			
 			for (int yPos = chunkPos.getY(); yPos >= 0; yPos--)
 			{
@@ -318,6 +316,8 @@ public class World
 				// adjacent chunks
 				if (!lightingUpdate && yOff <= -1)
 					break;
+				
+				//System.out.println("hoi");
 				
 				if (blockX == 0)
 					loadedChunks.getOrDefault(chunkPos.add(-1, yOff, 0), EMPTY_CHUNK).forceLayerRebuild();
@@ -588,7 +588,7 @@ public class World
 		if (accumulatedWorldTick > 1f/4f)
 		{
 			accumulatedWorldTick = 0;
-			doBlockTick();
+			//doBlockTick();
 		}
 		
 		// Add all of the pending entities

@@ -57,9 +57,9 @@ public class WorldSave
 			// Header | ColumnCount | ColumnData | ChunkCount | ChunkData
 			// Header: Defines metainfo on the file
 			// ColumnCount (int): Number of column save entries
-			// ColumnData: Varible length array holding the column data
+			// ColumnData: Variable length array holding the column data
 			// ChunkCount (int): Number of chunk save entries
-			// ChunkData: Varible length array holding the chunk data
+			// ChunkData: Variable length array holding the chunk data
 			
 			// Header:
 			// magic | saveVersion | worldSeed

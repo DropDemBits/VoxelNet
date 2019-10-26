@@ -2,15 +2,8 @@ package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.client.render.gl.BufferLayout;
 import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
-import ddb.io.voxelnet.client.render.gl.GLContext;
-
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
-import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 
 /**
  * Renders text strings to the screen
@@ -21,12 +14,12 @@ public class FontRenderer
 	private final TextureAtlas fontAtlas;
 	
 	// TODO: Group together into a sprite batcher
-	ModelBuilder quadBuilder;
-	Model quads;
+	private final ModelBuilder quadBuilder;
+	private final Model quads;
 	
-	final float FontScale = 2f;
-	final float Riser = 13;
-	final float Spacer = 6;
+	private final float FontScale = 2f;
+	private final float Riser = 13;
+	private final float Spacer = 6;
 	
 	/**
 	 * Creates a new text builder

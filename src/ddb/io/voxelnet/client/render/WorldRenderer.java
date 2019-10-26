@@ -11,7 +11,6 @@ import java.nio.BufferOverflowException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -75,24 +74,25 @@ public class WorldRenderer
 				// New chunk generated
 				newChunks = true;
 				ChunkModel model = new ChunkModel(chunk);
-				renderChunks.put(pos, model);
+				//renderChunks.put(pos, model);
 				renderList.add(model);
 				chunk.setGenerated();
 			}
-			
-			if (chunk.needsRebuild())
+		}
+		
+		for (ChunkModel model : renderList)
+		{
+			if (model.chunk.needsRebuild())
 			{
-				ChunkModel model = renderChunks.get(pos);
-				assert(model != null);
 				if (!model.isUpdatePending() && !model.isUpdateInProgress())
 				{
 					// No model update is pending, add it to the generate queue
-					generateQueue.push(renderChunks.get(pos));
-					renderChunks.get(pos).setUpdatePending(true);
+					generateQueue.push(model);
+					model.setUpdatePending(true);
 					//System.out.println("Pending Add (" + generateQueue.size() + ") " + pos.toString());
 				}
 			}
-		};
+		}
 		
 		if( (int)player.xPos >> 4 != lastChunkX ||
 			(int)player.yPos >> 4 != lastChunkY ||

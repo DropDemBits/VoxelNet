@@ -46,15 +46,9 @@ public class BlockDoor extends Block
 	public void onBlockBroken(World world, int x, int y, int z)
 	{
 		if(isUpper)
-		{
 			world.setBlock(x, y - 1, z, Blocks.AIR);
-			System.out.println("UPPER -> LOWER");
-		}
 		else
-		{
 			world.setBlock(x, y + 1, z, Blocks.AIR);
-			System.out.println("LOWER -> UPPER");
-		}
 	}
 	
 	@Override

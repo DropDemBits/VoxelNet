@@ -40,7 +40,7 @@ public class GameRenderer
 	/**
 	 * Gets the renderer for the given entity
 	 * @param entity The entity that should be rendered
-	 * @return
+	 * @return The entity renderer for the specified entity
 	 */
 	public EntityRenderer getEntityRenderer(Class<? extends Entity> entity)
 	{

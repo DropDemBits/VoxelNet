@@ -32,7 +32,12 @@ public class BlockWater extends Block
 			setFaceTextures(new int[] {13, 13, 13, 13, 13, 13});
 		setTransparent(true);
 		setHitBox(null);
-		setTickable(isUpdating);
+	}
+	
+	@Override
+	public boolean isTickable()
+	{
+		return isUpdating;
 	}
 	
 	@Override
@@ -56,7 +61,7 @@ public class BlockWater extends Block
 	
 	private void doWaterSpread(World world, int x, int y, int z)
 	{
-		// Check surronding blocks & update metas
+		// Check surrounding blocks & update metas
 		final Facing[] dirs = new Facing[] { Facing.DOWN, Facing.NORTH, Facing.WEST, Facing.SOUTH, Facing.EAST, };
 		
 		Block[] adjacentBlocks = new Block[Facing.values().length];

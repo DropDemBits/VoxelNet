@@ -190,7 +190,7 @@ public class Entity
 		
 		int blockX, blockY, blockZ;
 		blockX = (int) Math.floor(xPos);
-		blockY = (int) Math.round(yPos);
+		blockY =       Math.round(yPos);
 		blockZ = (int) Math.floor(zPos);
 		
 		// Have a dummy collision box setup

@@ -22,10 +22,10 @@ public class PlayerController
 {
 	private static final float MOUSE_SENSITIVITY = 0.45f;
 	
-	long window;
-	final EntityPlayer player;
+	private final long window;
+	private final EntityPlayer player;
 	
-	double lastX = 0.0f, lastY = 0.0f;
+	private double lastX = 0.0f, lastY = 0.0f;
 	
 	float hitX = 0.0f;
 	float hitY = 0.0f;
@@ -34,13 +34,13 @@ public class PlayerController
 	public int blockY = 0;
 	public int blockZ = 0;
 	public Facing hitFace = Facing.NORTH;
-	Block placeBlock = Blocks.GRASS;
+	private Block placeBlock = Blocks.GRASS;
 	public boolean showHit = false;
 	
-	float breakTimer = 0.0f;
-	boolean isBreaking = false;
-	float placeTimer = 0.0f;
-	boolean isPlacing = false;
+	private float breakTimer = 0.0f;
+	private boolean isBreaking = false;
+	private float placeTimer = 0.0f;
+	private boolean isPlacing = false;
 	
 	private final float boxRad = 1.375f / 16f;
 	private AABBCollider rayBox = new AABBCollider(0, 0, 0, boxRad, boxRad, boxRad);
@@ -335,25 +335,24 @@ public class PlayerController
 			}
 			
 			// Perform orthogonal step
-			boolean doXStep = false, doYStep = false, doZStep = false;
+			boolean doXStep = false, doYStep = false;
 			
 			if (tMaxX < tMaxY)
 			{
 				if (tMaxX < tMaxZ)
 					doXStep = true;
-				else
-					doZStep = true;
+				// else: Z Step is implied
 			}
 			else
 			{
 				if (tMaxY < tMaxZ)
 					doYStep = true;
-				else
-					doZStep = true;
+				// else: Z Step is implied
 			}
 			
 			if (doXStep)
 			{
+				// X Step
 				if (tMaxX > radius)
 					break;
 				
@@ -371,6 +370,7 @@ public class PlayerController
 			}
 			else if (doYStep)
 			{
+				// Y Step
 				if (tMaxY > radius)
 					break;
 				
@@ -386,8 +386,9 @@ public class PlayerController
 				if (stepY < 0)
 					hitFace = Facing.UP;
 			}
-			else if (doZStep)
+			else
 			{
+				// Z Step
 				if (tMaxZ > radius)
 					break;
 				

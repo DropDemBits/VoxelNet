@@ -28,6 +28,7 @@ public class Shader
 		System.out.println("Loading shader from " + path);
 		boolean validShader;
 		
+		// TODO: Separate out resource loading
 		try (InputStream stream = getClass().getClassLoader().getResourceAsStream(path);
 		     BufferedReader in = new BufferedReader(new InputStreamReader(stream)))
 		{

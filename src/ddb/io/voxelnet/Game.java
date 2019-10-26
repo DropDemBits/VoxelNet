@@ -471,8 +471,6 @@ public class Game {
 	
 	public static void main(String... args) throws InterruptedException
 	{
-		Thread.sleep(10000);
-		
 		// Launch the game into a new thread
 		final Game game = new Game();
 		

@@ -29,7 +29,7 @@ public class Chunk
 	// If the chunk holds data (by default, they are empty)
 	private boolean isEmpty = true;
 	// If the chunk needs to be re-rendered (per-layer)
-	private boolean[] layerNeedsRebuild = new boolean[RenderLayer.values().length];
+	private final boolean[] layerNeedsRebuild = new boolean[RenderLayer.values().length];
 	// If the chunk needs to be saved to disk
 	private boolean isDirty = false;
 	// If the chunk was recently generated
@@ -353,7 +353,7 @@ public class Chunk
 	{
 		System.out.println("ChunkDump (" + chunkX + ", " + chunkY + ", " + chunkZ + ")");
 		System.out.println("Bcnt " + blockCount);
-		System.out.println("Empt " + isEmpty + " | Rbld " + layerNeedsRebuild + " | Drty " + isDirty + " | Rgen " + recentlyGenerated);
+		System.out.println("Empt " + isEmpty + " | Rbld " + Arrays.toString(layerNeedsRebuild) + " | Drty " + isDirty + " | Rgen " + recentlyGenerated);
 	}
 	
 }

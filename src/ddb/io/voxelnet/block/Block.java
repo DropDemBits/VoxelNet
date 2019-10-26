@@ -59,8 +59,6 @@ public class Block
 	// Conditional Setters
 	private boolean isSolid = true;
 	private boolean isTransparent = false;
-	private boolean isTickable = false;
-	private boolean isRandomlyTickable = false;
 	
 	private AABBCollider hitBox = DEFAULT_COLLIDER;
 	private byte id;
@@ -109,23 +107,6 @@ public class Block
 	}
 	
 	/**
-	 * Sets the tickability of the block
-	 * @param isTickable New tickable state of the block
-	 * @return Instance of this to allow for chaining
-	 */
-	public Block setTickable(boolean isTickable)
-	{
-		this.isTickable = isTickable;
-		return this;
-	}
-	
-	public Block setRandomlyTickable(boolean isRandomlyTickable)
-	{
-		this.isRandomlyTickable = isRandomlyTickable;
-		return this;
-	}
-	
-	/**
 	 * Sets the hit box of the block
 	 * @param hitBox The new hit box of the block
 	 * @return Instance of this to allow for chaining
@@ -165,17 +146,21 @@ public class Block
 	}
 	
 	/**
-	 * Gets if the block is tickable
-	 * @return True if the block is tickable
+	 * Gets if the block can receive block ticks
+	 * @return True if the block can receive block ticks
 	 */
 	public boolean isTickable()
 	{
-		return isTickable;
+		return false;
 	}
 	
+	/**
+	 * Gets if the block can receive random block ticks
+	 * @return True if the block can receive random block ticks
+	 */
 	public boolean isRandomlyTickable()
 	{
-		return isRandomlyTickable;
+		return false;
 	}
 	
 	/**

@@ -9,7 +9,12 @@ public class BlockGrass extends Block
 	{
 		setSolid(true);
 		setFaceTextures(new int[] {1, 1, 1, 1, 0, 2});
-		setRandomlyTickable(true);
+	}
+	
+	@Override
+	public boolean isRandomlyTickable()
+	{
+		return true;
 	}
 	
 	@Override
