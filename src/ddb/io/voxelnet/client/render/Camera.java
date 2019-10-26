@@ -102,12 +102,6 @@ public class Camera
 		this.viewMatrix.rotate((float) -Math.toRadians(yaw), 0.0f, 1.0f, 0.0f);
 		this.viewMatrix.translate(-(x + xOff), -(y + yOff), -(z + zOff));
 		this.viewFrustum.updateFrustum(viewMatrix, x + xOff, y + yOff, z + xOff);
-		
-		/*this.viewMatrix.identity();
-		this.viewMatrix.scale(1f, 1f, -1f);
-		this.viewMatrix.rotate((float) -Math.toRadians(pitch), 1.0f, 0.0f, 0.0f);
-		this.viewMatrix.rotate((float) -Math.toRadians(yaw), 0.0f, 1.0f, 0.0f);
-		this.viewMatrix.translate(-(x + xOff), -(y + yOff), -(z + zOff));*/
 	}
 	
 	/**

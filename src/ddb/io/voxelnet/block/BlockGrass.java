@@ -24,22 +24,6 @@ public class BlockGrass extends Block
 		{
 			// Bye grass
 			world.setBlock(x, y, z, Blocks.DIRT);
-			return;
-		}
-		
-		for (Facing dir : Facing.CARDINAL_FACES)
-		{
-			if (world.getBlock(x + dir.getOffsetX(), y + dir.getOffsetY(), z + dir.getOffsetZ()) == Blocks.DIRT)
-			{
-				// Spread randomly, 1/4 chance
-				if (world.getBlock(x + dir.getOffsetX(), y + dir.getOffsetY() + 1, z + dir.getOffsetZ()) == Blocks.AIR
-						&& world.worldRandom.nextFloat() < 0.25)
-				{
-					world.setBlock(x + dir.getOffsetX(), y + dir.getOffsetY(), z + dir.getOffsetZ(), Blocks.GRASS);
-					// Only spread once
-					break;
-				}
-			}
 		}
 	}
 }

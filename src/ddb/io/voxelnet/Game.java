@@ -469,7 +469,7 @@ public class Game {
 	
 	private void parseArgs(String[] args) {}
 	
-	public static void main(String... args) throws InterruptedException
+	public static void main(String... args)
 	{
 		// Launch the game into a new thread
 		final Game game = new Game();

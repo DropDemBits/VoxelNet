@@ -19,7 +19,7 @@ public class Block
 		Blocks.VOID         = addBlock(-1, new BlockAir());
 		Blocks.AIR          = addBlock(0,  new BlockAir());
 		Blocks.GRASS        = addBlock(1,  new BlockGrass());
-		Blocks.DIRT         = addBlock(2,  new Block().setSolid(true).setFaceTextures(new int[] {2, 2, 2, 2, 2, 2}));
+		Blocks.DIRT         = addBlock(2,  new BlockDirt());
 		Blocks.STONE        = addBlock(3,  new Block().setSolid(true).setFaceTextures(new int[] {3, 3, 3, 3, 3, 3}));
 		Blocks.PLANKS       = addBlock(4,  new Block().setSolid(true).setFaceTextures(new int[] {4, 4, 4, 4, 4, 4}));
 		Blocks.STONE_BRICKS = addBlock(5,  new Block().setSolid(true).setFaceTextures(new int[] {5, 5, 5, 5, 5, 5}));

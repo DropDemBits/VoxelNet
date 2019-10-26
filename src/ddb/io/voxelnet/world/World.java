@@ -588,7 +588,7 @@ public class World
 		if (accumulatedWorldTick > 1f/4f)
 		{
 			accumulatedWorldTick = 0;
-			//doBlockTick();
+			doBlockTick();
 		}
 		
 		// Add all of the pending entities
@@ -611,35 +611,27 @@ public class World
 		List<Chunk> workingList = new ArrayList<>(loadedChunks.values());
 		workingList.iterator().forEachRemaining((chunk) ->
 		{
-			int randomTickCounts = 0;
-			
-			// y z x
-			for (int y = 0; y < 16; y++)
+			for (Vec3i pos : chunk.tickables)
 			{
-				for (int z = 0; z < 16; z++)
-				{
-					for (int x = 0; x < 16; x++)
-					{
-						Block block = Block.idToBlock(chunk.getBlock(x, y, z));
-						
-						if (block.isTickable())
-							block.onTick(this, x + chunk.chunkX * 16, y + chunk.chunkY * 16, z + chunk.chunkZ * 16);
-						
-						if (block.isRandomlyTickable() && worldRandom.nextFloat() < 1/16f)
-						{
-							randomTickCounts++;
-							
-							if (randomTickCounts < 128)
-							{
-								block.onRandomTick(this, x + chunk.chunkX * 16, y + chunk.chunkY * 16, z + chunk.chunkZ * 16);
-							}
-						}
-					}
-				}
+				Block block = Block.idToBlock(chunk.getBlock(pos.getX(), pos.getY(), pos.getZ()));
+				block.onTick(this, pos.getX() + chunk.chunkX * 16, pos.getY() + chunk.chunkY * 16, pos.getZ() + chunk.chunkZ * 16);
+			}
+			
+			// Select 24 different positions
+			for (int i = 0; i < 24; i++)
+			{
+				int x = worldRandom.nextInt(16);
+				int y = worldRandom.nextInt(16);
+				int z = worldRandom.nextInt(16);
+				
+				Block block = Block.idToBlock(chunk.getBlock(x, y, z));
+				
+				if (block.isRandomlyTickable())
+					block.onRandomTick(this, x + chunk.chunkX * 16, y + chunk.chunkY * 16, z + chunk.chunkZ * 16);
 			}
 		});
 		
-		// XXX: AGGGH! Use a better solution?
+		// XXX: AGGGH! Refactor so that no static are used
 		BlockWater.updateWater(this);
 	}
 	

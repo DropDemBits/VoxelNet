@@ -4,8 +4,11 @@ import ddb.io.voxelnet.Game;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.client.render.RenderLayer;
+import ddb.io.voxelnet.util.Vec3i;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Representation of a game chunk (16*16*16 chunk of tiles)
@@ -34,6 +37,8 @@ public class Chunk
 	private boolean isDirty = false;
 	// If the chunk was recently generated
 	private boolean recentlyGenerated = true;
+	
+	public List<Vec3i> tickables = new ArrayList<>();
 	
 	/**
 	 * Constructs a new chunk
@@ -168,6 +173,11 @@ public class Chunk
 			if (blockLayers[y] < 0)
 				blockLayers[y] = 0;
 		}
+		
+		if (!lastBlock.isTickable() && block.isTickable())
+			tickables.add(new Vec3i(x, y, z));
+		else if (lastBlock.isTickable() && !block.isTickable())
+			tickables.remove(new Vec3i(x, y, z));
 	}
 	
 	/**
