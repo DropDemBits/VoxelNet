@@ -7,6 +7,7 @@ import ddb.io.voxelnet.world.Chunk;
 import ddb.io.voxelnet.world.World;
 import org.lwjgl.opengl.GL11;
 
+import java.nio.BufferOverflowException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,6 +18,8 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class WorldRenderer
 {
+	private static final RenderLayer[] transparentLayers = new RenderLayer[] { RenderLayer.FLUID, RenderLayer.TRANSPARENT };
+	
 	// Player that the world is rendered around
 	private EntityPlayer player;
 	// List of all chunk models
@@ -201,7 +204,6 @@ public class WorldRenderer
 			transparentChunks.sort((a, b) -> -distanceSort(a, b));*/
 		
 		// Reverse iterate through the array & other layers
-		final RenderLayer[] transparentLayers = new RenderLayer[] { RenderLayer.FLUID, RenderLayer.TRANSPARENT };
 		for (RenderLayer layer : transparentLayers)
 		{
 			long transparentAccum = 0;
@@ -318,8 +320,15 @@ public class WorldRenderer
 			model.setUpdateProgress(true);
 			
 			modelUpdates.incrementAndGet();
-			if(!model.updateModel(atlas))
-				System.err.println("OI, MODEL UPDATE DIDN'T HAPPEN @ " + new Vec3i(model.chunk.chunkX, model.chunk.chunkY, model.chunk.chunkZ).toString());
+			try
+			{
+				if (!model.updateModel(atlas))
+					System.err.println("OI, MODEL UPDATE DIDN'T HAPPEN @ " + new Vec3i(model.chunk.chunkX, model.chunk.chunkY, model.chunk.chunkZ).toString());
+			}
+			catch(BufferOverflowException e)
+			{
+				e.printStackTrace();
+			}
 			modelUpdates.decrementAndGet();
 			
 			model.setUpdateProgress(false);

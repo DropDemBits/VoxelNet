@@ -3,6 +3,7 @@ package ddb.io.voxelnet.client.render;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.BlockWater;
 import ddb.io.voxelnet.block.Blocks;
+import ddb.io.voxelnet.client.render.gl.BufferLayout;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.Chunk;
 
@@ -26,7 +27,7 @@ public class BlockRenderer
 	/**
 	 * Adds a cube to a model
 	 * Performs automatic face culling
-	 * @param model The model to add the cube to
+	 * @param builder The model builder to add the cube to
 	 * @param chunk The chunk the cube exists in
 	 * @param x The x position of the cube, relative to the chunk
 	 * @param y The y position of the cube, relative to the chunk
@@ -34,7 +35,7 @@ public class BlockRenderer
 	 * @param faceTextures The face textures for each face
 	 * @param atlas The texture atlas to use
 	 */
-	public static void addCube(Model model, Chunk[] adjacentChunks, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
+	public static void addCube(ModelBuilder builder, Chunk[] adjacentChunks, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
 	{
 		for (Facing face : Facing.values())
 		{
@@ -69,7 +70,7 @@ public class BlockRenderer
 			final float[] faceIntensities = new float[] { 0.75f, 0.75f, 0.75f, 0.75f, 0.95f, 0.55f };
 			
 			BlockRenderer.addCubeFace(
-					model,
+					builder,
 					(float) (x),
 					(float) (y),
 					(float) (z),
@@ -81,65 +82,64 @@ public class BlockRenderer
 	
 	/**
 	 * Adds a cube face to the model
-	 * @param model The model to modify
+	 * @param builder The ModelBuilder to use
 	 * @param x The x block coordinate of the face
 	 * @param y The y block coordinate of the face
 	 * @param z The z block coordinate of the face
 	 * @param face The specific face to draw.
 	 * @param texCoords The texture coordinates of the face
 	 */
-	public static void addCubeFace(Model model, float x, float y, float z, Facing face, short[] texCoords, float intensity)
+	public static void addCubeFace(ModelBuilder builder, float x, float y, float z, Facing face, short[] texCoords, byte intensity)
 	{
-		model.beginPoly();
+		builder.addPoly(4);
 		switch (face)
 		{
 			case NORTH:
 				// North Face
-				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[0], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1], intensity);
+				builder.pos3(x + 0.0f, y + 1.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 1.0f, z + 0.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
 				break;
 			case WEST:
 				// West Face
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1], intensity);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[2], texCoords[3], intensity);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[0], texCoords[3], intensity);
+				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 1.0f, z + 1.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 1.0f, z + 0.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
 				break;
 			case SOUTH:
 				// South Face
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1], intensity);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[2], texCoords[3], intensity);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3], intensity);
+				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 1.0f, z + 1.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 1.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
 				break;
 			case EAST:
 				// East Face
-				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1], intensity);
+				builder.pos3(x + 1.0f, y + 1.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 1.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
 				break;
 			case UP:
 				// Up/Top Face
-				model.addVertex(x + 0.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[1], intensity);
-				model.addVertex(x + 0.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 1.0f, texCoords[0], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + 1.0f, z + 0.0f, texCoords[2], texCoords[3], intensity);
+				builder.pos3(x + 0.0f, y + 1.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 1.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 1.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 1.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
 				break;
 			case DOWN:
 				// Down/Bottom Face
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[3], intensity);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1], intensity);
+				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
 				break;
 		}
-		model.endPoly();
 	}
 	
-	public static void addFluid(Model model, Chunk[] adjacentChunks, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
+	public static void addFluid(ModelBuilder builder, Chunk[] adjacentChunks, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
 	{
 		byte meta = chunk.getBlockMeta(x, y, z);
 		// x = i % 3
@@ -248,7 +248,7 @@ public class BlockRenderer
 			final float[] faceIntensities = new float[] { 0.75f, 0.75f, 0.75f, 0.75f, 0.95f, 0.55f };
 			
 			addFluidFace(
-					model,
+					builder,
 					x,
 					y,
 					z,
@@ -300,55 +300,54 @@ public class BlockRenderer
 		return retval;
 	}
 	
-	private static void addFluidFace(Model model, float x, float y, float z, float nw, float sw, float se, float ne, Facing face, short[] texCoords, float intensity)
+	private static void addFluidFace(ModelBuilder builder, float x, float y, float z, float nw, float sw, float se, float ne, Facing face, short[] texCoords, byte intensity)
 	{
-		model.beginPoly();
+		builder.addPoly(4);
 		switch (face)
 		{
 			case NORTH:
 				// North Face
-				model.addVertex(x + 0.0f, y + nw, z + 0.0f, texCoords[2], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + ne, z + 0.0f, texCoords[0], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1], intensity);
+				builder.pos3(x + 0.0f, y + nw,   z + 0.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + ne,   z + 0.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
 				break;
 			case WEST:
 				// West Face
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1], intensity);
-				model.addVertex(x + 0.0f, y + sw, z + 1.0f, texCoords[2], texCoords[3], intensity);
-				model.addVertex(x + 0.0f, y + nw, z + 0.0f, texCoords[0], texCoords[3], intensity);
+				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + sw,   z + 1.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + nw,   z + 0.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
 				break;
 			case SOUTH:
 				// South Face
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[2], texCoords[1], intensity);
-				model.addVertex(x + 1.0f, y + se, z + 1.0f, texCoords[2], texCoords[3], intensity);
-				model.addVertex(x + 0.0f, y + sw, z + 1.0f, texCoords[0], texCoords[3], intensity);
+				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + se,   z + 1.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + sw,   z + 1.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
 				break;
 			case EAST:
 				// East Face
-				model.addVertex(x + 1.0f, y + ne, z + 0.0f, texCoords[2], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + se, z + 1.0f, texCoords[0], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1], intensity);
+				builder.pos3(x + 1.0f, y + ne,   z + 0.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + se,   z + 1.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
 				break;
 			case UP:
 				// Up/Top Face
-				model.addVertex(x + 0.0f, y + nw, z + 0.0f, texCoords[2], texCoords[1], intensity);
-				model.addVertex(x + 0.0f, y + sw, z + 1.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 1.0f, y + se, z + 1.0f, texCoords[0], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + ne, z + 0.0f, texCoords[2], texCoords[3], intensity);
+				builder.pos3(x + 0.0f, y + nw,   z + 0.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + sw,   z + 1.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + se,   z + 1.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + ne,   z + 0.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
 				break;
 			case DOWN:
 				// Down/Bottom Face
-				model.addVertex(x + 1.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[3], intensity);
-				model.addVertex(x + 1.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[3], intensity);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 1.0f, texCoords[0], texCoords[1], intensity);
-				model.addVertex(x + 0.0f, y + 0.0f, z + 0.0f, texCoords[2], texCoords[1], intensity);
+				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light2(intensity).endVertex();
+				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light2(intensity).endVertex();
 				break;
 		}
-		model.endPoly();
 	}
 	
 	private static Block getAdjacentBlock(int x, int y, int z, Facing face, Chunk[] adjacentChunks, Chunk chunk)

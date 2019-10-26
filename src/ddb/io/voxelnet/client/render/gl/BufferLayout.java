@@ -1,9 +1,10 @@
-package ddb.io.voxelnet.client.render;
+package ddb.io.voxelnet.client.render.gl;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL20.*;
 
 public class BufferLayout
 {
@@ -56,14 +57,33 @@ public class BufferLayout
 	 * Gets the stride of the buffer layout
 	 * @return The total stride of the buffer layout, in bytes
 	 */
-	int getStride()
+	public int getStride()
 	{
 		return stride;
 	}
 	
-	List<BufferAttrib> getLayout()
+	public List<BufferAttrib> getLayout()
 	{
 		return layout;
+	}
+	
+	public void bindLayout()
+	{
+		// TODO: Don't do this if we have VAOs
+		for (BufferLayout.BufferAttrib attrib : getLayout())
+		{
+			glEnableVertexAttribArray(attrib.index);
+			glVertexAttribPointer(attrib.index, attrib.count, attrib.type.toGLType(), attrib.normalized, getStride(), attrib.offset);
+		}
+	}
+	
+	public void unbindLayout()
+	{
+		// TODO: Don't do this if we have VAOs
+		for (BufferLayout.BufferAttrib attrib : getLayout())
+		{
+			glDisableVertexAttribArray(attrib.index);
+		}
 	}
 	
 	/**
@@ -118,14 +138,14 @@ public class BufferLayout
 	/**
 	 * Class / Struct representing a buffer attribute
 	 */
-	static class BufferAttrib
+	public static class BufferAttrib
 	{
 		/** Attribute Index */
 		final int index;
 		/** Count of the specified type */
-		final int count;
+		public final int count;
 		/** Type of the buffer attribute */
-		final EnumAttribType type;
+		public final EnumAttribType type;
 		/** If the attribute is normalized or not */
 		final boolean normalized;
 		/** Offset inside the buffer to the first attribute */

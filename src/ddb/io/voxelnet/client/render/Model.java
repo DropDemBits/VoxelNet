@@ -1,5 +1,8 @@
 package ddb.io.voxelnet.client.render;
 
+import ddb.io.voxelnet.client.render.gl.BufferLayout;
+import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
+import ddb.io.voxelnet.client.render.gl.GLContext;
 import org.joml.Matrix4f;
 
 import java.nio.ByteBuffer;
@@ -95,20 +98,25 @@ public class Model
 	}
 	
 	/**
-	 * Updates the data of the GL Buffers
+	 * Updates the data of the GL Buffers with the given model builder
 	 */
-	public void updateVertices()
+	public void updateVertices(ModelBuilder builder)
 	{
-		// Fetch the vertex data
-		ByteBuffer buf = ByteBuffer.allocateDirect(vertexData.size() * layout.getStride());
-		buf.order(ByteOrder.nativeOrder());
+		indiciesCount = builder.indexCount;
 		
-		vertexData.iterator().forEachRemaining(buf::put);
-		buf.flip();
-		
-		glBufferData(GL_ARRAY_BUFFER, buf, GL_STATIC_DRAW);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, getIndexData(), GL_STATIC_DRAW);
-		indiciesCount = indices.size();
+		if (indiciesCount > 0)
+		{
+			builder.vertexBuffer.flip();
+			builder.indexBuffer.flip();
+			
+			glBufferData(GL_ARRAY_BUFFER, builder.vertexBuffer, GL_STATIC_DRAW);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, builder.indexBuffer, GL_STATIC_DRAW);
+		}
+		else
+		{
+			glBufferData(GL_ARRAY_BUFFER, 0, GL_STATIC_DRAW);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, GL_STATIC_DRAW);
+		}
 	}
 	
 	/**
@@ -124,12 +132,7 @@ public class Model
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboHandle);
 		
 		// Load the buffer layout
-		// TODO: Don't do this if we have VAOs
-		for (BufferLayout.BufferAttrib attrib : layout.getLayout())
-		{
-			glEnableVertexAttribArray(attrib.index);
-			glVertexAttribPointer(attrib.index, attrib.count, attrib.type.toGLType(), attrib.normalized, layout.getStride(), attrib.offset);
-		}
+		layout.bindLayout();
 	}
 	
 	/**
@@ -138,6 +141,7 @@ public class Model
 	 */
 	public void unbind()
 	{
+		// TODO: Pass in RenderContext to lazy-unload the current layout
 		if(!isBound)
 			return;
 		isBound = false;
@@ -146,11 +150,7 @@ public class Model
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		
 		// Unload the buffer layout
-		// TODO: Don't do this if we have VAOs
-		for (BufferLayout.BufferAttrib attrib : layout.getLayout())
-		{
-			glDisableVertexAttribArray(attrib.index);
-		}
+		layout.unbindLayout();
 	}
 	
 	/**
@@ -185,7 +185,7 @@ public class Model
 	 * Reset the construction state
 	 * Used to regenerate models
 	 */
-	public void reset()
+	/*public void reset()
 	{
 		polyCount = 0;
 		polyStart = 0;
@@ -198,7 +198,7 @@ public class Model
 	 * Frees the construction data
 	 * Done after the vertices have been updated
 	 */
-	public void freeData()
+	/*public void freeData()
 	{
 		vertexData.clear();
 		indices.clear();
@@ -207,7 +207,7 @@ public class Model
 	/**
 	 * Begins constructing a polygon
 	 */
-	public void beginPoly()
+	/*public void beginPoly()
 	{
 		if (constructingPolygon)
 		{
@@ -226,7 +226,7 @@ public class Model
 	/**
 	 * Finishes the construction of a polygon
 	 */
-	public void endPoly()
+	/*public void endPoly()
 	{
 		if (!constructingPolygon)
 			// Do nothing
@@ -246,7 +246,7 @@ public class Model
 	 * Adds a single vertex, in the specified buffer layout
 	 * @param values The values of the vertex
 	 */
-	public void addVertex(Number... values)
+	/*public void addVertex(Number... values)
 	{
 		// Build the vertex data
 		int valuePointer = 0;
@@ -310,6 +310,6 @@ public class Model
 			if (polyCount > 1)
 				indices.add(index);
 		}
-	}
+	}*/
 	
 }

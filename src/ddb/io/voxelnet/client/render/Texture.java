@@ -1,5 +1,6 @@
 package ddb.io.voxelnet.client.render;
 
+import ddb.io.voxelnet.client.render.gl.GLContext;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;

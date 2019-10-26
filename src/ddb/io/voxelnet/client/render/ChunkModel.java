@@ -1,6 +1,7 @@
 package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.Chunk;
 import org.joml.Matrix4f;
@@ -19,6 +20,8 @@ class ChunkModel
 	private final Matrix4f modelMatrix;
 	final Chunk chunk;
 	private final Model[] modelLayers = new Model[RenderLayer.values().length];
+	private final ModelBuilder[] builderLayers = new ModelBuilder[RenderLayer.values().length];
+	
 	private volatile boolean isDirty = false;
 	private volatile boolean updatePending = false;
 	private volatile boolean updateInProgress = false;
@@ -44,6 +47,8 @@ class ChunkModel
 		{
 			modelLayers[layer.ordinal()] = new Model(BlockRenderer.BLOCK_LAYOUT);
 			modelLayers[layer.ordinal()].setTransform(this.modelMatrix);
+			
+			builderLayers[layer.ordinal()] = new ModelBuilder(BlockRenderer.BLOCK_LAYOUT, EnumDrawMode.TRIANGLES);
 		}
 		
 		this.updateLock = new ReentrantLock();
@@ -70,9 +75,8 @@ class ChunkModel
 			{
 				chunk.resetLayerRebuildStatus(layer);
 				layerNeedsUpdate[layer.ordinal()] = true;
-				
-				if (modelLayers[layer.ordinal()].getIndexCount() > 0)
-					modelLayers[layer.ordinal()].reset();
+				builderLayers[layer.ordinal()].reset();
+				builderLayers[layer.ordinal()].compact();
 			}
 			
 			--updateAttempts;
@@ -125,7 +129,8 @@ class ChunkModel
 			System.out.println(", Current Generate Time: " + (currentGenerate) / 1000000.0d);
 			System.out.println(BlockRenderer.statNear + ", " + BlockRenderer.statSolid + ", " + BlockRenderer.statNoShow);
 			System.out.println("---------------------------------");
-		}*/
+		}
+		//*/
 		
 		--updateAttempts;
 		updateLock.unlock();
@@ -134,11 +139,10 @@ class ChunkModel
 	
 	private void rebuildLayer(RenderLayer layer, TextureAtlas atlas)
 	{
-		Model targetModel = modelLayers[layer.ordinal()];
+		ModelBuilder targetBuilder = builderLayers[layer.ordinal()];
 		
-		// Reset the model layer
-		if (targetModel.getIndexCount() > 0)
-			targetModel.reset();
+		// Reset the builder
+		targetBuilder.reset();
 		
 		// Current layer will need update
 		layerNeedsUpdate[layer.ordinal()] = true;
@@ -202,10 +206,10 @@ class ChunkModel
 					switch (block.getRenderModel())
 					{
 						case CUBE:
-							BlockRenderer.addCube(targetModel, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
+							BlockRenderer.addCube(targetBuilder, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
 							break;
 						case FLUID:
-							BlockRenderer.addFluid(targetModel, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
+							BlockRenderer.addFluid(targetBuilder, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
 							break;
 					}
 				}
@@ -304,8 +308,8 @@ class ChunkModel
 			// Update the model & clear the vertices
 			if (layerNeedsUpdate[layer.ordinal()])
 			{
-				updatingModel.updateVertices();
-				updatingModel.freeData();
+				updatingModel.updateVertices(builderLayers[layer.ordinal()]);
+				builderLayers[layer.ordinal()].compact();
 			}
 			
 			layerNeedsUpdate[layer.ordinal()] = false;

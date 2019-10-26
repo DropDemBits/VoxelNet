@@ -1,5 +1,9 @@
 package ddb.io.voxelnet.client.render;
 
+import ddb.io.voxelnet.client.render.gl.BufferLayout;
+import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
+import ddb.io.voxelnet.client.render.gl.GLContext;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -16,13 +20,9 @@ public class FontRenderer
 	private final Texture fontTexture;
 	private final TextureAtlas fontAtlas;
 	
-	// Internal buffer for quads
-	private final ByteBuffer quadBuffer;
-	
-	// TEMPORARY: Use model/sprite batcher for handling the buffers
-	// GL *BO Handles
-	private final int vboHandle;
-	private final int iboHandle;
+	// TODO: Group together into a sprite batcher
+	ModelBuilder quadBuilder;
+	Model quads;
 	
 	final float FontScale = 2f;
 	final float Riser = 13;
@@ -36,16 +36,10 @@ public class FontRenderer
 	{
 		fontTexture = new Texture(fontPath);
 		fontAtlas = new TextureAtlas(fontTexture, 16, 16);
+		
+		quads = new Model(BufferLayout.QUAD_LAYOUT);
 		// Enqueue up to 512 characters
-		quadBuffer = ByteBuffer.allocateDirect(BufferLayout.QUAD_LAYOUT.getStride() * 6 * 512);
-		quadBuffer.order(ByteOrder.nativeOrder());
-		quadBuffer.clear();
-		
-		vboHandle = glGenBuffers();
-		iboHandle = glGenBuffers();
-		
-		GLContext.INSTANCE.addBuffer(vboHandle);
-		GLContext.INSTANCE.addBuffer(iboHandle);
+		quadBuilder = new ModelBuilder(BufferLayout.QUAD_LAYOUT, EnumDrawMode.TRIANGLES, 4 * 512);
 	}
 	
 	/**
@@ -53,23 +47,15 @@ public class FontRenderer
 	 */
 	public void flush()
 	{
-		quadBuffer.flip();
-		if (quadBuffer.hasRemaining())
+		if (quadBuilder.hasData())
 		{
 			fontTexture.bind(1);
-			glBindBuffer(GL_ARRAY_BUFFER, vboHandle);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-			BufferLayout layout = BufferLayout.QUAD_LAYOUT;
-			for (BufferLayout.BufferAttrib attrib : layout.getLayout())
-			{
-				glEnableVertexAttribArray(attrib.index);
-				glVertexAttribPointer(attrib.index, attrib.count, attrib.type.toGLType(), attrib.normalized, layout.getStride(), attrib.offset);
-			}
-			
-			glBufferData(GL_ARRAY_BUFFER, quadBuffer, GL_STATIC_DRAW);
-			glDrawArrays(GL_TRIANGLES, 0, (quadBuffer.remaining() / BufferLayout.QUAD_LAYOUT.getStride()));
+			quads.bind();
+			quads.updateVertices(quadBuilder);
+			glDrawElements(GL_TRIANGLES, quads.getIndexCount(), GL_UNSIGNED_INT, 0);
+			quads.unbind();
 		}
-		quadBuffer.clear();
+		quadBuilder.reset();
 	}
 	
 	/**
@@ -99,14 +85,13 @@ public class FontRenderer
 		// 0-3
 		// |\|
 		// 1-2
-		quadBuffer.putFloat(xMin).putFloat(yMin).putShort(texCoords[0]).putShort(texCoords[3]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 0
-		quadBuffer.putFloat(xMin).putFloat(yMax).putShort(texCoords[0]).putShort(texCoords[1]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 1
-		quadBuffer.putFloat(xMax).putFloat(yMax).putShort(texCoords[2]).putShort(texCoords[1]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 2
-		quadBuffer.putFloat(xMax).putFloat(yMax).putShort(texCoords[2]).putShort(texCoords[1]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 2
-		quadBuffer.putFloat(xMax).putFloat(yMin).putShort(texCoords[2]).putShort(texCoords[3]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 3
-		quadBuffer.putFloat(xMin).putFloat(yMin).putShort(texCoords[0]).putShort(texCoords[3]).putFloat(1).putFloat(1).putFloat(1).putFloat(1); // 0
+		quadBuilder.addPoly(4);
+		quadBuilder.pos2(xMin, yMin).tex2(texCoords[0], texCoords[3]).colour4(1, 1, 1, 1).endVertex(); // 0
+		quadBuilder.pos2(xMin, yMax).tex2(texCoords[0], texCoords[1]).colour4(1, 1, 1, 1).endVertex(); // 1
+		quadBuilder.pos2(xMax, yMax).tex2(texCoords[2], texCoords[1]).colour4(1, 1, 1, 1).endVertex(); // 2
+		quadBuilder.pos2(xMax, yMin).tex2(texCoords[2], texCoords[3]).colour4(1, 1, 1, 1).endVertex(); // 3
 		
-		if (!quadBuffer.hasRemaining())
+		if (quadBuilder.needsResize())
 			flush();
 	}
 	

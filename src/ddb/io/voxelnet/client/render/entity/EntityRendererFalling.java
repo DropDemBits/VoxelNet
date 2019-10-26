@@ -1,6 +1,7 @@
 package ddb.io.voxelnet.client.render.entity;
 
 import ddb.io.voxelnet.client.render.*;
+import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
 import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.entity.EntityFallingBlock;
 import ddb.io.voxelnet.util.Facing;
@@ -9,11 +10,14 @@ import org.joml.Matrix4f;
 public class EntityRendererFalling extends EntityRenderer
 {
 	private final Model model;
+	private final ModelBuilder builder;
 	
 	public EntityRendererFalling()
 	{
 		model = new Model(BlockRenderer.BLOCK_LAYOUT);
 		model.setTransform(new Matrix4f());
+		
+		builder = new ModelBuilder(BlockRenderer.BLOCK_LAYOUT, EnumDrawMode.TRIANGLES);
 	}
 	
 	@Override
@@ -21,7 +25,8 @@ public class EntityRendererFalling extends EntityRenderer
 	{
 		EntityFallingBlock entity = (EntityFallingBlock)e;
 		
-		model.reset();
+		// Reset the builder to draw another cube
+		builder.reset();
 		
 		// Build the cube model on the fly
 		// This is not the most optimal way of doing things, but... it
@@ -35,12 +40,13 @@ public class EntityRendererFalling extends EntityRenderer
 			
 			final float[] faceIntensities = new float[] { 0.75f, 0.75f, 0.75f, 0.75f, 0.95f, 0.55f };
 			short[] texCoords = renderer.tileAtlas.getPixelPositions(faceTextures[face.ordinal()]);
-			BlockRenderer.addCubeFace(model, 0, 0, 0, face, texCoords, (faceIntensities[face.ordinal()] * 255));
+			BlockRenderer.addCubeFace(builder, 0, 0, 0, face, texCoords, (byte)(faceIntensities[face.ordinal()] * 255));
 		}
 		
 		model.bind();
-		model.updateVertices();
-		model.freeData();
+		model.updateVertices(builder);
+		// Compact the builder to free up unused data
+		builder.compact();
 		
 		// Setup the transform
 		model.getTransform().identity().translate(e.xPos - 0.5f, e.yPos, e.zPos - 0.5f);

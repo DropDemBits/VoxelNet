@@ -290,7 +290,7 @@ public class Entity
 				blockCollider.setPosition(blockX + xDir, blockY + yOff, blockZ + zOff);
 				
 				float xOff = collisionBox.offsetOnX(blockCollider, xVel * delta);
-				if (xOff != xVel)
+				if (xOff != xVel * delta)
 					return xOff;
 			}
 		}

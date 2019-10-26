@@ -1,5 +1,7 @@
 package ddb.io.voxelnet.client.render;
 
+import ddb.io.voxelnet.client.render.gl.GLContext;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;

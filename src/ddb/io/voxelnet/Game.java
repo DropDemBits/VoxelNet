@@ -2,6 +2,9 @@ package ddb.io.voxelnet;
 
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.client.render.entity.EntityRendererFalling;
+import ddb.io.voxelnet.client.render.gl.BufferLayout;
+import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
+import ddb.io.voxelnet.client.render.gl.GLContext;
 import ddb.io.voxelnet.entity.EntityFallingBlock;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.client.input.PlayerController;
@@ -62,6 +65,7 @@ public class Game {
 	double frameTime = 0;
 	double updTime = 0;
 	int currentFPS = 0;
+	double currentUPD = 0;
 	
 	// Global Event Bus
 	public static final EventBus GLOBAL_BUS = new EventBus();
@@ -177,6 +181,7 @@ public class Game {
 		renderer.registerEntityRenderer(EntityFallingBlock.class, new EntityRendererFalling());
 		
 		// Setup the world, world save/loader, and world renderer
+		// "world-allthings" is main world
 		world = new World();
 		worldSave = new WorldSave(world, "world.dat");
 		worldRenderer = new WorldRenderer(world, atlas);
@@ -212,63 +217,69 @@ public class Game {
 		camera.setOffset(0, player.eyeHeight, 0);
 		renderer.useCamera(camera);
 		
-		// Setup the hitbox & shader
-		blackShader = new Shader("assets/shaders/blackShader.glsl");
+		{
+			// Setup the hitbox & shader
+			blackShader = new Shader("assets/shaders/blackShader.glsl");
+			
+			BufferLayout simpleLayout = new BufferLayout();
+			simpleLayout.addAttribute(BufferLayout.EnumAttribType.FLOAT, 3, false);
+			ModelBuilder builder = new ModelBuilder(simpleLayout, EnumDrawMode.TRIANGLES, 4);
+			
+			hitBox = new Model(simpleLayout);
+			hitBox.setTransform(new Matrix4f());
+			hitBox.setDrawMode(EnumDrawMode.TRIANGLES);
 		
-		BufferLayout simpleLayout = new BufferLayout();
-		simpleLayout.addAttribute(BufferLayout.EnumAttribType.FLOAT, 3, false);
-		
-		hitBox = new Model(simpleLayout);
-		hitBox.setTransform(new Matrix4f());
-		hitBox.setDrawMode(EnumDrawMode.TRIANGLES);
-		
-		/*
-		hitBox.beginPoly();
-		hitBox.addVertex(0f, 1f, 0f);
-		hitBox.addVertex(1f, 1f, 0f);
-		hitBox.addVertex(1f, 0f, 0f);
-		hitBox.addVertex(0f, 0f, 0f);
-		hitBox.endPoly();
-		
-		hitBox.beginPoly();
-		hitBox.addVertex(0f, 1f, 1f);
-		hitBox.addVertex(1f, 1f, 1f);
-		hitBox.addVertex(1f, 0f, 1f);
-		hitBox.addVertex(0f, 0f, 1f);
-		hitBox.endPoly();
-		
-		hitBox.beginPoly();
-		hitBox.addVertex(0f, 0f, 0f);
-		hitBox.addVertex(0f, 1f, 0f);
-		hitBox.addVertex(0f, 1f, 1f);
-		hitBox.addVertex(0f, 0f, 1f);
-		hitBox.endPoly();
-		
-		hitBox.beginPoly();
-		hitBox.addVertex(1f, 0f, 1f);
-		hitBox.addVertex(1f, 1f, 1f);
-		hitBox.addVertex(1f, 1f, 0f);
-		hitBox.addVertex(1f, 0f, 0f);
-		hitBox.endPoly();
-		
-		hitBox.beginPoly();
-		hitBox.addVertex(0f, 0f, 0f);
-		hitBox.addVertex(0f, 0f, 1f);
-		hitBox.addVertex(1f, 0f, 1f);
-		hitBox.addVertex(1f, 0f, 0f);
-		hitBox.endPoly();
-		//*/
-		
-		hitBox.beginPoly();
-		hitBox.addVertex(0f, 1f, 0f);
-		hitBox.addVertex(0f, 1f, 1f);
-		hitBox.addVertex(1f, 1f, 1f);
-		hitBox.addVertex(1f, 1f, 0f);
-		hitBox.endPoly();
-		
-		hitBox.bind();
-		hitBox.updateVertices();
-		hitBox.unbind();
+			/*
+			hitBox.beginPoly();
+			hitBox.addVertex(0f, 1f, 0f);
+			hitBox.addVertex(1f, 1f, 0f);
+			hitBox.addVertex(1f, 0f, 0f);
+			hitBox.addVertex(0f, 0f, 0f);
+			hitBox.endPoly();
+			
+			hitBox.beginPoly();
+			hitBox.addVertex(0f, 1f, 1f);
+			hitBox.addVertex(1f, 1f, 1f);
+			hitBox.addVertex(1f, 0f, 1f);
+			hitBox.addVertex(0f, 0f, 1f);
+			hitBox.endPoly();
+			
+			hitBox.beginPoly();
+			hitBox.addVertex(0f, 0f, 0f);
+			hitBox.addVertex(0f, 1f, 0f);
+			hitBox.addVertex(0f, 1f, 1f);
+			hitBox.addVertex(0f, 0f, 1f);
+			hitBox.endPoly();
+			
+			hitBox.beginPoly();
+			hitBox.addVertex(1f, 0f, 1f);
+			hitBox.addVertex(1f, 1f, 1f);
+			hitBox.addVertex(1f, 1f, 0f);
+			hitBox.addVertex(1f, 0f, 0f);
+			hitBox.endPoly();
+			
+			hitBox.beginPoly();
+			hitBox.addVertex(0f, 0f, 0f);
+			hitBox.addVertex(0f, 0f, 1f);
+			hitBox.addVertex(1f, 0f, 1f);
+			hitBox.addVertex(1f, 0f, 0f);
+			hitBox.endPoly();
+			//*/
+			
+			builder.addPoly(4);
+			builder.pos3(0f, 1f, 0f).endVertex();
+			builder.pos3(0f, 1f, 1f).endVertex();
+			builder.pos3(1f, 1f, 1f).endVertex();
+			builder.pos3(1f, 1f, 0f).endVertex();
+			
+			hitBox.bind();
+			hitBox.updateVertices(builder);
+			hitBox.unbind();
+			
+			// Reset the builder buffer
+			builder.reset();
+			builder.compact();
+		}
 		
 		// Setup the initial projection matrix
 		camera.updatePerspective((float) INITIAL_WIDTH / (float) INITIAL_HEIGHT);
@@ -298,7 +309,7 @@ public class Game {
 		double lag = 0;
 		
 		double secondTimer = glfwGetTime();
-		final double MS_PER_UPDATE = 1.0 / 60.0;
+		final double MS_PER_PHYSICS_TICK = 1.0 / 60.0;
 		
 		while(!glfwWindowShouldClose(window))
 		{
@@ -314,16 +325,21 @@ public class Game {
 			// Catchup loop
 			boolean didUpdate = false;
 			double updTick = glfwGetTime();
-			while(lag >= MS_PER_UPDATE)
+			
+			// Cap the lag amount
+			if (lag > 1f)
+				lag = 1f;
+			
+			while(lag >= MS_PER_PHYSICS_TICK)
 			{
-				update((float)MS_PER_UPDATE);
+				update((float)MS_PER_PHYSICS_TICK);
 				ups++;
-				lag -= MS_PER_UPDATE;
+				lag -= MS_PER_PHYSICS_TICK;
 				didUpdate = true;
 			}
 			
 			if(didUpdate)
-				updTime = glfwGetTime() - updTick;
+				updTime += glfwGetTime() - updTick;
 			
 			// Render Stage
 			double renderTick = glfwGetTime();
@@ -335,6 +351,9 @@ public class Game {
 			{
 				// Update the things
 				currentFPS = fps;
+				currentUPD = updTime;
+				
+				updTime = 0;
 				
 				ups = 0;
 				fps = 0;
@@ -374,7 +393,7 @@ public class Game {
 	
 	private void render(double partialTicks)
 	{
-		camera.asPlayer(player, 0);
+		camera.asPlayer(player, partialTicks);
 		camera.updateView();
 		
 		renderer.begin();
@@ -437,21 +456,23 @@ public class Game {
 		int blockY = (int)Math.floor(player.yPos);
 		int blockZ = (int)Math.floor(player.zPos);
 		
-		String timeStr = String.format("FT %-5.2f (%d | %.3f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, updTime * 1000d);
+		String timeStr = String.format("FT %-5.2f (%d | %.3f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, currentUPD * 1000d);
 		String posStr = String.format("Pos %.2f / %.2f / %.2f\n", player.xPos, player.yPos, player.zPos);
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
 		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ).getId(), Integer.toBinaryString(Byte.toUnsignedInt(world.getBlockMeta(blockX, blockY, blockZ))));
 		String lyrStr = String.format("L %04d\n", world.getChunk(blockX >> 4, blockY >> 4, blockZ >> 4).getLayerData()[blockY & 0xF]);
 		fontRenderer.putString("VoxelNet\n(adhesion / videospan / forte / mezzoforte / piano / pianissimo)\n"+timeStr+posStr+lokStr+blkStr+lyrStr, 0, 0);
-		
 		fontRenderer.flush();
+		
 		renderer.finishShader();
 	}
 	
 	private void parseArgs(String[] args) {}
 	
-	public static void main(String... args)
+	public static void main(String... args) throws InterruptedException
 	{
+		Thread.sleep(10000);
+		
 		// Launch the game into a new thread
 		final Game game = new Game();
 		
