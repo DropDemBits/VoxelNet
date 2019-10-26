@@ -21,5 +21,6 @@ public class Blocks
 	public static Block GRAVEL;
 	public static Block UPDATING_WATER;
 	public static Block WATER;
+	public static Block TORCH;
 	
 }

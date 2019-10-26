@@ -1,6 +1,5 @@
 package ddb.io.voxelnet.block;
 
-import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.World;
 
 public class BlockGrass extends Block

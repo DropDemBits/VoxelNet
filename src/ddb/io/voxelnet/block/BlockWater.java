@@ -35,6 +35,12 @@ public class BlockWater extends Block
 	}
 	
 	@Override
+	public boolean isFilledCube()
+	{
+		return false;
+	}
+	
+	@Override
 	public boolean isTickable()
 	{
 		return isUpdating;

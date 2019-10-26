@@ -203,6 +203,18 @@ public class Shader
 	 * @param name The name of the uniform to set
 	 * @param value The new value of the uniform
 	 */
+	public void setUniform1f(String name, float value)
+	{
+		int location = getUniform(name);
+		glUniform1f(location, value);
+	}
+	
+	/**
+	 * Sets the uniform's value for the current shader
+	 * The shader must already be bound
+	 * @param name The name of the uniform to set
+	 * @param value The new value of the uniform
+	 */
 	public void setUniformMatrix4fv(String name, boolean transpose, float[] value)
 	{
 		int location = getUniform(name);

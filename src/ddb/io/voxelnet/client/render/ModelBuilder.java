@@ -214,9 +214,9 @@ public class ModelBuilder
 		return vec3s(u, v);
 	}
 	
-	public ModelBuilder light2(byte blockLight)
+	public ModelBuilder light3(byte skyLight, byte blockLight, byte aoLight)
 	{
-		return vec1b(blockLight);
+		return vec3b(skyLight, blockLight, aoLight);
 	}
 	
 	public ModelBuilder colour4(float r, float g, float b, float a)
@@ -257,9 +257,11 @@ public class ModelBuilder
 		return this;
 	}
 	
-	public ModelBuilder vec1b(byte v0)
+	public ModelBuilder vec3b(byte v0, byte v1, byte v2)
 	{
 		vertexBuffer.put(v0);
+		vertexBuffer.put(v1);
+		vertexBuffer.put(v2);
 		return this;
 	}
 	

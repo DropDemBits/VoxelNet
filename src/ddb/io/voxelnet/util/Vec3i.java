@@ -42,6 +42,11 @@ public class Vec3i
 		return new Vec3i(x + xOff, y + yOff, z + zOff);
 	}
 	
+	public Vec3i add(Facing dir)
+	{
+		return new Vec3i(x + dir.getOffsetX(), y + dir.getOffsetY(), z + dir.getOffsetZ());
+	}
+	
 	@Override
 	public boolean equals(Object obj)
 	{

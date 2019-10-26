@@ -5,4 +5,7 @@ public enum BlockRenderModel
 	CUBE,
 	FLUID,
 	CROSS,
+	PLUS,
+	TORCH,
+	;
 }

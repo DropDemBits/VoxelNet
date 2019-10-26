@@ -38,9 +38,8 @@ public class EntityRendererFalling extends EntityRenderer
 			if (faceTextures[face.ordinal()] == -1)
 				continue;
 			
-			final float[] faceIntensities = new float[] { 0.75f, 0.75f, 0.75f, 0.75f, 0.95f, 0.55f };
 			short[] texCoords = renderer.tileAtlas.getPixelPositions(faceTextures[face.ordinal()]);
-			BlockRenderer.addCubeFace(builder, 0, 0, 0, face, texCoords, (byte)(faceIntensities[face.ordinal()] * 255));
+			BlockRenderer.addCubeFace(builder, 0, 0, 0, face, texCoords, (byte)15, (byte)0, (byte)face.ordinal());
 		}
 		
 		model.bind();

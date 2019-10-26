@@ -31,6 +31,7 @@ public class Block
 		Blocks.GRAVEL       = addBlock(11, new BlockFalling().setSolid(true).setFaceTextures(new int[] {12, 12, 12, 12, 12, 12}));
 		Blocks.UPDATING_WATER = addBlock(12, new BlockWater(true));
 		Blocks.WATER        = addBlock(13, new BlockWater(false));
+		Blocks.TORCH        = addBlock(14, new BlockTorch());
 	}
 	
 	private static Block addBlock(int id, Block instance)
@@ -146,6 +147,15 @@ public class Block
 	}
 	
 	/**
+	 * Gets if the block fills up the entire block
+	 * @return True if the block does
+	 */
+	public boolean isFilledCube()
+	{
+		return true;
+	}
+	
+	/**
 	 * Gets if the block can receive block ticks
 	 * @return True if the block can receive block ticks
 	 */
@@ -189,6 +199,25 @@ public class Block
 	public BlockRenderModel getRenderModel()
 	{
 		return BlockRenderModel.CUBE;
+	}
+	
+	/**
+	 * Gets the amount of light emitted by the block
+	 * @return The amount of light emitted by the block
+	 */
+	public byte getBlockLight()
+	{
+		return 0;
+	}
+	
+	/**
+	 * Gets the opacity of the block
+	 * Opacity is defined as how much light decreases by when attenuated
+	 * @return The opacity of the block
+	 */
+	public byte getOpacity()
+	{
+		return 15;
 	}
 	
 	/**

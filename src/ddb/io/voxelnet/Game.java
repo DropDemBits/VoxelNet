@@ -62,6 +62,8 @@ public class Game {
 	GameRenderer renderer;
 	FontRenderer fontRenderer;
 	
+	double elapsed = 0.0d;
+	
 	double frameTime = 0;
 	double updTime = 0;
 	int currentFPS = 0;
@@ -317,6 +319,7 @@ public class Game {
 			double elapsed = now - last;
 			last = now;
 			lag += elapsed;
+			this.elapsed += elapsed;
 			
 			// Event Stage
 			GLOBAL_BUS.processEvents();
@@ -403,6 +406,7 @@ public class Game {
 		renderer.useCamera(camera);
 		renderer.useShader(chunkShader);
 		renderer.prepareShader();
+		renderer.getCurrentShader().setUniform1f("iTime", (float) elapsed);
 		worldRenderer.render(renderer);
 		renderer.finishShader();
 		
@@ -461,7 +465,8 @@ public class Game {
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
 		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ).getId(), Integer.toBinaryString(Byte.toUnsignedInt(world.getBlockMeta(blockX, blockY, blockZ))));
 		String lyrStr = String.format("L %04d\n", world.getChunk(blockX >> 4, blockY >> 4, blockZ >> 4).getLayerData()[blockY & 0xF]);
-		fontRenderer.putString("VoxelNet\n(adhesion / videospan / forte / mezzoforte / piano / pianissimo)\n"+timeStr+posStr+lokStr+blkStr+lyrStr, 0, 0);
+		String ligStr = String.format("B %2d S %2d\n", world.getBlockLight(blockX, blockY, blockZ), world.getSkyLight(blockX, blockY, blockZ));
+		fontRenderer.putString("VoxelNet\n(adhesion / videospan / forte / mezzoforte / piano / pianissimo)\n"+timeStr+posStr+lokStr+blkStr+ligStr, 0, 0);
 		fontRenderer.flush();
 		
 		renderer.finishShader();

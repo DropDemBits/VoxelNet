@@ -9,6 +9,7 @@ import ddb.io.voxelnet.util.PerlinOctaves;
 import ddb.io.voxelnet.util.Vec3i;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class World
 {
@@ -28,6 +29,9 @@ public class World
 	// List of currently loaded entities
 	public final List<Entity> loadedEntities;
 	
+	private final Queue<LightUpdate> pendingBlockLightRemoves;
+	private final Queue<LightUpdate> pendingBlockLightUpdates;
+	
 	// WorldGen
 	private long worldSeed;
 	public final Random worldRandom;
@@ -42,6 +46,8 @@ public class World
 		worldRandom = new Random(worldSeed);
 		loadedEntities = new ArrayList<>();
 		pendingEntities = new ArrayList<>();
+		pendingBlockLightUpdates = new ConcurrentLinkedQueue<>();
+		pendingBlockLightRemoves = new ConcurrentLinkedQueue<>();
 		perlinNoise = new PerlinOctaves(1, 0.9);
 		
 		setWorldSeed(worldSeed);
@@ -92,12 +98,73 @@ public class World
 		return worldSeed;
 	}
 	
+	public boolean canBlockSeeSky(int x, int y, int z)
+	{
+		if (y >= 256)
+			return true;
+		
+		int chunkX = x >> 4;
+		int chunkZ = z >> 4;
+		
+		int blockX = x & 0xF;
+		int blockZ = z & 0xF;
+		
+		// Check the ChunkColumn for access to the sky
+		ChunkColumn column = chunkColumns.getOrDefault(new Vec3i(chunkX, 0, chunkZ), null);
+		boolean canSeeSky;
+		
+		if (column == null)
+			canSeeSky = true; // If a column is missing, the blocks can definitely see the sky
+		else if(y >= 0)
+			canSeeSky = y > Byte.toUnsignedInt(column.opaqueColumns[blockX + blockZ * 16]); // Can't see at the opaque
+		else
+			canSeeSky = Byte.toUnsignedInt(column.opaqueColumns[blockX + blockZ * 16]) == 0; // If 0, can see the sky
+		
+		return canSeeSky;
+	}
+	
 	/**
-	 * Gets the block light at the given position, accounting for sky light
+	 * Gets the sky light at the given position
+	 * Note:
+	 * 0 indicates the maximum amount of skylight, 15 indicates the least
+	 * amount
+	 *
 	 * @param x The x position to fetch
 	 * @param y The y position to fetch
 	 * @param z The z position to fetch
-	 * @return The combined block light and sky light values
+	 * @return The sky light value
+	 */
+	public byte getSkyLight(int x, int y, int z)
+	{
+		if (y < 0)
+		{
+			// If the position can see the sky, full skylight
+			return canBlockSeeSky(x, y, z) ? (byte)0 : (byte)15;
+		}
+		if (y >= 256)
+			return 15;
+		
+		int chunkX = x >> 4;
+		int chunkY = y >> 4;
+		int chunkZ = z >> 4;
+		
+		int blockX = x & 0xF;
+		int blockY = y & 0xF;
+		int blockZ = z & 0xF;
+		
+		Vec3i chunkPos = new Vec3i(chunkX, chunkY, chunkZ);
+		byte skyLight = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK).getSkyLight(blockX, blockY, blockZ);
+		
+		// Technically a shadow map, but whatever
+		return skyLight;
+	}
+	
+	/**
+	 * Gets the block light at the given position
+	 * @param x The x position to fetch
+	 * @param y The y position to fetch
+	 * @param z The z position to fetch
+	 * @return The block light value
 	 */
 	public byte getBlockLight(int x, int y, int z)
 	{
@@ -115,23 +182,25 @@ public class World
 		int blockZ = z & 0xF;
 		
 		Vec3i chunkPos = new Vec3i(chunkX, chunkY, chunkZ);
-		byte baseLight;
+		return loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK).getBlockLight(blockX, blockY, blockZ);
+	}
+	
+	private void setBlockLight(int x, int y, int z, byte newLight)
+	{
+		if (newLight < 0)
+			return;
 		
-		baseLight = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK).getBlockLight(blockX, blockY, blockZ);
+		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
+		Chunk chunk = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK);
 		
-		// Check the ChunkColumn for access to the sky
-		ChunkColumn column = chunkColumns.getOrDefault(new Vec3i(chunkX, 0, chunkZ), null);
-		boolean canSeeSky;
+		if (chunk == EMPTY_CHUNK && newLight > 0)
+		{
+			// Add a new chunk if the new light value is not zero
+			chunk = new Chunk(this, chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
+			loadedChunks.put(chunkPos, chunk);
+		}
 		
-		if (column == null)
-			canSeeSky = true; // If a column is missing, the blocks can definitely see the sky
-		else
-			canSeeSky = y > Byte.toUnsignedInt(column.opaqueColumns[blockX + blockZ * 16]); // Can't see at the opaque
-		
-		if (canSeeSky)
-			baseLight = 15;
-		
-		return baseLight;
+		chunk.setBlockLight(x & 0xF, y & 0xF, z & 0xF, newLight);
 	}
 	
 	/**
@@ -197,8 +266,12 @@ public class World
 	 */
 	public void setBlock (int x, int y, int z, Block block, byte meta, int flags)
 	{
+		// TODO: (re)build shadow & block light maps
+		
 		// If a lighting update needs to occur
 		boolean lightingUpdate = false;
+		boolean blockLightUpdate = false;
+		int lastBlockLight;
 		
 		// Decode the flags
 		boolean updateLighting = (flags & 1) != 0;
@@ -230,9 +303,13 @@ public class World
 		
 		int columnIdx = blockX + blockZ * 16;
 		
-		// Set the block & meta
+		// Set the block, block light & meta
+		lastBlockLight = chunk.getBlockLight(blockX, blockY, blockZ);
 		chunk.setBlock(blockX, blockY, blockZ, block.getId());
 		chunk.setBlockMeta(blockX, blockY, blockZ, meta);
+		
+		if (block == Blocks.AIR || !(block.isTransparent() && block.getBlockLight() < lastBlockLight))
+			chunk.setBlockLight(blockX, blockY, blockZ, block.getBlockLight());
 		
 		// Update the chunk column
 		Vec3i columnPos = new Vec3i(x >> 4, 0, z >> 4);
@@ -295,6 +372,16 @@ public class World
 				chunkColumn.opaqueColumns[columnIdx] = (byte) height;
 				lightingUpdate = true;
 			}
+			
+			if (lightingUpdate)
+			{
+				// TODO: Rebuild the shadow maps
+			}
+			
+			if (block == Blocks.AIR || !block.isTransparent())
+				pendingBlockLightRemoves.add(new LightUpdate(new Vec3i(x, y, z), (byte)lastBlockLight));
+			else
+				pendingBlockLightUpdates.add(new LightUpdate(new Vec3i(x, y, z), (byte)0));
 		}
 		
 		if (updateNeighborChunks)
@@ -510,6 +597,10 @@ public class World
 				
 				setBlock((cx << 4) + x, y, (cz << 4) + z, block, (byte)0, 0);
 				
+				// Filled blocks block out the sky
+				if (block.isFilledCube())
+					getChunk(cx, y >> 4, cz).setSkyLight(x & 0xF, y & 0xF, z & 0xF, (byte)15);
+				
 				if (!foundTallest)
 				{
 					// Update the respective column so that the lighting is correct
@@ -603,6 +694,9 @@ public class World
 		
 		// Remove all the entities that need to be removed
 		loadedEntities.removeIf((e) -> e.isRemoved);
+		
+		// Process the lighting updates
+		processLightUpdate();
 	}
 	
 	private void doBlockTick()
@@ -611,10 +705,14 @@ public class World
 		List<Chunk> workingList = new ArrayList<>(loadedChunks.values());
 		workingList.iterator().forEachRemaining((chunk) ->
 		{
-			for (Vec3i pos : chunk.tickables)
+			for (int pos : chunk.tickables)
 			{
-				Block block = Block.idToBlock(chunk.getBlock(pos.getX(), pos.getY(), pos.getZ()));
-				block.onTick(this, pos.getX() + chunk.chunkX * 16, pos.getY() + chunk.chunkY * 16, pos.getZ() + chunk.chunkZ * 16);
+				int x = (pos >> 0) & 0xF;
+				int y = (pos >> 8) & 0xF;
+				int z = (pos >> 4) & 0xF;
+				
+				Block block = Block.idToBlock(chunk.getBlock(x, y, z));
+				block.onTick(this, x + chunk.chunkX * 16, y + chunk.chunkY * 16, z + chunk.chunkZ * 16);
 			}
 			
 			// Select 24 different positions
@@ -633,6 +731,87 @@ public class World
 		
 		// XXX: AGGGH! Refactor so that no static are used
 		BlockWater.updateWater(this);
+	}
+	
+	private void processLightUpdate()
+	{
+		while (!pendingBlockLightRemoves.isEmpty())
+		{
+			LightUpdate update = pendingBlockLightRemoves.poll();
+			int x = update.pos.getX();
+			int y = update.pos.getY();
+			int z = update.pos.getZ();
+			
+			byte lastLight = update.newLight;
+			
+			for (Facing dir : Facing.values())
+			{
+				Vec3i newPos = update.pos.add(dir);
+				byte adjacentLight = getBlockLight(newPos.getX(), newPos.getY(), newPos.getZ());
+				
+				if (adjacentLight != 0 && adjacentLight < lastLight)
+				{
+					// Propagate the emptiness...
+					setBlockLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte)0);
+					pendingBlockLightRemoves.add(new LightUpdate(newPos, adjacentLight));
+				}
+				else if (adjacentLight >= lastLight)
+				{
+					// Change to propagate, adjacent light is bigger
+					pendingBlockLightUpdates.add(new LightUpdate(newPos, (byte)0));
+				}
+			}
+			
+			//break;
+		}
+		
+		while (pendingBlockLightRemoves.isEmpty() && !pendingBlockLightUpdates.isEmpty())
+		{
+			LightUpdate update = pendingBlockLightUpdates.poll();
+			int x = update.pos.getX();
+			int y = update.pos.getY();
+			int z = update.pos.getZ();
+			
+			// Fetch the light value
+			byte currentLight = getBlockLight(x, y, z);
+			
+			for (Facing dir : Facing.values())
+			{
+				Vec3i newPos = update.pos.add(dir);
+				
+				// Check if the adjacent block can propagate light
+				if (getBlock(newPos.getX(), newPos.getY(), newPos.getZ()).isTransparent()
+						&& getBlockLight(newPos.getX(), newPos.getY(), newPos.getZ()) + 2 <= currentLight)
+				{
+					setBlockLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte) (currentLight - 1));
+					pendingBlockLightUpdates.add(new LightUpdate(newPos, (byte)0));
+				}
+			}
+			
+			//break;
+		}
+	}
+	
+	private static class LightUpdate
+	{
+		final Vec3i pos;
+		final byte newLight;
+		
+		private LightUpdate(Vec3i pos, byte newLight)
+		{
+			this.pos = pos;
+			this.newLight = newLight;
+		}
+		
+		@Override
+		public boolean equals(Object obj)
+		{
+			if (!(obj instanceof LightUpdate))
+				return false;
+			
+			LightUpdate other = (LightUpdate)(obj);
+			return this.pos.equals(other.pos);
+		}
 	}
 	
 }

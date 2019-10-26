@@ -20,9 +20,8 @@ public class Chunk
 	
 	// Number of solid blocks on each layer
 	private final short[] blockLayers = new short[16];
-	// Light levels of each block
-	// Right now, x-axis is crushed down into 8 block clusters
-	private final byte[] blockLights = new byte[2 * 16 * 16];
+	// Block light & sky light data for each block
+	private final byte[] lightData = new byte[16 * 16 * 16];
 	// The number of blocks in the chunk
 	private short blockCount = 0;
 	// Actual chunk data
@@ -38,7 +37,7 @@ public class Chunk
 	// If the chunk was recently generated
 	private boolean recentlyGenerated = true;
 	
-	public List<Vec3i> tickables = new ArrayList<>();
+	public List<Integer> tickables = new ArrayList<>();
 	
 	/**
 	 * Constructs a new chunk
@@ -55,7 +54,7 @@ public class Chunk
 		this.chunkZ = z;
 		
 		Arrays.fill(blockLayers, (byte)0);
-		Arrays.fill(blockLights, (byte)0);
+		Arrays.fill(lightData, (byte)0);
 	}
 	
 	/**
@@ -74,7 +73,7 @@ public class Chunk
 		
 		this.blockCount = blockCount;
 		System.arraycopy(blockData, 0, this.blockData, 0, this.blockData.length);
-		System.arraycopy(blockLights, 0, this.blockLights, 0, this.blockLights.length);
+		System.arraycopy(blockLights, 0, this.lightData, 0, this.lightData.length);
 		
 		// Update the rebuild state
 		forceLayerRebuild();
@@ -98,7 +97,7 @@ public class Chunk
 	 * Gets the per-block light data in the chunk
 	 * @return The block light data of the chunk
 	 */
-	public byte[] getLightData() { return blockLights; }
+	public byte[] getLightData() { return lightData; }
 	
 	/**
 	 * Gets the number of blocks in the chunk
@@ -120,9 +119,11 @@ public class Chunk
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16 || id == -1)
 			return;
 		
+		int blockIndex = (y << 8) | (z << 4) | (x << 0);
+		
 		Block block = Block.idToBlock(id);
 		Block lastBlock = Block.idToBlock(blockData[x + z * 16 + y * 256]);
-		blockData[x + z * 16 + y * 256] = id;
+		blockData[blockIndex] = id;
 		
 		// Update the dirty & rebuild states
 		isDirty = true;
@@ -157,6 +158,7 @@ public class Chunk
 				isEmpty = true;
 		}
 		
+		// Handle opaque block layer count
 		if (lastBlock.isTransparent() && !block.isTransparent())
 		{
 			if (block.getRenderLayer() == RenderLayer.OPAQUE)
@@ -174,10 +176,11 @@ public class Chunk
 				blockLayers[y] = 0;
 		}
 		
+		// Handle tickable updates
 		if (!lastBlock.isTickable() && block.isTickable())
-			tickables.add(new Vec3i(x, y, z));
+			tickables.add(blockIndex);
 		else if (lastBlock.isTickable() && !block.isTickable())
-			tickables.remove(new Vec3i(x, y, z));
+			tickables.remove((Integer) blockIndex);
 	}
 	
 	/**
@@ -197,8 +200,6 @@ public class Chunk
 	
 	/**
 	 * Gets the block light for the given position
-	 * The base light level will be a value between 0-15. If the value is
-	 * greater than 16, the light level can be affected by the sky.
 	 *
 	 * @param x The x position of the block, in blocks
 	 * @param y The x position of the block, in blocks
@@ -214,13 +215,85 @@ public class Chunk
 		
 		// Bits
 		// Y    | Z    | X
-		// 0000 | 0000 | 0 000
-		//    5      1   0
+		// 0000 | 0000 | 0000
+		//    8      4      0
 		
-		// Block light will be in the range of 0-15, but only handling 0 & 15 & no skylight
-		byte baseLevel = (byte)((blockLights[(x >> 3) + z * 2 + y * 2 * 16] >> (x & 0x7)) & 1);
+		// Block light will be in the range of 0(darkest) - 15(brightest)
+		byte blockLight = (byte)(lightData[(y << 8) | (z << 4) | (x << 0)] & 0x0F);
 		
-		return baseLevel == 0 ? (byte)5 : (byte)15;
+		return blockLight;
+	}
+	
+	/**
+	 * Gets the sky light for the given position
+	 *
+	 * @param x The x position of the block, in blocks
+	 * @param y The x position of the block, in blocks
+	 * @param z The x position of the block, in blocks
+	 * @return The light level of the sky at the block's position,
+	 *         or -1 if the block position is out of bounds
+	 */
+	public byte getSkyLight(int x, int y, int z)
+	{
+		// Check for out of bounds access
+		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
+			return -1;
+		
+		// Bits
+		// Y    | Z    | X
+		// 0000 | 0000 | 0000
+		//    8      4      0
+		
+		// Sky light will be in the range of 0(brightest) - 15(darkest)
+		// Technically a shadow map, but whatever
+		byte skyLight = (byte)((lightData[(y << 8) | (z << 4) | (x << 0)] & 0xF0) >> 4);
+		
+		return skyLight /*== 0 ? (byte)5 : (byte)15*/;
+	}
+	
+	/**
+	 * Sets the block light for the given position
+	 * @param x The x position of the new block light
+	 * @param y The y position of the new block light
+	 * @param z The z position of the new block light
+	 * @param amount The new block light value, between 15(brightest) - 0(darkest)
+	 */
+	public void setBlockLight(int x, int y, int z, byte amount)
+	{
+		// Check for out of bounds access
+		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
+			return;
+		
+		int lightIndex = (y << 8) | (z << 4) | (x << 0);
+		byte light = (byte)(lightData[lightIndex] & 0xF0);
+		byte lastLight = (byte)(lightData[lightIndex] & 0x0F);
+		
+		if (lastLight == amount)
+			return;
+		
+		light |= (amount & 0xF);
+		lightData[lightIndex] = light;
+		
+		forceLayerRebuild();
+	}
+	
+	/**
+	 * Sets the sky light for the given position
+	 * @param x The x position of the new sky light
+	 * @param y The y position of the new sky light
+	 * @param z The z position of the new sky light
+	 * @param amount The new sky light value, between 0(brightest) - 15(darkest)
+	 */
+	public void setSkyLight(int x, int y, int z, byte amount)
+	{
+		// Check for out of bounds access
+		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
+			return;
+		
+		int lightIndex = (y << 8) | (z << 4) | (x << 0);
+		byte light = (byte)(lightData[lightIndex] & 0x0F);
+		light |= (amount & 0xF) << 4;
+		lightData[lightIndex] = light;
 	}
 	
 	// ???: Should there be a change to a flattened model? (i.e. 1 block-id = 1 state)

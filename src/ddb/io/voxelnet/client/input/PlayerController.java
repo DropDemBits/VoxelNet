@@ -127,13 +127,16 @@ public class PlayerController
 		final Block[] placeBlocks = new Block[] {
 				Blocks.GRASS, Blocks.DIRT, Blocks.STONE,
 				Blocks.PLANKS, Blocks.STONE_BRICKS, Blocks.CLAY_BRICKS,
-				Blocks.DOOR_LOWER, Blocks.GLASS, Blocks.SAND, Blocks.UPDATING_WATER
+				Blocks.DOOR_LOWER, Blocks.GLASS, Blocks.SAND, Blocks.UPDATING_WATER,
+				Blocks.TORCH
 		};
 		
 		if (e.keycode >= GLFW_KEY_1 && e.keycode <= (GLFW_KEY_0 + placeBlocks.length))
 			placeBlock = placeBlocks[e.keycode - GLFW_KEY_1];
 		else if(e.keycode == GLFW_KEY_0)
 			placeBlock = placeBlocks[9];
+		else if(e.keycode == GLFW_KEY_MINUS)
+			placeBlock = placeBlocks[10];
 		
 		// Toggle flying
 		if (e.keycode == GLFW_KEY_F)
