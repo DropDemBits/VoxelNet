@@ -35,6 +35,12 @@ public class BlockWater extends Block
 	}
 	
 	@Override
+	public byte getOpacity()
+	{
+		return 1;
+	}
+	
+	@Override
 	public boolean isFilledCube()
 	{
 		return false;

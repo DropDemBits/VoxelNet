@@ -16,7 +16,7 @@ uniform float iTime;
 const float[6] faceIntensities = float[6]( 0.75f, 0.75f, 0.75f, 0.75f, 0.95f, 0.60f );
 
 // Light from the sky
-//const float skyLight = 0.0f;
+float skyLight = 1.f;
 const float baseBrightness = 0.35f;
 const float interval = (2 * 3.14159265f);
 
@@ -27,10 +27,10 @@ void main (void) {
     // Compute light value
     // skyLight/shadow, blockLight, face & aoLight
     // (blockLight + (skyLight - shadow)) * faceIntensities[aoLight]
-    float skyLight = (0.5f * 15.f) * (sin((iTime / 30.f) * interval) + 1.f);
+    skyLight = (0.5f) * (sin((iTime / 45.f) * interval) + 1.f);
 
     int aoIndex = int(lightValues.z);
-    float finalLight = clamp(lightValues.y + clamp(skyLight - lightValues.x, 0.f, 15.f) + baseBrightness, 0.f, 15.f);
+    float finalLight = clamp(lightValues.y + lightValues.x * skyLight + baseBrightness, 0.f, 15.f);
     finalLight = (finalLight / 15.0f) * faceIntensities[aoIndex];
 
     frag_lightIntensity = finalLight;
@@ -49,7 +49,7 @@ uniform sampler2D texture0;
 uniform bool inWater;
 
 const float AMBIENT = 0.03;
-const vec4 WATER_COLOR = vec4(0.11, 0.1, 0.6, 1.0);
+const vec4 WATER_COLOR = vec4(0.44, 0.4, 0.6, 1.0);
 
 const float gamma = 2.2f;
 const float inv_gamma = 1.f / 2.2f;

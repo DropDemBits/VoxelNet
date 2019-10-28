@@ -17,7 +17,7 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class WorldRenderer
 {
-	private static final RenderLayer[] transparentLayers = new RenderLayer[] { RenderLayer.FLUID, RenderLayer.TRANSPARENT };
+	private static final RenderLayer[] transparentLayers = new RenderLayer[] { RenderLayer.TRANSPARENT, RenderLayer.FLUID };
 	
 	// Player that the world is rendered around
 	private EntityPlayer player;

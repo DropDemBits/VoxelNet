@@ -143,7 +143,12 @@ public class PlayerController
 			player.isFlying = !player.isFlying;
 		
 		if (e.keycode == GLFW_KEY_F3)
+		{
 			showThings = !showThings;
+			
+			if(showThings)
+				System.out.println("DBG!");
+		}
 		
 		if (e.keycode == GLFW_KEY_B)
 		{

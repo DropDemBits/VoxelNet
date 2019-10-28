@@ -217,7 +217,7 @@ public class Block
 	 */
 	public byte getOpacity()
 	{
-		return 15;
+		return (byte)(!isTransparent() ? 15 : 0);
 	}
 	
 	/**

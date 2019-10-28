@@ -466,7 +466,8 @@ public class Game {
 		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ).getId(), Integer.toBinaryString(Byte.toUnsignedInt(world.getBlockMeta(blockX, blockY, blockZ))));
 		String lyrStr = String.format("L %04d\n", world.getChunk(blockX >> 4, blockY >> 4, blockZ >> 4).getLayerData()[blockY & 0xF]);
 		String ligStr = String.format("B %2d S %2d\n", world.getBlockLight(blockX, blockY, blockZ), world.getSkyLight(blockX, blockY, blockZ));
-		fontRenderer.putString("VoxelNet\n(adhesion / videospan / forte / mezzoforte / piano / pianissimo)\n"+timeStr+posStr+lokStr+blkStr+ligStr, 0, 0);
+		String colStr = String.format("H %2d\n", world.getColumnHeight(blockX, blockY, blockZ));
+		fontRenderer.putString("VoxelNet\n(adhesion / videospan / forte / mezzoforte / piano / pianissimo)\n"+timeStr+posStr+lokStr+blkStr+ligStr+colStr, 0, 0);
 		fontRenderer.flush();
 		
 		renderer.finishShader();

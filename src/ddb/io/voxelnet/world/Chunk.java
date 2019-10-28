@@ -54,7 +54,7 @@ public class Chunk
 		this.chunkZ = z;
 		
 		Arrays.fill(blockLayers, (byte)0);
-		Arrays.fill(lightData, (byte)0);
+		Arrays.fill(lightData, (byte)0xF0);
 	}
 	
 	/**
@@ -137,9 +137,6 @@ public class Chunk
 			layerNeedsRebuild[block.getRenderLayer().ordinal()] = true;
 			layerNeedsRebuild[RenderLayer.OPAQUE.ordinal()] = true;
 		}
-		
-		if(Game.showThings)
-			System.out.println("block ("+x+", "+y+", "+z+") "+id);
 		
 		// Update the block count & isEmpty
 		if (lastBlock == Blocks.AIR && block != Blocks.AIR)
@@ -282,7 +279,7 @@ public class Chunk
 	 * @param x The x position of the new sky light
 	 * @param y The y position of the new sky light
 	 * @param z The z position of the new sky light
-	 * @param amount The new sky light value, between 0(brightest) - 15(darkest)
+	 * @param amount The new sky light value, between 15(brightest) - 0(darkest)
 	 */
 	public void setSkyLight(int x, int y, int z, byte amount)
 	{
@@ -292,8 +289,15 @@ public class Chunk
 		
 		int lightIndex = (y << 8) | (z << 4) | (x << 0);
 		byte light = (byte)(lightData[lightIndex] & 0x0F);
+		byte lastLight = (byte)((lightData[lightIndex] >> 4) & 0xF);
+		
+		if (lastLight == amount)
+			return;
+		
 		light |= (amount & 0xF) << 4;
 		lightData[lightIndex] = light;
+		
+		forceLayerRebuild();
 	}
 	
 	// ???: Should there be a change to a flattened model? (i.e. 1 block-id = 1 state)

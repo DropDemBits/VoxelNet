@@ -32,14 +32,22 @@ public class EntityRendererFalling extends EntityRenderer
 		// This is not the most optimal way of doing things, but... it
 		// works, okay?
 		// TODO: Make this more optimal
+		
 		int[] faceTextures = entity.falling.getFaceTextures();
+		
+		int blockX = (int)Math.floor(e.xPos);
+		int blockY = Math.round(e.yPos);
+		int blockZ = (int)Math.floor(e.zPos);
+		byte skyLight = e.world.getSkyLight(blockX, blockY, blockZ);
+		byte blockLight = e.world.getBlockLight(blockX, blockY, blockZ);
+		
 		for (Facing face : Facing.values())
 		{
 			if (faceTextures[face.ordinal()] == -1)
 				continue;
 			
 			short[] texCoords = renderer.tileAtlas.getPixelPositions(faceTextures[face.ordinal()]);
-			BlockRenderer.addCubeFace(builder, 0, 0, 0, face, texCoords, (byte)15, (byte)0, (byte)face.ordinal());
+			BlockRenderer.addCubeFace(builder, 0, 0, 0, face, texCoords, skyLight, blockLight, (byte)face.ordinal());
 		}
 		
 		model.bind();
