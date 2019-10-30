@@ -437,15 +437,20 @@ public class World
 		{
 			boolean skyAvailable = canBlockSeeSky(x, y, z);
 			
+			// Was doing: Fixing issues with opacity propagation
+			// Also: Sometimes lighting isn't visually updated in adjacent chunks,
+			// enqueue force rebuild for afflicted chunks
+			
 			// TODO: Only check for direct, unobstructed sunlight
-			if (block == Blocks.AIR && skyAvailable)
+			// Check needs to be done so that opacity is correctly applied
+			if ((block == Blocks.AIR || block == Blocks.GLASS) && skyAvailable)
 			{
 				// If the block can see the sky, and the tallest block has moved down, set it to the maximum light value
 				chunk.setSkyLight(blockX, blockY, blockZ, (byte) 15);
 				pendingShadowUpdates.add(new LightUpdate(new Vec3i(x, tallestDown ? oldestHeight : y, z), (byte) 0));
 				
 				if (Game.showThings)
-					System.out.println("ho boi!");
+					System.out.println("ho boi! " + tallestDown + ", " + oldestHeight + ", " + y);
 			}
 			else
 			{
@@ -839,7 +844,7 @@ public class World
 	
 	private void processLightUpdate()
 	{
-		int procn = 8;
+		int procn = 0;
 		
 		// Remove old sky light
 		while (!pendingShadowRemoves.isEmpty())
@@ -862,18 +867,18 @@ public class World
 					setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte)0);
 					pendingShadowRemoves.add(new LightUpdate(newPos, adjacentLight));
 				}
-				else if (adjacentLight >= lastLight)
+				else if (adjacentLight >= lastLight && adjacentLight > 0)
 				{
-					// Change to propagate, adjacent light is bigger
-					pendingShadowUpdates.add(new LightUpdate(newPos, (byte)0));
+					// Change to propagate, adjacent light is equal or bigger (and not zero)
+					pendingShadowUpdates.add(new LightUpdate(newPos, adjacentLight));
 				}
 			}
 			
-			if (Game.showThings && (--procn) < 0)
-				break;
+			/*if (Game.showThings && (--procn) < 0)
+				break;*/
 		}
 		
-		procn = 16;
+		procn = 1;
 		
 		// Propagate sky light
 		while (pendingShadowRemoves.isEmpty() && !pendingShadowUpdates.isEmpty())
@@ -886,24 +891,50 @@ public class World
 			// Fetch the light value
 			byte currentLight = getSkyLight(x, y, z);
 			
+			// Don't propagate emptiness
+			if (currentLight == 0)
+				continue;
+			
+			// ???: Does sky light always propagate down at the same value (ignoring opacity)
+			// No, full skylight only
 			for (Facing dir : Facing.values())
 			{
 				Vec3i newPos = update.pos.add(dir);
 				Block adjacentBlock = getBlock(newPos.getX(), newPos.getY(), newPos.getZ());
-				byte newLight = (byte)(currentLight - Math.max(1, adjacentBlock.getOpacity()));
+				byte adjacentSkylight = getSkyLight(newPos.getX(), newPos.getY(), newPos.getZ());
+				
+				byte newLight = (byte)(currentLight - 1/*Math.max(1, adjacentBlock.getOpacity())*/);
+				
+				// For horizontal spreading : spread as normal
+				// For vertical spreading :
+				// - If the difference between adjacent skylight & current
+				//   skylight is greater than the opacity, spread
 				
 				// Check if the adjacent block can propagate shadow
 				if (adjacentBlock.isTransparent()
-						&& getSkyLight(newPos.getX(), newPos.getY(), newPos.getZ()) + 1 <= currentLight - 1)
+						&& (adjacentSkylight + 1 <= currentLight - 1 || (
+								(dir == Facing.DOWN) && adjacentSkylight <= currentLight - 1 && newLight > 0)))
 				{
 					// When propagating the maximum light down, only be affected by opacity
 					if (dir == Facing.DOWN && currentLight == 15)
-						setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte)(currentLight - adjacentBlock.getOpacity()));
+					{
+						/*if (Game.showThings)
+							setBlock(newPos.getX(), newPos.getY(), newPos.getZ(), Blocks.GLASS, (byte)0, (byte)0);*/
+						setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte) (currentLight /*- adjacentBlock.getOpacity()*/));
+					}
 					else
+					{
+						/*if (Game.showThings)
+							setBlock(newPos.getX(), newPos.getY(), newPos.getZ(), Blocks.GLASS, (byte)0, (byte)0);*/
 						setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), newLight);
+					}
 					
 					pendingShadowUpdates.add(new LightUpdate(newPos, (byte)0));
 				}
+				/*else {
+					if (Game.showThings)
+						setBlock(newPos.getX(), newPos.getY(), newPos.getZ(), Blocks.DIRT, (byte)0, (byte)0);
+				}*/
 			}
 			
 			if (Game.showThings && (--procn) < 0)

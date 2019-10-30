@@ -124,7 +124,8 @@ public class WorldRenderer
 		if (!generateQueue.isEmpty())
 		{
 			System.out.println("Model Upd (" + generateQueue.size() + ")");
-			while (!generateQueue.isEmpty())
+			//while (!generateQueue.isEmpty())
+			for (int i = 0; i < 16 && !generateQueue.isEmpty(); i++)
 			{
 				ChunkModel model = generateQueue.peek();
 				//System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
