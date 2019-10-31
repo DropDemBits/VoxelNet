@@ -145,9 +145,26 @@ public class World
 		else if(y >= 0)
 			canSeeSky = y > Byte.toUnsignedInt(column.opaqueColumns[blockX + blockZ * 16]); // Can't see at the opaque
 		else
-			canSeeSky = Byte.toUnsignedInt(column.opaqueColumns[blockX + blockZ * 16]) == 0; // If 0, can see the sky
+			canSeeSky = Byte.toUnsignedInt(column.opaqueColumns[blockX + blockZ * 16]) == 0; // If 0 (column empty), can see the sky
 		
 		return canSeeSky;
+	}
+	
+	public boolean canBlockDirectlySeeSky(int x, int y, int z)
+	{
+		if (y >= 256)
+			return true;
+		
+		if (!canBlockSeeSky(x, y, z))
+			return false;
+		
+		for (int checkY = y+1; checkY < 256; checkY++)
+		{
+			if (getBlock(x, checkY, z) != Blocks.AIR)
+				return false;
+		}
+		
+		return true;
 	}
 	
 	/**
@@ -435,15 +452,15 @@ public class World
 		
 		if (updateLighting)
 		{
-			boolean skyAvailable = canBlockSeeSky(x, y, z);
+			// Only check for unrestricted skylight
+			boolean skyAvailable = canBlockDirectlySeeSky(x, y, z);
 			
 			// Was doing: Fixing issues with opacity propagation
 			// Also: Sometimes lighting isn't visually updated in adjacent chunks,
 			// enqueue force rebuild for afflicted chunks
 			
-			// TODO: Only check for direct, unobstructed sunlight
 			// Check needs to be done so that opacity is correctly applied
-			if ((block == Blocks.AIR || block == Blocks.GLASS) && skyAvailable)
+			if (block == Blocks.AIR && skyAvailable)
 			{
 				// If the block can see the sky, and the tallest block has moved down, set it to the maximum light value
 				chunk.setSkyLight(blockX, blockY, blockZ, (byte) 15);
@@ -497,7 +514,7 @@ public class World
 				if (!lightingUpdate && yOff <= -1)
 					break;
 				
-				//System.out.println("hoi");
+				// TODO update corner chunks
 				
 				if (blockX == 0)
 					loadedChunks.getOrDefault(chunkPos.add(-1, yOff, 0), EMPTY_CHUNK).forceLayerRebuild();
@@ -838,7 +855,7 @@ public class World
 			}
 		});
 		
-		// XXX: AGGGH! Refactor so that no static are used
+		// XXX: AGGGH! Refactor so that no statics are used
 		BlockWater.updateWater(this);
 	}
 	
@@ -895,15 +912,13 @@ public class World
 			if (currentLight == 0)
 				continue;
 			
-			// ???: Does sky light always propagate down at the same value (ignoring opacity)
-			// No, full skylight only
 			for (Facing dir : Facing.values())
 			{
 				Vec3i newPos = update.pos.add(dir);
 				Block adjacentBlock = getBlock(newPos.getX(), newPos.getY(), newPos.getZ());
 				byte adjacentSkylight = getSkyLight(newPos.getX(), newPos.getY(), newPos.getZ());
 				
-				byte newLight = (byte)(currentLight - 1/*Math.max(1, adjacentBlock.getOpacity())*/);
+				byte newLight = (byte)(currentLight - Math.max(1, adjacentBlock.getOpacity()));
 				
 				// For horizontal spreading : spread as normal
 				// For vertical spreading :
@@ -912,15 +927,15 @@ public class World
 				
 				// Check if the adjacent block can propagate shadow
 				if (adjacentBlock.isTransparent()
-						&& (adjacentSkylight + 1 <= currentLight - 1 || (
-								(dir == Facing.DOWN) && adjacentSkylight <= currentLight - 1 && newLight > 0)))
+						&& (adjacentSkylight + 1 <= newLight
+						|| (dir == Facing.DOWN && adjacentSkylight <= newLight && newLight > 0)))
 				{
 					// When propagating the maximum light down, only be affected by opacity
 					if (dir == Facing.DOWN && currentLight == 15)
 					{
 						/*if (Game.showThings)
 							setBlock(newPos.getX(), newPos.getY(), newPos.getZ(), Blocks.GLASS, (byte)0, (byte)0);*/
-						setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte) (currentLight /*- adjacentBlock.getOpacity()*/));
+						setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte) (currentLight - adjacentBlock.getOpacity()));
 					}
 					else
 					{
