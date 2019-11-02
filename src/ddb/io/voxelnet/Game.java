@@ -1,6 +1,7 @@
 package ddb.io.voxelnet;
 
 import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.client.GameWindow;
 import ddb.io.voxelnet.client.render.entity.EntityRendererFalling;
 import ddb.io.voxelnet.client.render.gl.BufferLayout;
 import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
@@ -12,16 +13,11 @@ import ddb.io.voxelnet.client.render.*;
 import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.event.input.KeyEvent;
 import ddb.io.voxelnet.event.input.MouseEvent;
+import ddb.io.voxelnet.util.RaycastResult;
 import ddb.io.voxelnet.world.World;
 import ddb.io.voxelnet.world.WorldSave;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFWErrorCallback;
-import org.lwjgl.glfw.GLFWVidMode;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GLCapabilities;
-import org.lwjgl.system.MemoryStack;
-
-import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -31,7 +27,7 @@ public class Game {
 	private static final int INITIAL_WIDTH = 854;
 	private static final int INITIAL_HEIGHT = 480;
 	
-	private static final boolean ENABLE_VSYNC = true;
+	public static final boolean ENABLE_VSYNC = true;
 	
 	private static final float FOV   = 90.0f;
 	private static final float ZNEAR = 0.1f;
@@ -40,7 +36,7 @@ public class Game {
 	public static boolean showThings = false;
 	
 	/** Current window associated with this game instance */
-	long window;
+	GameWindow window;
 	WorldSave worldSave;
 	World world;
 	
@@ -54,10 +50,11 @@ public class Game {
 	Shader blackShader;
 	Shader quadShader;
 	
+	// The main texture atlas
 	Texture texture;
 	
-	Camera camera;
-	Camera guiCamera;
+	public Camera camera;
+	public Camera guiCamera;
 	WorldRenderer worldRenderer;
 	GameRenderer renderer;
 	FontRenderer fontRenderer;
@@ -71,12 +68,6 @@ public class Game {
 	
 	// Global Event Bus
 	public static final EventBus GLOBAL_BUS = new EventBus();
-	
-	// Might add:
-	// Sand, Gravel (Falling blocks)
-	//  - Entities
-	//  - Generalized Collision
-	//  - Neighbor Block Updates
 	
 	private void run()
 	{
@@ -110,52 +101,8 @@ public class Game {
 		if(!glfwInit())
 			throw new IllegalStateException("Failure initializing GLFW");
 		
-		// Create the window (Minimum OpenGL version is 2.0, not resizable)
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-		window = glfwCreateWindow( INITIAL_WIDTH, INITIAL_HEIGHT, "VoxelNet", 0, 0);
-		
-		if (window == 0)
-			throw new IllegalStateException("Failure creating the window");
-		
-		// Get monitor information
-		// - Center the window
-		// - Fetch refresh rate
-		try (MemoryStack stack = MemoryStack.stackPush())
-		{
-			// Alloc temporary memory
-			IntBuffer width = stack.mallocInt(1);
-			IntBuffer height = stack.mallocInt(1);
-			
-			glfwGetWindowSize(window, width, height);
-			GLFWVidMode mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-			
-			glfwSetWindowPos(window, (mode.width() - width.get()) / 2, (mode.height() - height.get()) / 2);
-		}
-		
-		// Update the window context
-		glfwMakeContextCurrent(window);
-		// Setup vsync
-		glfwSwapInterval(ENABLE_VSYNC ? 1 : 0);
-		// Show the window
-		glfwShowWindow(window);
-		
-		// Setup GL Context
-		GLCapabilities caps = GL.createCapabilities();
-		
-		// Add window resizing callback
-		glfwSetWindowSizeCallback(window, (win, width, height) -> {
-			// Update the GL viewport size
-			glViewport(0, 0, width, height);
-			// Update the perspective matrices
-			camera.updatePerspective((float) width / (float) height);
-			guiCamera.updateOrtho(width, height);
-		});
-		
-		// Setup input modes
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
+		window = new GameWindow(this, INITIAL_WIDTH, INITIAL_HEIGHT);
+		window.init();
 		
 		// Setup the input events
 		GLOBAL_BUS.registerEvent(MouseEvent.Move.class);
@@ -306,7 +253,7 @@ public class Game {
 		double secondTimer = glfwGetTime();
 		final double MS_PER_PHYSICS_TICK = 1.0 / 60.0;
 		
-		while(!glfwWindowShouldClose(window))
+		while(window.isWindowOpen())
 		{
 			double now = glfwGetTime();
 			double elapsed = now - last;
@@ -356,9 +303,8 @@ public class Game {
 				secondTimer = now;
 			}
 			
-			// Update GLFW
-			glfwSwapBuffers(window);
-			glfwPollEvents();
+			// Update the window
+			window.update();
 		}
 	}
 	
@@ -368,7 +314,7 @@ public class Game {
 		GLContext.INSTANCE.free();
 		
 		// Free GLFW things
-		glfwDestroyWindow(window);
+		window.destroy();
 		glfwTerminate();
 		glfwSetErrorCallback(null).free();
 		
@@ -407,15 +353,22 @@ public class Game {
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		
 		// ???: Is the hit box technically part of the HUD?
-		if (controller.showHit)
+		// TODO: Pull out of main game class
+		if (player.lastHit != RaycastResult.NO_RESULT)
 		{
 			// ???: Should the model matrix be part of the model?
 			final float scale = 1/256f;
 			Matrix4f modelMatrix = hitBox.getTransform();
 			modelMatrix.identity();
-			modelMatrix.translate(controller.blockX, controller.blockY, controller.blockZ);
+			modelMatrix.translate(
+					player.lastHit.blockX,
+					player.lastHit.blockY,
+					player.lastHit.blockZ);
 			// Translate by the hit face in order to get a higher z-order
-			modelMatrix.translate(controller.hitFace.getOffsetX() * scale, controller.hitFace.getOffsetY() * scale, controller.hitFace.getOffsetZ() * scale);
+			modelMatrix.translate(
+					player.lastHit.face.getOffsetX() * scale,
+					player.lastHit.face.getOffsetY() * scale,
+					player.lastHit.face.getOffsetZ() * scale);
 			
 			renderer.useShader(blackShader);
 			renderer.prepareShader();

@@ -5,9 +5,8 @@ import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.BlockWater;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.Entity;
-import ddb.io.voxelnet.util.Facing;
-import ddb.io.voxelnet.util.PerlinOctaves;
-import ddb.io.voxelnet.util.Vec3i;
+import ddb.io.voxelnet.util.*;
+import org.joml.Vector3d;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -622,6 +621,180 @@ public class World
 	}
 	
 	/**
+	 * Performs a step-by-step raycast to find a selectable block
+	 * @param direction The direction of the ray
+	 * @param startX The starting x position of the ray
+	 * @param startY The starting y position of the ray
+	 * @param startZ The starting z position of the ray
+	 * @param range The range of the ray
+	 * @return The raycast result of the selectable block, or
+	 *         RaycastResult.NO_RESULT if none was found
+	 */
+	public RaycastResult blockRaycast(Vector3d direction, double startX, double startY, double startZ, int range)
+	{
+		// From https://gamedev.stackexchange.com/questions/47362/cast-ray-to-select-block-in-voxel-game/49423#49423
+		double dx = direction.x, dy = direction.y, dz = direction.z;
+		
+		int blockX = (int)Math.floor(startX), blockY = (int)Math.floor(startY), blockZ = (int)Math.floor(startZ);
+		
+		// Orthogonal step
+		int stepX = (int)Math.signum(dx), stepY = (int)Math.signum(dy), stepZ = (int)Math.signum(dz);
+		
+		// Calculate the initial max t's
+		// t = p_inv(p) = (p(t) - p_0) / dp
+		double tMaxX = intBound(startX, dx);
+		double tMaxY = intBound(startY, dy);
+		double tMaxZ = intBound(startZ, dz);
+		
+		// Calculate the delta t's
+		// dt = (1 - 0) / dp
+		double tDeltaX = stepX / dx;
+		double tDeltaY = stepY / dy;
+		double tDeltaZ = stepZ / dz;
+		
+		// Scale range to allow direct comparison between 't' values
+		double radius = range / Math.sqrt(dx*dx + dy*dy + dz*dz);
+		
+		Facing hitFace = Facing.UP;
+		
+		double rayOffX = 0;
+		double rayOffY = 0;
+		double rayOffZ = 0;
+		
+		// Step while in range
+		while (true)
+		{
+			Block block = getBlock(blockX, blockY, blockZ);
+			
+			if (block != Blocks.AIR && block.getHitBox() != null)
+			{
+				// Perform fine stepping to detect if the hit really landed
+				// Ray position (for intersection testing)
+				double rayX = rayOffX + startX;
+				double rayY = rayOffY + startY;
+				double rayZ = rayOffZ + startZ;
+				// Accumulated distance
+				double dist = 0;
+				final double MAX_DIST = 1.5d;
+				
+				Vector3d ray = new Vector3d(rayX, rayY, rayZ);
+				Vector3d step = new Vector3d(direction);
+				// Step in 1/32nds (half a unit)
+				step.mul(1d/32d);
+				
+				AABBCollider blockBox = new AABBCollider(block.getHitBox());
+				blockBox.setPosition(blockX, blockY, blockZ);
+				
+				double deltaDist = step.length();
+				
+				// Step until the hitbox of the block is intersected
+				while(dist < MAX_DIST)
+				{
+					if (blockBox.intersectsWith((float)ray.x, (float)ray.y, (float)ray.z))
+					{
+						// Found block, stop
+						RaycastResult result = new RaycastResult();
+						result.hitX = ray.x;
+						result.hitY = ray.y;
+						result.hitZ = ray.z;
+						result.blockX = blockX;
+						result.blockY = blockY;
+						result.blockZ = blockZ;
+						result.face = hitFace;
+						
+						return result;
+					}
+					
+					ray.add(step);
+					dist += deltaDist;
+				}
+				
+				// Block not found, continue
+			}
+			
+			// Perform orthogonal step
+			boolean doXStep = false, doYStep = false;
+			
+			if (tMaxX < tMaxY)
+			{
+				if (tMaxX < tMaxZ)
+					doXStep = true;
+				// else: Z Step is implied
+			}
+			else
+			{
+				if (tMaxY < tMaxZ)
+					doYStep = true;
+				// else: Z Step is implied
+			}
+			
+			if (doXStep)
+			{
+				// X Step
+				if (tMaxX > radius)
+					break;
+				
+				rayOffX = tMaxX * dx;
+				rayOffY = tMaxX * dy;
+				rayOffZ = tMaxX * dz;
+				
+				tMaxX += tDeltaX;
+				blockX += stepX;
+				
+				// Keep track of face
+				hitFace = Facing.WEST;
+				if (stepX < 0)
+					hitFace = Facing.EAST;
+			}
+			else if (doYStep)
+			{
+				// Y Step
+				if (tMaxY > radius)
+					break;
+				
+				rayOffX = tMaxY * dx;
+				rayOffY = tMaxY * dy;
+				rayOffZ = tMaxY * dz;
+				
+				tMaxY += tDeltaY;
+				blockY += stepY;
+				
+				// Keep track of face
+				hitFace = Facing.DOWN;
+				if (stepY < 0)
+					hitFace = Facing.UP;
+			}
+			else
+			{
+				// Z Step
+				if (tMaxZ > radius)
+					break;
+				
+				rayOffX = tMaxZ * dx;
+				rayOffY = tMaxZ * dy;
+				rayOffZ = tMaxZ * dz;
+				
+				tMaxZ += tDeltaZ;
+				blockZ += stepZ;
+				
+				// Keep track of face
+				hitFace = Facing.NORTH;
+				if (stepZ < 0)
+					hitFace = Facing.SOUTH;
+			}
+		}
+		
+		return RaycastResult.NO_RESULT;
+	}
+	
+	// Finds integer boundary
+	private double intBound(double p, double dp)
+	{
+		return (dp > 0? Math.ceil(p)-p: p-Math.floor(p)) / Math.abs(dp);
+	}
+	
+	// Chunk management //
+	/**
 	 * Generates a chunk column at the specified chunk position
 	 * @param cx The x position of the new chunk column
 	 * @param cz The z position of the new chunk column
@@ -648,7 +821,7 @@ public class World
 		}
 		
 		int depth = 0;
-		int waterLevel = 68;
+		int waterLevel = 64;
 		
 		for (int z = 0; z < 16; z++)
 		for (int x = 0; x < 16; x++)
@@ -742,6 +915,7 @@ public class World
 		}
 	}
 	
+	// Other //
 	public void explode(int centreX, int centreY, int centreZ, int radius)
 	{
 		// Pass 1: Initial block removal

@@ -1,7 +1,10 @@
 package ddb.io.voxelnet.entity;
 
+import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.util.AABBCollider;
+import ddb.io.voxelnet.util.RaycastResult;
+import org.joml.Vector3d;
 
 public class EntityPlayer extends Entity
 {
@@ -28,12 +31,23 @@ public class EntityPlayer extends Entity
 	// If the player is flying
 	public boolean isFlying = false;
 	
+	// The block to place down
+	private Block placeBlock = Blocks.GRASS;
+	
+	// Last hit result
+	public RaycastResult lastHit = RaycastResult.NO_RESULT;
+	
+	// Related to placing & breaking
+	private float breakTimer = 0.0f;
+	private float placeTimer = 0.0f;
+	private boolean isBreaking = false;
+	private boolean isPlacing = false;
+	
 	public EntityPlayer()
 	{
 		super();
 		collisionBox = new AABBCollider(0.0f, 0.0f, 0.0f, 0.5f, 1.7f, 0.5f);
 	}
-	
 	
 	
 	/**
@@ -76,6 +90,9 @@ public class EntityPlayer extends Entity
 	
 	public void update(float delta)
 	{
+		updateBreakAndPlace(delta);
+		
+		// Do movement update
 		if (world.getBlock((int)Math.floor(xPos), (int)Math.floor(yPos), (int)Math.floor(zPos)) == Blocks.WATER)
 			accelCoef = 0.375f;
 		else
@@ -130,6 +147,119 @@ public class EntityPlayer extends Entity
 		
 		if (isFlying)
 			yVel = decay(yVel, 0.5f);
+	}
+	
+	private void updateBreakAndPlace(float delta)
+	{
+		if (breakTimer > 0)
+		{
+			breakTimer -= delta;
+		}
+		else
+		{
+			breakTimer = 0;
+			
+			if (isBreaking && (lastHit = raycast()) != RaycastResult.NO_RESULT)
+			{
+				// Break the block, with the appropriate block callbacks being called
+				Block block = world.getBlock(lastHit.blockX, lastHit.blockY, lastHit.blockZ);
+				block.onBlockBroken(world, lastHit.blockX, lastHit.blockY, lastHit.blockZ);
+				world.setBlock(lastHit.blockX, lastHit.blockY, lastHit.blockZ, Blocks.AIR);
+				
+				// 0.25s between block breaks
+				breakTimer = 0.25f;
+			}
+		}
+		
+		if (placeTimer > 0)
+		{
+			placeTimer -= delta;
+		}
+		else
+		{
+			placeTimer = 0;
+			
+			if (isPlacing && (lastHit = raycast()) != RaycastResult.NO_RESULT)
+			{
+				isPlacing = true;
+				
+				Block block = placeBlock;
+				
+				// If the block can't be placed, don't place it
+				if(!block.canPlaceBlock(
+						world,
+						lastHit.blockX + lastHit.face.getOffsetX(),
+						lastHit.blockY + lastHit.face.getOffsetY(),
+						lastHit.blockZ + lastHit.face.getOffsetZ()))
+					return;
+				
+				world.setBlock(
+						lastHit.blockX + lastHit.face.getOffsetX(),
+						lastHit.blockY + lastHit.face.getOffsetY(),
+						lastHit.blockZ + lastHit.face.getOffsetZ(),
+						placeBlock);
+				block.onBlockPlaced(
+						world,
+						lastHit.blockX + lastHit.face.getOffsetX(),
+						lastHit.blockY + lastHit.face.getOffsetY(),
+						lastHit.blockZ + lastHit.face.getOffsetZ());
+				
+				// 0.25s between block breaks
+				placeTimer = 0.25f;
+			}
+		}
+		
+		// Update the hit selection
+		lastHit = raycast();
+	}
+	
+	// Finds the next hit
+	private RaycastResult raycast()
+	{
+		// Calculate the pointing vector
+		Vector3d pointing = new Vector3d(0.0f, 0.0f, -1.0f);
+		pointing.rotateAxis(Math.toRadians(pitch), 1f, 0f, 0f);
+		pointing.rotateAxis(Math.toRadians(yaw),   0f, 1f, 0f);
+		
+		// Range of 7 blocks
+		final int range = 7;
+		
+		// Inputs
+		return world.blockRaycast(pointing, xPos, yPos + eyeHeight, zPos, range);
+	}
+	
+	public void setBreaking(boolean isBreaking)
+	{
+		this.isBreaking = isBreaking;
+		
+		// Reset the break timer, if needed
+		if(!isBreaking)
+			breakTimer = 0;
+	}
+	
+	public void setPlacing(boolean isPlacing)
+	{
+		this.isPlacing = isPlacing;
+		
+		// Reset the break timer, if needed
+		if(!isPlacing)
+			placeTimer = 0;
+	}
+	
+	public void changeSelectedBlock(int selection)
+	{
+		// Select block to place
+		final Block[] placeBlocks = new Block[] {
+				Blocks.GRASS, Blocks.DIRT, Blocks.STONE,
+				Blocks.PLANKS, Blocks.STONE_BRICKS, Blocks.CLAY_BRICKS,
+				Blocks.DOOR_LOWER, Blocks.GLASS, Blocks.SAND, Blocks.UPDATING_WATER,
+				Blocks.TORCH
+		};
+		
+		if (selection < 0 || selection > placeBlocks.length)
+			return;
+		
+		placeBlock = placeBlocks[selection];
 	}
 	
 	private float lerpf(float start, float end, float step)
