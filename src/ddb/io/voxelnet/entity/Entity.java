@@ -137,15 +137,20 @@ public class Entity
 			return 0.0f;
 	}
 	
-	protected void updateCollision (float delta)
+	protected boolean updateCollision (float delta)
 	{
+		return updateVerticalCollision(delta) || updateHorizontalCollision(delta);
+	}
+	
+	protected boolean updateVerticalCollision (float delta)
+	{
+		boolean collisionHappened = false;
+		
 		// Move the collision box to the current entity position
 		collisionBox.setPosition(xPos, yPos, zPos);
 		collisionBox.add(-collisionBox.width / 2f, 0, -collisionBox.depth / 2f);
 		
-		float xResponse = testForCollisionX(delta);
 		float yResponse = testForCollisionY(delta);
-		float zResponse = testForCollisionZ(delta);
 		
 		// Fix an entity being able to stick on a ceiling
 		// (check for yVel < 0)
@@ -156,13 +161,31 @@ public class Entity
 			if (Math.abs(yResponse - yVel) > 1/64f)
 				yPos += yResponse;
 			yVel = 0;
+			
+			collisionHappened = true;
 		}
+		
+		return collisionHappened;
+	}
+	
+	protected boolean updateHorizontalCollision (float delta)
+	{
+		boolean collisionHappened = false;
+		
+		// Move the collision box to the current entity position
+		collisionBox.setPosition(xPos, yPos, zPos);
+		collisionBox.add(-collisionBox.width / 2f, 0, -collisionBox.depth / 2f);
+		
+		float xResponse = testForCollisionX(delta);
+		float zResponse = testForCollisionZ(delta);
 		
 		if (zResponse != zVel)
 		{
 			if (Math.abs(zResponse - zVel) > 1/64f)
 				zPos += zResponse;
 			zVel = 0;
+			
+			collisionHappened = true;
 		}
 		
 		if (xResponse != xVel)
@@ -170,7 +193,11 @@ public class Entity
 			if (Math.abs(xResponse - xVel) > 1/64f)
 				xPos += xResponse;
 			xVel = 0;
+			
+			collisionHappened = true;
 		}
+		
+		return collisionHappened;
 	}
 	
 	protected float testForCollisionY(float delta)

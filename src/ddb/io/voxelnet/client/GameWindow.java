@@ -1,6 +1,9 @@
 package ddb.io.voxelnet.client;
 
 import ddb.io.voxelnet.Game;
+import ddb.io.voxelnet.client.input.GameKeyBindings;
+import ddb.io.voxelnet.client.input.InputBinding;
+import ddb.io.voxelnet.client.input.InputBindingRegistry;
 import ddb.io.voxelnet.event.input.KeyEvent;
 import ddb.io.voxelnet.event.input.MouseEvent;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -127,6 +130,13 @@ public class GameWindow
 	 */
 	public void update()
 	{
+		// Update the input bindings
+		for (InputBinding binding : InputBindingRegistry.ALL_INPUT_BINDS)
+		{
+			boolean isInputActive = binding.getInputSource().isInputActive(window, binding.getInputCode());
+			binding.setActive(isInputActive);
+		}
+			
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 			glfwSetWindowShouldClose(window, true);
 		

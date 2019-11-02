@@ -28,6 +28,9 @@ public class EntityPlayer extends Entity
 	// If the player is sneaking
 	public boolean isSneaking = false;
 	
+	// If the player is sprinting
+	public boolean isSprinting = false;
+	
 	// If the player is flying
 	public boolean isFlying = false;
 	
@@ -48,7 +51,6 @@ public class EntityPlayer extends Entity
 		super();
 		collisionBox = new AABBCollider(0.0f, 0.0f, 0.0f, 0.5f, 1.7f, 0.5f);
 	}
-	
 	
 	/**
 	 * Pushes the player to the specified direction
@@ -75,8 +77,8 @@ public class EntityPlayer extends Entity
 		xDir /= mag;
 		zDir /= mag;
 		
-		this.xAccel = (float) (xDir * speed * speedCoef) * rampUpCoeff;
-		this.zAccel = (float) (zDir * speed * speedCoef) * rampUpCoeff;
+		this.xAccel = (float) (xDir * speed);
+		this.zAccel = (float) (zDir * speed);
 	}
 	
 	public void jump()
@@ -92,6 +94,14 @@ public class EntityPlayer extends Entity
 	{
 		updateBreakAndPlace(delta);
 		
+		// Update speed coef
+		if (isSprinting)
+			speedCoef = 1.75f;
+		if (isSneaking)
+			speedCoef = 0.25f;
+		if (!isSneaking && !isSprinting)
+			speedCoef = 1f;
+		
 		// Do movement update
 		if (world.getBlock((int)Math.floor(xPos), (int)Math.floor(yPos), (int)Math.floor(zPos)) == Blocks.WATER)
 			accelCoef = 0.375f;
@@ -105,8 +115,8 @@ public class EntityPlayer extends Entity
 			yAccel = -gravity;
 		
 		// Apply the acceleration
-		xVel += accelCoef * xAccel * delta;
-		zVel += accelCoef * zAccel * delta;
+		xVel += accelCoef * speedCoef * rampUpCoeff * xAccel * delta;
+		zVel += accelCoef * speedCoef * rampUpCoeff * zAccel * delta;
 		
 		if (yVel > 0)
 			yVel += 1f * yAccel * delta;
@@ -127,7 +137,11 @@ public class EntityPlayer extends Entity
 			yVel = -jumpVelocity;
 		
 		// Update the collision status
-		updateCollision(delta);
+		updateVerticalCollision(delta);
+		
+		// Stop sprinting if a wall was hit
+		if (updateHorizontalCollision(delta))
+			isSprinting = false;
 		
 		// Apply the velocity
 		xPos += xVel * delta;

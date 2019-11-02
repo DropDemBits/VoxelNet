@@ -69,6 +69,7 @@ public class PlayerController
 		if (e.state != KeyEvent.Button.PRESSED)
 			return;
 		
+		// TODO: Change to a 10 hotbar inventory selection
 		if (e.keycode >= GLFW_KEY_1 && e.keycode <= GLFW_KEY_9)
 			player.changeSelectedBlock(e.keycode - GLFW_KEY_1);
 		else if(e.keycode == GLFW_KEY_0)
@@ -99,31 +100,26 @@ public class PlayerController
 	//// Main interface \\\\
 	public void update(float delta)
 	{
-		// TODO: Move some of these things into EntityPlayer
 		float xDir = 0.0f, zDir = 0.0f;
 		
-		player.speedCoef = 1f;
-		if (window.isKeyDown(GLFW_KEY_LEFT_SHIFT))
-			player.speedCoef = 0.25f;
-		if (window.isKeyDown(GLFW_KEY_LEFT_CONTROL))
-			player.speedCoef = 1.75f;
-		
-		if (window.isKeyDown(GLFW_KEY_W))
+		if (GameKeyBindings.MOVE_FORWARD.isInputActive())
 			zDir += -1.0f;
-		if (window.isKeyDown(GLFW_KEY_S))
+		if (GameKeyBindings.MOVE_BACKWARD.isInputActive())
 			zDir +=  1.0f;
-		if (window.isKeyDown(GLFW_KEY_A))
+		if (GameKeyBindings.MOVE_LEFT.isInputActive())
 			xDir += -1.0f;
-		if (window.isKeyDown(GLFW_KEY_D))
+		if (GameKeyBindings.MOVE_RIGHT.isInputActive())
 			xDir +=  1.0f;
 		
 		if (window.isKeyDown(GLFW_KEY_SPACE))
 			player.jump();
 		
-		// Update sneaking
-		player.isSneaking = window.isKeyDown(GLFW_KEY_LEFT_SHIFT);
+		// Update sneaking & sprinting
+		player.isSneaking = GameKeyBindings.SNEAK.isInputActive();
+		// If a player was already sprinting, keep sprinting
+		player.isSprinting |= GameKeyBindings.SPRINT.isInputActive();
 		
-		// Update things
+		// Update movement
 		player.move(xDir, zDir);
 	}
 	
