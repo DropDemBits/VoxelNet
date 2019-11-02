@@ -1,4 +1,4 @@
-package ddb.io.voxelnet.client.render;
+package ddb.io.voxelnet.client.render.util;
 
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.util.Frustum;

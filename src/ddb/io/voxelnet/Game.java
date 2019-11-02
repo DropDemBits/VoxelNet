@@ -6,6 +6,7 @@ import ddb.io.voxelnet.client.render.entity.EntityRendererFalling;
 import ddb.io.voxelnet.client.render.gl.BufferLayout;
 import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
 import ddb.io.voxelnet.client.render.gl.GLContext;
+import ddb.io.voxelnet.client.render.util.Camera;
 import ddb.io.voxelnet.entity.EntityFallingBlock;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.client.input.PlayerController;

@@ -1,6 +1,7 @@
 package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.client.render.entity.EntityRenderer;
+import ddb.io.voxelnet.client.render.util.Camera;
 import ddb.io.voxelnet.entity.Entity;
 
 import java.util.LinkedHashMap;
