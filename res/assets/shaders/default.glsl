@@ -13,9 +13,9 @@ uniform mat4 ModelMatrix;
 
 uniform float iTime;
 
-const float[6] faceIntensities = float[6]( 0.75f, 0.75f, 0.75f, 0.75f, 0.95f, 0.60f );
+const float[6] faceIntensities = float[6]( 0.75f, 0.75f, 0.825f, 0.825f, 0.95f, 0.60f );
 
-// Light from the sky
+// Light from the sky (percent, 0-1)
 float skyLight = 1.f;
 const float baseBrightness = 0.35f;
 const float interval = (2 * 3.14159265f);
@@ -27,7 +27,7 @@ void main (void) {
     // Compute light value
     // skyLight/shadow, blockLight, face & aoLight
     // (blockLight + (skyLight - shadow)) * faceIntensities[aoLight]
-    skyLight = (0.5f) * (sin((iTime / 45.f) * interval) + 1.f);
+    //skyLight = (0.5f) * (sin((iTime / 45.f) * interval) + 1.f);
 
     int aoIndex = int(lightValues.z);
     float finalLight = clamp(lightValues.y + lightValues.x * skyLight + baseBrightness, 0.f, 15.f);

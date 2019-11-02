@@ -4,6 +4,8 @@ public class AABBCollider
 {
 	public float x, y, z;
 	public float width, height, depth;
+	// Offsets, only used in setPosition
+	private float xOff, yOff, zOff;
 	
 	/**
 	 * Constructs an AABBCollider using another one
@@ -19,6 +21,9 @@ public class AABBCollider
 		this.x = x0;
 		this.y = y0;
 		this.z = z0;
+		this.xOff = x0;
+		this.yOff = y0;
+		this.zOff = z0;
 		this.width  = w;
 		this.height = h;
 		this.depth  = d;
@@ -29,6 +34,9 @@ public class AABBCollider
 		this.x = other.x;
 		this.y = other.y;
 		this.z = other.z;
+		this.xOff = other.xOff;
+		this.yOff = other.yOff;
+		this.zOff = other.zOff;
 		this.width = other.width;
 		this.height = other.height;
 		this.depth = other.depth;
@@ -36,9 +44,9 @@ public class AABBCollider
 	
 	public void setPosition(float x, float y, float z)
 	{
-		this.x = x;
-		this.y = y;
-		this.z = z;
+		this.x = x + this.xOff;
+		this.y = y + this.yOff;
+		this.z = z + this.zOff;
 	}
 	
 	/**

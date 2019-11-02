@@ -122,7 +122,6 @@ public class ModelBuilder
 		if (maxVertexCount < vertexCount) maxVertexCount = vertexCount;
 		if (maxIndexCount < indexCount) maxIndexCount = indexCount;
 		
-		// TODO: This will cause very bad fragmentation, resize on every power of two, up to PAGE_SIZE
 		if (needsResize())
 		{
 			// Reallocate if there's no space
@@ -163,9 +162,10 @@ public class ModelBuilder
 		else if (mode == EnumDrawMode.LINES)
 		{
 			indexBuffer.putInt(index);
-			// Double the index for the other points
-			if (polySize > 1)
-				indexBuffer.putInt(index);
+			
+			// Add the double indices
+			if (polySize < polyCount)
+				indexBuffer.putInt(index+1);
 		}
 		
 		// Handle end behavior
@@ -206,12 +206,13 @@ public class ModelBuilder
 	
 	public ModelBuilder pos3(float x, float y, float z)
 	{
+		//return vec3s((short)(x * 255.f), (short)(y * 255.f), (short)(z * 255.f));
 		return vec3f(x, y, z);
 	}
 	
-	public ModelBuilder tex2(short u, short v)
+	public ModelBuilder tex2(int u, int v)
 	{
-		return vec3s(u, v);
+		return vec2s((short)u, (short)v);
 	}
 	
 	public ModelBuilder light3(byte skyLight, byte blockLight, byte aoLight)
@@ -250,10 +251,18 @@ public class ModelBuilder
 		return this;
 	}
 	
-	public ModelBuilder vec3s(short v0, short v1)
+	public ModelBuilder vec2s(short v0, short v1)
 	{
 		vertexBuffer.putShort(v0);
 		vertexBuffer.putShort(v1);
+		return this;
+	}
+	
+	public ModelBuilder vec3s(short v0, short v1, short v2)
+	{
+		vertexBuffer.putShort(v0);
+		vertexBuffer.putShort(v1);
+		vertexBuffer.putShort(v2);
 		return this;
 	}
 	
@@ -274,6 +283,7 @@ public class ModelBuilder
 		ByteBuffer newVertex = BufferUtils.createByteBuffer(nextVertexResize);
 		ByteBuffer newIndex = BufferUtils.createByteBuffer(nextIndexResize);
 		
+		// Double the next size to reduce the number of resizes
 		nextVertexResize <<= 1;
 		nextIndexResize <<= 1;
 		

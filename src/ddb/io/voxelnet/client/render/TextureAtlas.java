@@ -7,7 +7,7 @@ public class TextureAtlas
 	private final int width, height;
 	private final float spriteWidth, spriteHeight;
 	private static final float[] EMPTY_COORDS = new float[] {0.0f, 0.0f, 0.0f, 0.0f};
-	private static final short[] EMPTY_SHORT_COORDS = new short[] {0, 0, 0, 0};
+	private static final int[] EMPTY_PIX_COORDS = new int[] {0, 0, 0, 0};
 	
 	public TextureAtlas(Texture texture, int rows, int columns)
 	{
@@ -48,35 +48,46 @@ public class TextureAtlas
 		final float spritesX = 1f / spriteWidth;
 		final float spritesY = 1f / spriteHeight;
 		
+		// Add & sub by 0.0001f to keep the texture coordinate inside of the atlas slice
 		return new float[] {
-				spritesX * (float) x,
-				1 - spritesY * (float) (y + 1),
-				spritesX * (float) (x + 1),
-				1 - spritesY * (float) y,
+				    spritesX * (float) x + 0.0001f,
+				1 - spritesY * (float) (y + 1) + 0.0001f,
+				    spritesX * (float) (x + 1) - 0.0001f,
+				1 - spritesY * (float) y - 0.0001f,
 		};
 	}
 	
-	public short[] getPixelPositions(int index)
+	public int[] getPixelPositions(int index)
 	{
 		if (index == -1)
-			return EMPTY_SHORT_COORDS;
+			return EMPTY_PIX_COORDS;
 		
 		return getPixelPositions(index % columns, index / columns);
 	}
 	
-	public short[] getPixelPositions(int x, int y)
+	public int[] getPixelPositions(int x, int y)
 	{
 		if (x < 0 || y < 0 || x >= columns || y >= rows)
-			return EMPTY_SHORT_COORDS;
+			return EMPTY_PIX_COORDS;
 		
 		float[] base = getPositions(x, y);
 		
-		return new short[] {
-				(short)(base[0] * 0xFFFF),
-				(short)(base[1] * 0xFFFF),
-				(short)(base[2] * 0xFFFF),
-				(short)(base[3] * 0xFFFF),
+		return new int[] {
+				(int)(base[0] * 0xFFFF),
+				(int)(base[1] * 0xFFFF),
+				(int)(base[2] * 0xFFFF),
+				(int)(base[3] * 0xFFFF),
 		};
+	}
+	
+	public float getPixelScaleX()
+	{
+		return ((1f / spriteWidth) * 0xFFFF);
+	}
+	
+	public float getPixelScaleY()
+	{
+		return ((1f / spriteHeight) * 0xFFFF);
 	}
 	
 }

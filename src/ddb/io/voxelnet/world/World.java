@@ -329,7 +329,6 @@ public class World
 	 */
 	public void setBlock (int x, int y, int z, Block block, byte meta, int flags)
 	{
-		// TODO: (re)build shadow map
 		// Decode the flags
 		boolean updateLighting  = (flags & 1) != 0;
 		boolean updateNeighborChunks = (flags & 2) != 0;

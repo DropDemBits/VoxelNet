@@ -203,15 +203,7 @@ class ChunkModel
 					
 					int[] faceTextures = block.getFaceTextures();
 					
-					switch (block.getRenderModel())
-					{
-						case CUBE:
-							BlockRenderer.addCube(targetBuilder, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
-							break;
-						case FLUID:
-							BlockRenderer.addFluid(targetBuilder, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
-							break;
-					}
+					BlockRenderer.addModel(targetBuilder, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
 				}
 			}
 		}

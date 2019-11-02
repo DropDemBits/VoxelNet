@@ -24,6 +24,22 @@ public class BlockRenderer
 	// No instance can be made
 	private BlockRenderer() {}
 	
+	public static void addModel(ModelBuilder builder, Chunk[] adjacentChunks, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
+	{
+		switch (block.getRenderModel())
+		{
+			case CUBE:
+				BlockRenderer.addCube(builder, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
+				break;
+			case FLUID:
+				BlockRenderer.addFluid(builder, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
+				break;
+			case TORCH:
+				BlockRenderer.addTorch(builder, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
+				break;
+		}
+	}
+	
 	/**
 	 * Adds a cube to a model
 	 * Performs automatic face culling
@@ -67,7 +83,7 @@ public class BlockRenderer
 				continue;
 			}
 			
-			short[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
+			int[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
 			
 			BlockRenderer.addCubeFace(
 					builder,
@@ -89,7 +105,7 @@ public class BlockRenderer
 	public static void addCubeFace(
 			ModelBuilder builder,
 			float x, float y, float z,
-			Facing face, short[] texCoords,
+			Facing face, int[] texCoords,
 			byte skyLight, byte blockLight, byte aoLight)
 	{
 		builder.addPoly(4);
@@ -246,7 +262,7 @@ public class BlockRenderer
 			if (!block.showFace(adjacent, face))
 				continue;
 			
-			short[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
+			int[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
 			
 			addFluidFace(
 					builder,
@@ -298,7 +314,7 @@ public class BlockRenderer
 			ModelBuilder builder,
 			float x, float y, float z,
 			float nw, float sw, float se, float ne,
-			Facing face, short[] texCoords,
+			Facing face, int[] texCoords,
 			byte skyLight, byte blockLight, byte aoLight)
 	{
 		builder.addPoly(4);
@@ -365,4 +381,73 @@ public class BlockRenderer
 		
 		return Block.idToBlock(adjacentBlock);
 	}
+	
+	public static void addTorch(ModelBuilder builder, Chunk[] adjacentChunks, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
+	{
+		// Construct the torch model
+		for (Facing face : Facing.values())
+		{
+			// If the specified face is -1, the face isn't supposed to be rendered
+			if(faceTextures[face.ordinal()] == -1)
+				continue;
+			
+			int adjacentX = chunk.chunkX * 16 + x + face.getOffsetX();
+			int adjacentY = chunk.chunkY * 16 + y + face.getOffsetY();
+			int adjacentZ = chunk.chunkZ * 16 + z + face.getOffsetZ();
+			
+			byte blockLight = 15;
+			byte skyLight = chunk.world.getSkyLight(adjacentX, adjacentY, adjacentZ);
+			byte aoLight = (byte)face.ordinal();
+			
+			int[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
+			
+			builder.addPoly(4);
+			switch(face)
+			{
+				case NORTH:
+					// North Face
+					builder.pos3(x + 0.0f, y + 1.0f, z + 0.5f - 1f/16f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 1.0f, y + 1.0f, z + 0.5f - 1f/16f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 1.0f, y + 0.0f, z + 0.5f - 1f/16f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.0f, y + 0.0f, z + 0.5f - 1f/16f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+					break;
+				case WEST:
+					// West Face
+					builder.pos3(x + 0.5f - 1/16f, y + 0.0f, z + 0.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f - 1/16f, y + 0.0f, z + 1.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f - 1/16f, y + 1.0f, z + 1.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f - 1/16f, y + 1.0f, z + 0.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+					break;
+				case SOUTH:
+					// South Face
+					builder.pos3(x + 0.0f, y + 0.0f, z + 0.5f + 1f/16f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 1.0f, y + 0.0f, z + 0.5f + 1f/16f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 1.0f, y + 1.0f, z + 0.5f + 1f/16f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.0f, y + 1.0f, z + 0.5f + 1f/16f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+					break;
+				case EAST:
+					// East Face
+					builder.pos3(x + 0.5f + 1/16f, y + 1.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f + 1/16f, y + 1.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f + 1/16f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f + 1/16f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+					break;
+				case UP:
+					// Up/Top Face
+					builder.pos3(x + 0.5f + 1/16f, y + 9/16f, z + 0.5f + 1/16f).tex2(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*7/16f)).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f + 1/16f, y + 9/16f, z + 0.5f - 1/16f).tex2(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*7/16f)).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f - 1/16f, y + 9/16f, z + 0.5f - 1/16f).tex2(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*7/16f)).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f - 1/16f, y + 9/16f, z + 0.5f + 1/16f).tex2(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*7/16f)).light3(skyLight, blockLight, aoLight).endVertex();
+					break;
+				case DOWN:
+					// Down/Bottom face
+					builder.pos3(x + 0.5f - 1/16f, y + 0.0f, z + 0.5f + 1/16f).tex2(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*0/16f)).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f - 1/16f, y + 0.0f, z + 0.5f - 1/16f).tex2(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*0/16f)).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f + 1/16f, y + 0.0f, z + 0.5f - 1/16f).tex2(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*14/16f)).light3(skyLight, blockLight, aoLight).endVertex();
+					builder.pos3(x + 0.5f + 1/16f, y + 0.0f, z + 0.5f + 1/16f).tex2(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*14/16f)).light3(skyLight, blockLight, aoLight).endVertex();
+					break;
+			}
+		}
+	}
+	
 }

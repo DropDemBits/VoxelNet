@@ -225,48 +225,41 @@ public class Game {
 			
 			BufferLayout simpleLayout = new BufferLayout();
 			simpleLayout.addAttribute(BufferLayout.EnumAttribType.FLOAT, 3, false);
-			ModelBuilder builder = new ModelBuilder(simpleLayout, EnumDrawMode.TRIANGLES, 4);
+			ModelBuilder builder = new ModelBuilder(simpleLayout, EnumDrawMode.LINES, 4);
 			
 			hitBox = new Model(simpleLayout);
 			hitBox.setTransform(new Matrix4f());
-			hitBox.setDrawMode(EnumDrawMode.TRIANGLES);
-		
-			/*
-			hitBox.beginPoly();
-			hitBox.addVertex(0f, 1f, 0f);
-			hitBox.addVertex(1f, 1f, 0f);
-			hitBox.addVertex(1f, 0f, 0f);
-			hitBox.addVertex(0f, 0f, 0f);
-			hitBox.endPoly();
+			hitBox.setDrawMode(EnumDrawMode.LINES);
 			
-			hitBox.beginPoly();
-			hitBox.addVertex(0f, 1f, 1f);
-			hitBox.addVertex(1f, 1f, 1f);
-			hitBox.addVertex(1f, 0f, 1f);
-			hitBox.addVertex(0f, 0f, 1f);
-			hitBox.endPoly();
+			builder.addPoly(4);
+			builder.pos3(0f, 1f, 0f).endVertex();
+			builder.pos3(1f, 1f, 0f).endVertex();
+			builder.pos3(1f, 0f, 0f).endVertex();
+			builder.pos3(0f, 0f, 0f).endVertex();
 			
-			hitBox.beginPoly();
-			hitBox.addVertex(0f, 0f, 0f);
-			hitBox.addVertex(0f, 1f, 0f);
-			hitBox.addVertex(0f, 1f, 1f);
-			hitBox.addVertex(0f, 0f, 1f);
-			hitBox.endPoly();
+			builder.addPoly(4);
+			builder.pos3(0f, 1f, 1f).endVertex();
+			builder.pos3(1f, 1f, 1f).endVertex();
+			builder.pos3(1f, 0f, 1f).endVertex();
+			builder.pos3(0f, 0f, 1f).endVertex();
 			
-			hitBox.beginPoly();
-			hitBox.addVertex(1f, 0f, 1f);
-			hitBox.addVertex(1f, 1f, 1f);
-			hitBox.addVertex(1f, 1f, 0f);
-			hitBox.addVertex(1f, 0f, 0f);
-			hitBox.endPoly();
+			builder.addPoly(4);
+			builder.pos3(0f, 0f, 0f).endVertex();
+			builder.pos3(0f, 1f, 0f).endVertex();
+			builder.pos3(0f, 1f, 1f).endVertex();
+			builder.pos3(0f, 0f, 1f).endVertex();
 			
-			hitBox.beginPoly();
-			hitBox.addVertex(0f, 0f, 0f);
-			hitBox.addVertex(0f, 0f, 1f);
-			hitBox.addVertex(1f, 0f, 1f);
-			hitBox.addVertex(1f, 0f, 0f);
-			hitBox.endPoly();
-			//*/
+			builder.addPoly(4);
+			builder.pos3(1f, 0f, 1f).endVertex();
+			builder.pos3(1f, 1f, 1f).endVertex();
+			builder.pos3(1f, 1f, 0f).endVertex();
+			builder.pos3(1f, 0f, 0f).endVertex();
+			
+			builder.addPoly(4);
+			builder.pos3(0f, 0f, 0f).endVertex();
+			builder.pos3(0f, 0f, 1f).endVertex();
+			builder.pos3(1f, 0f, 1f).endVertex();
+			builder.pos3(1f, 0f, 0f).endVertex();
 			
 			builder.addPoly(4);
 			builder.pos3(0f, 1f, 0f).endVertex();
@@ -417,26 +410,12 @@ public class Game {
 		if (controller.showHit)
 		{
 			// ???: Should the model matrix be part of the model?
-			final float scale = 0.00390625f;
+			final float scale = 1/256f;
 			Matrix4f modelMatrix = hitBox.getTransform();
 			modelMatrix.identity();
 			modelMatrix.translate(controller.blockX, controller.blockY, controller.blockZ);
-			modelMatrix.translate(-scale / 2f, -scale / 2f, -scale / 2f);
-			modelMatrix.scale(1.0f + scale);
-			
-			modelMatrix.translate(0.5f, 0.5f, 0.5f);
-			
-			switch (controller.hitFace)
-			{
-				case NORTH: modelMatrix.rotate((float) Math.toRadians(-90), 1, 0, 0); break;
-				case SOUTH: modelMatrix.rotate((float) Math.toRadians( 90), 1, 0, 0); break;
-				case EAST:  modelMatrix.rotate((float) Math.toRadians(-90), 0, 0, 1); break;
-				case WEST:  modelMatrix.rotate((float) Math.toRadians( 90), 0, 0, 1); break;
-				case UP:    modelMatrix.translate(0, 0.01f, 0); break;
-				case DOWN:  modelMatrix.rotate((float) Math.toRadians(180), 1, 0, 0); break;
-			}
-			
-			modelMatrix.translate(-0.5f, -0.5f, -0.5f);
+			// Translate by the hit face in order to get a higher z-order
+			modelMatrix.translate(controller.hitFace.getOffsetX() * scale, controller.hitFace.getOffsetY() * scale, controller.hitFace.getOffsetZ() * scale);
 			
 			renderer.useShader(blackShader);
 			renderer.prepareShader();

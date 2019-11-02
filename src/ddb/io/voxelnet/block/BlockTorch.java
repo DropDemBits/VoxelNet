@@ -2,6 +2,7 @@ package ddb.io.voxelnet.block;
 
 import ddb.io.voxelnet.client.render.BlockRenderModel;
 import ddb.io.voxelnet.client.render.RenderLayer;
+import ddb.io.voxelnet.util.AABBCollider;
 
 public class BlockTorch extends Block
 {
@@ -10,12 +11,13 @@ public class BlockTorch extends Block
 	{
 		setFaceTextures(new int[] { 14, 14, 14, 14, 14, 14, });
 		setTransparent(true);
+		setHitBox(new AABBCollider(7/16f, 0f, 7/16f, 2/16f, 9/16f, 2/16f));
 	}
 	
 	@Override
 	public boolean isSolid()
 	{
-		return true;
+		return false;
 	}
 	
 	@Override
@@ -27,7 +29,7 @@ public class BlockTorch extends Block
 	@Override
 	public BlockRenderModel getRenderModel()
 	{
-		return BlockRenderModel.CUBE;
+		return BlockRenderModel.TORCH;
 	}
 	
 	@Override

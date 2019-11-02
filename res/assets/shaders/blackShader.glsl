@@ -14,7 +14,7 @@ void main (void) {
 #version 110
 
 void main (void) {
-    const vec4 black = vec4(1, 1, 1, 0.5);
+    const vec4 black = vec4(0, 0, 0, 1);
     gl_FragColor = black;
 }
 

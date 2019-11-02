@@ -73,7 +73,7 @@ public class FontRenderer
 		float yMin = (float)Math.round((y+ 0f*FontScale));
 		float yMax = (float)Math.round((y+16f*FontScale));
 		
-		short[] texCoords = fontAtlas.getPixelPositions(chr);
+		int[] texCoords = fontAtlas.getPixelPositions(chr);
 		// Add the quad
 		// 0-3
 		// |\|
