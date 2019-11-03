@@ -14,6 +14,7 @@ import ddb.io.voxelnet.client.render.*;
 import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.event.input.KeyEvent;
 import ddb.io.voxelnet.event.input.MouseEvent;
+import ddb.io.voxelnet.fluid.Fluid;
 import ddb.io.voxelnet.util.RaycastResult;
 import ddb.io.voxelnet.world.World;
 import ddb.io.voxelnet.world.WorldSave;
@@ -124,6 +125,7 @@ public class Game {
 		
 		// Initialize the blocks
 		Block.init();
+		Fluid.init();
 		
 		// Setup the game renderer
 		renderer = new GameRenderer(atlas);

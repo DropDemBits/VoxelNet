@@ -2,13 +2,15 @@ package ddb.io.voxelnet.block;
 
 import ddb.io.voxelnet.client.render.BlockRenderModel;
 import ddb.io.voxelnet.client.render.RenderLayer;
+import ddb.io.voxelnet.fluid.Fluid;
+import ddb.io.voxelnet.fluid.FluidPlacement;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.World;
 
 import java.util.Stack;
 
-public class BlockWater extends Block
+public class BlockFluid extends Block
 {
 	// Masks
 	private static final int IS_FALLING = 0b1000;
@@ -21,7 +23,7 @@ public class BlockWater extends Block
 	
 	private final boolean isUpdating;
 	
-	BlockWater(boolean isUpdating)
+	BlockFluid(boolean isUpdating)
 	{
 		this.isUpdating = isUpdating;
 		
@@ -49,8 +51,9 @@ public class BlockWater extends Block
 	@Override
 	public boolean isTickable()
 	{
-		return isUpdating;
+		return false;
 	}
+	
 	
 	@Override
 	public void onNeighborUpdated(World world, int x, int y, int z, Facing dir)
@@ -59,18 +62,21 @@ public class BlockWater extends Block
 		
 		if (!isUpdating)
 		{
-			// Make it an updating block! (Same block, just a different state)
-			world.setBlock(x, y, z, Blocks.UPDATING_WATER, world.getBlockMeta(x, y, z), 0);
+			// Schedule a fluid update
+			world.getFluidInstance(getFluid()).addFluidUpdate(x, y, z);
+			//world.setBlock(x, y, z, getFluid().updatingFluid, world.getBlockMeta(x, y, z), 0);
 		}
 		
 	}
 	
+	/*
 	@Override
 	public void onTick(World world, int x, int y, int z)
 	{
 		doWaterSpread(world, x, y, z);
 	}
 	
+	// TODO: Move into a per-world fluid manager/instance
 	private void doWaterSpread(World world, int x, int y, int z)
 	{
 		// Check surrounding blocks & update metas
@@ -111,7 +117,7 @@ public class BlockWater extends Block
 				int adjacentLevel = adjacentMetas[dir.ordinal()] & DISTANCE;
 				
 				// Skip non-water blocks
-				if (!(adjacentBlock instanceof BlockWater))
+				if (!getFluid().isSameFluid(adjacentBlock))
 					continue;
 				
 				int flow = adjacentLevel - srcLevel;
@@ -205,9 +211,6 @@ public class BlockWater extends Block
 			int adjacentY = y + dir.getOffsetY();
 			int adjacentZ = z + dir.getOffsetZ();
 			
-			/*if (!world.isChunkPresent(adjacentX >> 4, adjacentY >> 4, adjacentZ >> 4))
-				continue;*/
-			
 			Block adjacentBlock = adjacentBlocks[dir.ordinal()];
 			int adjacentLevel = adjacentMetas[dir.ordinal()] & DISTANCE;
 			
@@ -226,12 +229,12 @@ public class BlockWater extends Block
 			if (dir == Facing.DOWN)
 			{
 				// Revert to not falling if there's not air or water below this block
-				if (adjacentBlock != Blocks.AIR && !(adjacentBlock instanceof BlockWater))
+				if (adjacentBlock != Blocks.AIR && !(adjacentBlock instanceof BlockFluid))
 					stopFalling = true;
 			}
 			
 			// TODO: Fix water not replacing with the shortest path while falling
-			if (((adjacentBlock instanceof BlockWater) && (newLevel < adjacentLevel))
+			if (((adjacentBlock instanceof BlockFluid) && (newLevel < adjacentLevel))
 					|| adjacentBlock == Blocks.AIR
 					|| adjacentBlock.canBeReplacedBy(world, this, (byte) newLevel, adjacentX, adjacentY, adjacentZ))
 			{
@@ -247,7 +250,7 @@ public class BlockWater extends Block
 				// Make the new water fall
 				byte newMeta = (byte)newLevel;
 				
-				if (adjBelow == Blocks.AIR || adjBelow instanceof BlockWater)
+				if (adjBelow == Blocks.AIR || adjBelow instanceof BlockFluid)
 					newMeta |= IS_FALLING;
 				
 				if (dir == Facing.DOWN && srcLevel > 0)
@@ -274,7 +277,7 @@ public class BlockWater extends Block
 			
 			Block above = adjacentBlocks[Facing.UP.ordinal()];
 			
-			if ((above instanceof BlockWater))
+			if ((above instanceof BlockFluid))
 			{
 				// Spread! (Stopped falling)
 				world.setBlockMeta(x, y, z, (byte) 1);
@@ -301,7 +304,7 @@ public class BlockWater extends Block
 		while (!makeStatic.isEmpty())
 		{
 			FluidPlacement nextPlace = makeStatic.pop();
-			world.setBlock(nextPlace.pos.getX(), nextPlace.pos.getY(), nextPlace.pos.getZ(), Blocks.WATER, nextPlace.newMeta, 0);
+			world.setBlock(nextPlace.pos.getX(), nextPlace.pos.getY(), nextPlace.pos.getZ(), getFluid().staticFluid, nextPlace.newMeta, 0);
 		}
 		
 		while (!makeClear.isEmpty())
@@ -313,15 +316,15 @@ public class BlockWater extends Block
 		while (!availableBlocks.isEmpty())
 		{
 			FluidPlacement nextPlace = availableBlocks.pop();
-			world.setBlock(nextPlace.pos.getX(), nextPlace.pos.getY(), nextPlace.pos.getZ(), Blocks.UPDATING_WATER, nextPlace.newMeta, 7);
+			world.setBlock(nextPlace.pos.getX(), nextPlace.pos.getY(), nextPlace.pos.getZ(), getFluid().updatingFluid, nextPlace.newMeta, 7);
 		}
-	}
+	}*/
 	
 	@Override
 	public boolean canBeReplacedBy(World world, Block block, byte newMeta, int x, int y, int z)
 	{
-		// Water can be replaced by anything but water, unless the distance is smaller (handled above)
-		return !(block instanceof BlockWater);
+		// A fluid can be replaced by anything but itself, unless the distance is smaller (handled above)
+		return !isSameFluid(block);
 	}
 	
 	@Override
@@ -340,35 +343,19 @@ public class BlockWater extends Block
 	public boolean showFace(Block adjacent, Facing dir)
 	{
 		if (dir == Facing.UP)
-			return !(adjacent instanceof BlockWater);
+			return !(adjacent instanceof BlockFluid);
 		
-		return !(adjacent instanceof BlockWater) && (!adjacent.isSolid() || adjacent.isTransparent());
+		return !(adjacent instanceof BlockFluid) && (!adjacent.isSolid() || adjacent.isTransparent());
 	}
 	
-	private static class FluidPlacement
+	public boolean isSameFluid(Block block)
 	{
-		final Vec3i pos;
-		byte newMeta;
-		
-		FluidPlacement(Vec3i pos, byte newMeta)
-		{
-			this.pos = pos;
-			this.newMeta = newMeta;
-		}
-		
-		@Override
-		public int hashCode()
-		{
-			return pos.hashCode();
-		}
-		
-		@Override
-		public boolean equals(Object obj)
-		{
-			if (!(obj instanceof FluidPlacement))
-				return false;
-			return pos.equals(obj);
-		}
+		return getFluid().isSameFluid(block);
+	}
+	
+	protected Fluid getFluid()
+	{
+		return Fluid.WATER;
 	}
 	
 }

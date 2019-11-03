@@ -19,8 +19,8 @@ public class Blocks
 	public static Block GLASS;
 	public static Block SAND;
 	public static Block GRAVEL;
-	public static Block UPDATING_WATER;
-	public static Block WATER;
+	public static BlockFluid UPDATING_WATER;
+	public static BlockFluid WATER;
 	public static Block TORCH;
 	
 }

@@ -2,9 +2,10 @@ package ddb.io.voxelnet.world;
 
 import ddb.io.voxelnet.Game;
 import ddb.io.voxelnet.block.Block;
-import ddb.io.voxelnet.block.BlockWater;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.Entity;
+import ddb.io.voxelnet.fluid.Fluid;
+import ddb.io.voxelnet.fluid.FluidInstance;
 import ddb.io.voxelnet.util.*;
 import org.joml.Vector3d;
 
@@ -34,6 +35,9 @@ public class World
 	private Queue<LightUpdate> pendingShadowRemoves;
 	private Queue<LightUpdate> pendingShadowUpdates;
 	
+	// Fluid instances
+	private FluidInstance waterInstance;
+	
 	// WorldGen
 	private long worldSeed;
 	public final Random worldRandom;
@@ -55,6 +59,8 @@ public class World
 		
 		pendingShadowUpdates = new ConcurrentLinkedQueue<>();
 		pendingShadowRemoves = new ConcurrentLinkedQueue<>();
+		
+		waterInstance = new FluidInstance(Fluid.WATER);
 		
 		setWorldSeed(worldSeed);
 	}
@@ -915,6 +921,26 @@ public class World
 		}
 	}
 	
+	// Fluid management //
+	public FluidInstance getFluidInstance(Fluid fluid)
+	{
+		return waterInstance;
+	}
+	
+	// Entity management //
+	/**
+	 * Adds an entity to the world
+	 * @param e The entity to add
+	 */
+	public void addEntity(Entity e)
+	{
+		// Set the entity's world
+		e.setWorld(this);
+		
+		// Add to the list
+		pendingEntities.add(e);
+	}
+	
 	// Other //
 	public void explode(int centreX, int centreY, int centreZ, int radius)
 	{
@@ -950,19 +976,6 @@ public class World
 				}
 			}
 		}
-	}
-	
-	/**
-	 * Adds an entity to the world
-	 * @param e The entity to add
-	 */
-	public void addEntity(Entity e)
-	{
-		// Set the entity's world
-		e.setWorld(this);
-		
-		// Add to the list
-		pendingEntities.add(e);
 	}
 	
 	/**
@@ -1028,8 +1041,7 @@ public class World
 			}
 		});
 		
-		// XXX: AGGGH! Refactor so that no statics are used
-		BlockWater.updateWater(this);
+		waterInstance.doFluidTick(this);
 	}
 	
 	private void processLightUpdate()

@@ -22,9 +22,9 @@ public class BlockFalling extends Block
 	
 	private void doFalling(World world, int x, int y, int z)
 	{
-		// If the block below isn't air or water, don't do anything
+		// If the block below isn't air or a fluid, don't do anything
 		Block block = world.getBlock(x, y - 1, z);
-		if(block != Blocks.AIR && !(block instanceof BlockWater))
+		if(block != Blocks.AIR && !(block instanceof BlockFluid))
 			return;
 		
 		// Add a new falling entity

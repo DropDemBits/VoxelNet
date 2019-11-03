@@ -1,7 +1,7 @@
 package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.block.Block;
-import ddb.io.voxelnet.block.BlockWater;
+import ddb.io.voxelnet.block.BlockFluid;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.client.render.gl.BufferLayout;
 import ddb.io.voxelnet.util.Facing;
@@ -239,7 +239,7 @@ public class BlockRenderer
 		byte[] adjacentMetas = new byte[9];
 		
 		// Current level of the block
-		int level = 8 - (meta & BlockWater.DISTANCE);
+		int level = 8 - (meta & BlockFluid.DISTANCE);
 		final double HEIGHT_VAL = ((15f / 8f) / 16f);
 		
 		// NW(0) N(1)  NE(2)
@@ -257,7 +257,7 @@ public class BlockRenderer
 			if (off == 4)
 			{
 				// Current block, no need to fetch
-				adjacentMetas[off] = (byte) (8 - (meta & BlockWater.DISTANCE));
+				adjacentMetas[off] = (byte) (8 - (meta & BlockFluid.DISTANCE));
 				continue;
 			}
 			
@@ -287,23 +287,23 @@ public class BlockRenderer
 			Block adjacent = adjacentBlock;
 			Block adjacentUp = adjacentAbove;
 			
-			if (!(adjacent instanceof BlockWater))
+			if (!((BlockFluid)block).isSameFluid(adjacent))
 				// Neighbor block isn't water at all
 				adjacentMetas[off] = (byte)-1;
 			else
 			{
-				if (adjacentUp instanceof BlockWater)
+				if (((BlockFluid)block).isSameFluid(adjacentUp))
 					// Neighbor & neighbor's above block are water, probably falling
 					adjacentMetas[off] = 16;
 				else
 					// Not falling, get the regular distance
-					adjacentMetas[off] = (byte) (8 - (adjacentMeta & BlockWater.DISTANCE));
+					adjacentMetas[off] = (byte) (8 - (adjacentMeta & BlockFluid.DISTANCE));
 			}
 		}
 		
 		// Check the above block
 		Block aboveBlock = getAdjacentBlock(x, y, z, Facing.UP, adjacentChunks);
-		if (!(aboveBlock instanceof BlockWater))
+		if (!(aboveBlock instanceof BlockFluid))
 		{
 			// Water is not falling
 			heightNW = (float)(tripleAverage(adjacentMetas[1], adjacentMetas[0], adjacentMetas[3], level) * HEIGHT_VAL); // N + NW + W
