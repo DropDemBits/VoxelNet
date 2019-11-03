@@ -63,8 +63,21 @@ public class BlockRenderer
 			int adjacentY = chunk.chunkY * 16 + y + face.getOffsetY();
 			int adjacentZ = chunk.chunkZ * 16 + z + face.getOffsetZ();
 			
-			byte blockLight = chunk.world.getBlockLight(adjacentX, adjacentY, adjacentZ);
-			byte skyLight = chunk.world.getSkyLight(adjacentX, adjacentY, adjacentZ);
+			byte blockLight;
+			byte skyLight;
+			
+			if (block.isTransparent())
+			{
+				// Is transparent, get the light values at the current position
+				blockLight = chunk.getBlockLight(x, y, z);
+				skyLight = chunk.getSkyLight(x, y, z);
+			}
+			else
+			{
+				blockLight = chunk.world.getBlockLight(adjacentX, adjacentY, adjacentZ);
+				skyLight = chunk.world.getSkyLight(adjacentX, adjacentY, adjacentZ);
+			}
+			
 			byte adjacentBlock = chunk.getBlock(x + face.getOffsetX(), y + face.getOffsetY(), z + face.getOffsetZ());
 			
 			if (adjacentBlock == -1)
@@ -250,13 +263,9 @@ public class BlockRenderer
 		// Build the faces
 		for (Facing face : Facing.values())
 		{
-			int adjacentX = chunk.chunkX * 16 + x + face.getOffsetX();
-			int adjacentY = chunk.chunkY * 16 + y + face.getOffsetY();
-			int adjacentZ = chunk.chunkZ * 16 + z + face.getOffsetZ();
-			
 			Block adjacent = getAdjacentBlock(x, y, z, face, adjacentChunks, chunk);
-			byte skyLight = chunk.world.getSkyLight(adjacentX, adjacentY, adjacentZ);
-			byte blockLight = chunk.world.getBlockLight(adjacentX, adjacentY, adjacentZ);
+			byte skyLight = chunk.getSkyLight(x, y, z);
+			byte blockLight = chunk.getBlockLight(x, y, z);
 			
 			// Don't show the face if it's the same block
 			if (!block.showFace(adjacent, face))
@@ -391,12 +400,8 @@ public class BlockRenderer
 			if(faceTextures[face.ordinal()] == -1)
 				continue;
 			
-			int adjacentX = chunk.chunkX * 16 + x + face.getOffsetX();
-			int adjacentY = chunk.chunkY * 16 + y + face.getOffsetY();
-			int adjacentZ = chunk.chunkZ * 16 + z + face.getOffsetZ();
-			
-			byte blockLight = 15;
-			byte skyLight = chunk.world.getSkyLight(adjacentX, adjacentY, adjacentZ);
+			byte blockLight = chunk.getBlockLight(x, y, z);
+			byte skyLight = chunk.getSkyLight(x, y, z);
 			byte aoLight = (byte)face.ordinal();
 			
 			int[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);

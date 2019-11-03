@@ -7,7 +7,6 @@ import ddb.io.voxelnet.event.Event;
 import ddb.io.voxelnet.event.input.KeyEvent;
 import ddb.io.voxelnet.event.input.MouseEvent;
 
-import static ddb.io.voxelnet.Game.showThings;
 import static org.lwjgl.glfw.GLFW.*;
 
 /**

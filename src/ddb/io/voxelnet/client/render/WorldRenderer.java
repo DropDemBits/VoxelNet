@@ -213,11 +213,9 @@ public class WorldRenderer
 			
 			if (layer == RenderLayer.FLUID)
 			{
-				glDisable(GL11.GL_CULL_FACE);
-				//glDisable(GL_DEPTH_TEST);
-				//glDepthMask(false);
+				//glDisable(GL11.GL_CULL_FACE);
+				glDepthMask(false);
 				glEnable(GL_BLEND);
-				//glBlendFunc(GL_ZERO, GL_SRC_COLOR);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			}
 			
@@ -248,9 +246,8 @@ public class WorldRenderer
 			
 			if (layer == RenderLayer.FLUID)
 			{
-				GL11.glEnable(GL11.GL_CULL_FACE);
-				//glEnable(GL_DEPTH_TEST);
-				//glDepthMask(true);
+				//GL11.glEnable(GL11.GL_CULL_FACE);
+				glDepthMask(true);
 				glDisable(GL_BLEND);
 				//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			}

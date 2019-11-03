@@ -342,7 +342,7 @@ public class BlockWater extends Block
 		if (dir == Facing.UP)
 			return !(adjacent instanceof BlockWater);
 		
-		return !(adjacent instanceof BlockWater) && (!adjacent.isSolid() && adjacent.isTransparent());
+		return !(adjacent instanceof BlockWater) && (!adjacent.isSolid() || adjacent.isTransparent());
 	}
 	
 	private static class FluidPlacement
