@@ -19,6 +19,7 @@ public class GameKeyBindings
 	
 	// Debug
 	public static final InputBinding TOGGLE_DEBUG;
+	public static final InputBinding TOGGLE_WIREFRAME;
 	
 	static
 	{
@@ -35,14 +36,7 @@ public class GameKeyBindings
 		PLACE_BLOCK     = InputBindingRegistry.registerInputBinding("place_block", InputSource.MOUSE, GLFW.GLFW_MOUSE_BUTTON_RIGHT);
 		
 		TOGGLE_DEBUG    = InputBindingRegistry.registerInputBinding("toggle_debug", InputSource.KEYBOARD, GLFW.GLFW_KEY_F3);
-	}
-	
-	/**
-	 * Registers the input bindings
-	 */
-	public static void initBindings()
-	{
-		// Boops the static initializer
+		TOGGLE_WIREFRAME = InputBindingRegistry.registerInputBinding("toggle_wire", InputSource.KEYBOARD, GLFW.GLFW_KEY_F6);
 	}
 	
 }

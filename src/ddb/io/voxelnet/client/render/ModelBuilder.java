@@ -26,6 +26,8 @@ public class ModelBuilder
 	private int polyCount = 0;
 	// Starting index of the polygon
 	private int polyStart = 0;
+	// Index offset for the current polygon
+	private int indexOffset = 0;
 	
 	private int vertexCount = 0;
 	int indexCount = 0;
@@ -69,6 +71,8 @@ public class ModelBuilder
 	 */
 	public void reset()
 	{
+		indexOffset = 0;
+		
 		vertexCount = 0;
 		indexCount = 0;
 		
@@ -91,12 +95,26 @@ public class ModelBuilder
 	}
 	
 	/**
+	 * Sets the offset for the index of the provoking / starting vertex
+	 * Only applies to polygons constructed after this call
+	 * @param offset The new offset for all indices
+	 */
+	public void setIndexOffset(int offset)
+	{
+		indexOffset = offset;
+	}
+	
+	/**
 	 * Adds a polygon
 	 * Automatically calculates the real number of vertices to allocate
 	 * @param vertices The number of vertices for the polygon
 	 */
 	public void addPoly(int vertices)
 	{
+		// Don't add empty polygons
+		if (vertices == 0)
+			return;
+		
 		// Setup everything for building
 		polyCount = vertices;
 		polySize = 0;
@@ -135,7 +153,12 @@ public class ModelBuilder
 	 */
 	public void endVertex()
 	{
-		int index = polySize + polyStart;
+		// Index offset is used to change the provoking vertex position
+		// Original order
+		// 0, 1, 2, 3
+		// Offset + 1
+		// 1, 2, 3, 0
+		int vertexID = polySize;
 		polySize++;
 		
 		// Verify the size
@@ -150,22 +173,22 @@ public class ModelBuilder
 			if (polySize <= 3)
 			{
 				// Less than 3 vertices, just add the index
-				indexBuffer.putInt(index);
+				indexBuffer.putInt( ((vertexID + 0) + indexOffset) % polyCount + polyStart);
 			} else
 			{
 				// Link the previous, current, and first vertex into a triangle
-				indexBuffer.putInt(index - 1);
-				indexBuffer.putInt(index);
-				indexBuffer.putInt(polyStart);
+				indexBuffer.putInt( ((vertexID - 1) + indexOffset) % polyCount + polyStart);
+				indexBuffer.putInt( ((vertexID + 0) + indexOffset) % polyCount + polyStart);
+				indexBuffer.putInt( (             0 + indexOffset) % polyCount + polyStart);
 			}
 		}
 		else if (mode == EnumDrawMode.LINES)
 		{
-			indexBuffer.putInt(index);
+			indexBuffer.putInt( ((vertexID + 0) + indexOffset) % polyCount + polyStart);
 			
 			// Add the double indices
 			if (polySize < polyCount)
-				indexBuffer.putInt(index+1);
+				indexBuffer.putInt( ((vertexID + 1) + indexOffset) % polyCount + polyStart);
 		}
 		
 		// Handle end behavior
@@ -174,7 +197,7 @@ public class ModelBuilder
 			if(mode == EnumDrawMode.LINES)
 			{
 				// Close the final line
-				indexBuffer.putInt(polyStart);
+				indexBuffer.putInt( (             0 + indexOffset) % polyCount + polyStart);
 			}
 		}
 	}

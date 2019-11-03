@@ -35,6 +35,7 @@ public class Game {
 	private static final float ZFAR  = 1000.0f;
 	
 	public static boolean showThings = false;
+	public static boolean showWireframe = false;
 	
 	/** Current window associated with this game instance */
 	GameWindow window;
@@ -340,6 +341,11 @@ public class Game {
 		camera.updateView();
 		
 		renderer.begin();
+		
+		if (showWireframe)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		else
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		
 		// Draw the world
 		texture.bind(0);

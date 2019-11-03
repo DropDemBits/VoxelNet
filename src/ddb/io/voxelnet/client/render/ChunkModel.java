@@ -31,7 +31,7 @@ class ChunkModel
 	private final ReentrantLock updateLock;
 	// Layers that need updates
 	private final boolean[] layerNeedsUpdate = new boolean[RenderLayer.values().length];
-	private final Chunk[] adjacentChunks = new Chunk[Facing.values().length];
+	private final Chunk[] adjacentChunks = new Chunk[3*3*3];
 	
 	/**
 	 * Creates a chunk model
@@ -95,12 +95,16 @@ class ChunkModel
 		//System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
 		
 		// Fetch the adjacent chunks only once
-		for (Facing face : Facing.values())
+		for(int i = 0; i < adjacentChunks.length; i++)
 		{
-			adjacentChunks[face.ordinal()] = chunk.world.getChunk(
-					chunk.chunkX + face.getOffsetX(),
-					chunk.chunkY + face.getOffsetY(),
-					chunk.chunkZ + face.getOffsetZ()
+			int xOff = (i % 3) - 1;
+			int zOff = ((i / 3) % 3) - 1;
+			int yOff = (i / 9) - 1;
+			
+			adjacentChunks[i] = chunk.world.getChunk(
+					chunk.chunkX + xOff,
+					chunk.chunkY + yOff,
+					chunk.chunkZ + zOff
 			);
 		}
 		
@@ -157,23 +161,26 @@ class ChunkModel
 			
 			// Check if a layer can be skipped
 			if (y < 15 && chunk.getLayerData()[y + 1] == 16 * 16)
-				layerAboveFilled = true;
-			else if (y == 15 && adjacentChunks[Facing.UP.ordinal()].getLayerData()[0] == 16 * 16)
-				layerAboveFilled = true;
+				layerAboveFilled = true; // Layer above is filled, in the current chunk
+			else if (y == 15 && adjacentChunks[BlockRenderer.toAdjacentIndex(0, 1, 0)].getLayerData()[0] == 16 * 16)
+				layerAboveFilled = true; // Layer above is filled, in the chunk up
 			
 			if (y > 0 && chunk.getLayerData()[y - 1] == 16 * 16)
-				layerBelowFilled = true;
-			else if (y == 0 && adjacentChunks[Facing.DOWN.ordinal()].getLayerData()[15] == 16 * 16)
-				layerBelowFilled = true;
+				layerBelowFilled = true; // Layer below is filled, in the current chunk
+			else if (y == 0 && adjacentChunks[BlockRenderer.toAdjacentIndex(0, -1, 0)].getLayerData()[15] == 16 * 16)
+				layerBelowFilled = true; // Layer below is filled, in the chunk down
 			
 			if (layerAboveFilled && layerBelowFilled)
 			{
+				// Layer is a candidate for skipping
 				skipLayer = true;
 				
-				// Check if the current layer can actually be skipped
+				// Check if the current layer can actually be skipped by
+				// checking if the cardinally adjacent layers are filled
 				for (Facing adjacentDir : Facing.CARDINAL_FACES)
 				{
-					if (adjacentChunks[adjacentDir.ordinal()].getLayerData()[y] < 16 * 16)
+					int i = BlockRenderer.toAdjacentIndex(adjacentDir.getOffsetX(), 0, adjacentDir.getOffsetZ());
+					if (adjacentChunks[i].getLayerData()[y] < 16 * 16)
 					{
 						skipLayer = false;
 						break;
