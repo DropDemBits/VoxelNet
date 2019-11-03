@@ -11,4 +11,10 @@ public class MathUtil
 		return a + t * (b - a);
 	}
 	
+	public static float lerp(float a, float b, float t)
+	{
+		// Original: a * (1 - t) + (b * t)
+		return a + t * (b - a);
+	}
+	
 }

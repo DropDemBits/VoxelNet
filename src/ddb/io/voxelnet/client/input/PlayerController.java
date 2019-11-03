@@ -25,33 +25,11 @@ public class PlayerController
 		this.player = player;
 		
 		// Register the input handlers
-		Game.GLOBAL_BUS.addHandler(MouseEvent.Button.class, this::onMouseButton);
 		Game.GLOBAL_BUS.addHandler(MouseEvent.Move.class, this::onMouseMove);
 		Game.GLOBAL_BUS.addHandler(KeyEvent.Button.class, this::onKeyButton);
 	}
 	
 	//// Event Handlers \\\\
-	private void onMouseButton(Event evt)
-	{
-		MouseEvent.Button e = (MouseEvent.Button)evt;
-		
-		if (e.state == MouseEvent.Button.PRESSED)
-		{
-			if (e.button == GLFW_MOUSE_BUTTON_RIGHT)
-				player.setPlacing(true);
-			else if (e.button == GLFW_MOUSE_BUTTON_LEFT)
-				player.setBreaking(true);
-		}
-		else if (e.state == MouseEvent.Button.RELEASED)
-		{
-			// Reset status
-			if (e.button == GLFW_MOUSE_BUTTON_RIGHT)
-				player.setPlacing(false);
-			else if (e.button == GLFW_MOUSE_BUTTON_LEFT)
-				player.setBreaking(false);
-		}
-	}
-	
 	private void onMouseMove(Event evt)
 	{
 		MouseEvent.Move e = (MouseEvent.Move)evt;
@@ -86,15 +64,6 @@ public class PlayerController
 			// BOOM!
 			player.world.explode((int)player.xPos, (int)player.yPos, (int)player.zPos, 20);
 		}
-		
-		// TODO: Pull out of PlayerController (Not appropriate here) or rename class
-		if (e.keycode == GLFW_KEY_F3)
-		{
-			showThings = !showThings;
-			
-			if(showThings)
-				System.out.println("DBG!");
-		}
 	}
 	
 	//// Main interface \\\\
@@ -111,8 +80,12 @@ public class PlayerController
 		if (GameKeyBindings.MOVE_RIGHT.isInputActive())
 			xDir +=  1.0f;
 		
-		if (window.isKeyDown(GLFW_KEY_SPACE))
+		if (GameKeyBindings.JUMP.isInputActive())
 			player.jump();
+		
+		// Update break & place state
+		player.setPlacing(GameKeyBindings.PLACE_BLOCK.isInputActive());
+		player.setBreaking(GameKeyBindings.BREAK_BLOCK.isInputActive());
 		
 		// Update sneaking & sprinting
 		player.isSneaking = GameKeyBindings.SNEAK.isInputActive();

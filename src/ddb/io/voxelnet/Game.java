@@ -287,7 +287,7 @@ public class Game {
 			
 			// Render Stage
 			double renderTick = glfwGetTime();
-			render(lag /* MS_PER_UPDATE*/);
+			render(lag * MS_PER_PHYSICS_TICK);
 			frameTime = glfwGetTime() - renderTick;
 			fps++;
 			
@@ -393,6 +393,7 @@ public class Game {
 		int blockY = (int)Math.floor(player.yPos);
 		int blockZ = (int)Math.floor(player.zPos);
 		
+		String nameVersion = "VoxelNet ?.?.?-alpha\n";
 		String timeStr = String.format("FT %-5.2f (%d | %.3f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, currentUPD * 1000d);
 		String posStr = String.format("Pos %.2f / %.2f / %.2f\n", player.xPos, player.yPos, player.zPos);
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
@@ -400,7 +401,11 @@ public class Game {
 		String lyrStr = String.format("L %04d\n", world.getChunk(blockX >> 4, blockY >> 4, blockZ >> 4).getLayerData()[blockY & 0xF]);
 		String ligStr = String.format("B %2d S %2d\n", world.getBlockLight(blockX, blockY, blockZ), world.getSkyLight(blockX, blockY, blockZ));
 		String colStr = String.format("H %2d\n", world.getColumnHeight(blockX, blockY, blockZ));
-		fontRenderer.putString("VoxelNet\n(adhesion / videospan / forte / mezzoforte / piano / pianissimo)\n"+timeStr+posStr+lokStr+blkStr+ligStr+colStr, 0, 0);
+		
+		if (showThings)
+			fontRenderer.putString(nameVersion+timeStr+posStr+lokStr+blkStr+ligStr+colStr, 0, 0);
+		else
+			fontRenderer.putString(nameVersion, 0, 0);
 		fontRenderer.flush();
 		
 		renderer.finishShader();

@@ -4,16 +4,21 @@ import org.lwjgl.glfw.GLFW;
 
 public class GameKeyBindings
 {
+	// Player movement
 	public static final InputBinding MOVE_FORWARD;
 	public static final InputBinding MOVE_BACKWARD;
 	public static final InputBinding MOVE_LEFT;
 	public static final InputBinding MOVE_RIGHT;
-	
 	public static final InputBinding SPRINT;
 	public static final InputBinding SNEAK;
+	public static final InputBinding JUMP;
 	
+	// Place & break
 	public static final InputBinding BREAK_BLOCK;
 	public static final InputBinding PLACE_BLOCK;
+	
+	// Debug
+	public static final InputBinding TOGGLE_DEBUG;
 	
 	static
 	{
@@ -24,9 +29,12 @@ public class GameKeyBindings
 		
 		SPRINT          = InputBindingRegistry.registerInputBinding("sprint", InputSource.KEYBOARD, GLFW.GLFW_KEY_LEFT_CONTROL);
 		SNEAK           = InputBindingRegistry.registerInputBinding("sneak", InputSource.KEYBOARD, GLFW.GLFW_KEY_LEFT_SHIFT);
+		JUMP            = InputBindingRegistry.registerInputBinding("jump", InputSource.KEYBOARD, GLFW.GLFW_KEY_SPACE);
 		
 		BREAK_BLOCK     = InputBindingRegistry.registerInputBinding("break_block", InputSource.MOUSE, GLFW.GLFW_MOUSE_BUTTON_LEFT);
-		PLACE_BLOCK     = InputBindingRegistry.registerInputBinding("break_block", InputSource.MOUSE, GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+		PLACE_BLOCK     = InputBindingRegistry.registerInputBinding("place_block", InputSource.MOUSE, GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+		
+		TOGGLE_DEBUG    = InputBindingRegistry.registerInputBinding("toggle_debug", InputSource.KEYBOARD, GLFW.GLFW_KEY_F3);
 	}
 	
 	/**

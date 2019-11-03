@@ -139,6 +139,8 @@ public class GameWindow
 			
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 			glfwSetWindowShouldClose(window, true);
+		if (GameKeyBindings.TOGGLE_DEBUG.wasInputActivated())
+			Game.showThings = !Game.showThings;
 		
 		glfwSwapBuffers(window);
 		glfwPollEvents();

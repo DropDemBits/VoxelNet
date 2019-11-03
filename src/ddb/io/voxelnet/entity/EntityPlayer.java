@@ -3,6 +3,7 @@ package ddb.io.voxelnet.entity;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.util.AABBCollider;
+import ddb.io.voxelnet.util.MathUtil;
 import ddb.io.voxelnet.util.RaycastResult;
 import org.joml.Vector3d;
 
@@ -64,6 +65,9 @@ public class EntityPlayer extends Entity
 		{
 			this.xAccel = 0;
 			this.zAccel = 0;
+			
+			// Stop sprinting
+			this.isSprinting = false;
 			return;
 		}
 		
@@ -150,12 +154,12 @@ public class EntityPlayer extends Entity
 		
 		// Apply exponential decay to the velocity
 		if(Math.abs(xVel) > 1/256f)
-			xVel = lerpf(xVel, 0, slipperiness * accelCoef * delta);
+			xVel = MathUtil.lerp(xVel, 0, slipperiness * accelCoef * delta);
 		else
 			xVel = 0;
 		
 		if(Math.abs(zVel) > 1/256f)
-			zVel = lerpf(zVel, 0, slipperiness * accelCoef * delta);
+			zVel = MathUtil.lerp(zVel, 0, slipperiness * accelCoef * delta);
 		else
 			zVel = 0;
 		
@@ -274,11 +278,6 @@ public class EntityPlayer extends Entity
 			return;
 		
 		placeBlock = placeBlocks[selection];
-	}
-	
-	private float lerpf(float start, float end, float step)
-	{
-		return (start * (1 - step)) + (end * step);
 	}
 	
 }

@@ -101,7 +101,7 @@ public class InputBinding
 	public boolean wasInputActivated()
 	{
 		// Rising edge
-		return !lastActiveState && isEnabled;
+		return !lastActiveState && isActive;
 	}
 	
 	/**
@@ -111,7 +111,7 @@ public class InputBinding
 	public boolean wasInputDeactivated()
 	{
 		// Falling edge
-		return lastActiveState && !isEnabled;
+		return lastActiveState && !isActive;
 	}
 	
 	/**

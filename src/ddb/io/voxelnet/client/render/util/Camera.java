@@ -2,6 +2,7 @@ package ddb.io.voxelnet.client.render.util;
 
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.util.Frustum;
+import ddb.io.voxelnet.util.MathUtil;
 import org.joml.Math;
 import org.joml.Matrix4f;
 
@@ -110,9 +111,9 @@ public class Camera
 	 */
 	public void asPlayer(EntityPlayer player, double pt)
 	{
-		this.x = (float) (player.xPos + player.xVel * pt);
-		this.y = (float) (player.yPos + player.yVel * pt);
-		this.z = (float) (player.zPos + player.zVel * pt);
+		this.x = (float) MathUtil.lerp(player.xPos, player.xPos + player.xVel, pt);
+		this.y = (float) MathUtil.lerp(player.yPos, player.yPos + player.yVel, pt);
+		this.z = (float) MathUtil.lerp(player.zPos, player.zPos + player.zVel, pt);
 		
 		this.pitch = player.pitch;
 		this.yaw = player.yaw;

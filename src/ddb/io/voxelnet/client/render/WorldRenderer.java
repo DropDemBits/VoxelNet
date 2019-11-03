@@ -53,9 +53,9 @@ public class WorldRenderer
 		boolean newChunks = false;
 		
 		// Generate chunks in a 16x16 radius around the player
-		/*for (int cx = -3; cx <= 3; cx++)
+		/*for (int cx = -8; cx <= 8; cx++)
 		{
-			for (int cz = -3; cz <= 3; cz++)
+			for (int cz = -8; cz <= 8; cz++)
 			{
 				int cxOff = (int)(player.xPos / 16f);
 				int czOff = (int)(player.zPos / 16f);
@@ -165,7 +165,7 @@ public class WorldRenderer
 			
 			// Render around a certain radius
 			/*if (((chunkModel.chunk.chunkX << 4) + 8.5f - player.xPos)*((chunkModel.chunk.chunkX << 4) + 8.5f - player.xPos)+
-					((chunkModel.chunk.chunkZ << 4) + 8.5f - player.zPos)*((chunkModel.chunk.chunkZ << 4) + 8.5f - player.zPos) > (48 * 48))
+					((chunkModel.chunk.chunkZ << 4) + 8.5f - player.zPos)*((chunkModel.chunk.chunkZ << 4) + 8.5f - player.zPos) > (8*8)*256)
 				continue;*/
 			
 			// Perform frustum culling
