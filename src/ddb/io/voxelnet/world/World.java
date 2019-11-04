@@ -1028,7 +1028,7 @@ public class World
 			}
 			
 			// Select 24 different positions
-			for (int i = 0; i < 24; i++)
+			/*for (int i = 0; i < 24; i++)
 			{
 				int x = worldRandom.nextInt(16);
 				int y = worldRandom.nextInt(16);
@@ -1038,7 +1038,7 @@ public class World
 				
 				if (block.isRandomlyTickable())
 					block.onRandomTick(this, x + chunk.chunkX * 16, y + chunk.chunkY * 16, z + chunk.chunkZ * 16);
-			}
+			}*/
 		});
 		
 		waterInstance.doFluidTick(this);

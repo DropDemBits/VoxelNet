@@ -13,7 +13,7 @@ import java.util.Stack;
 public class BlockFluid extends Block
 {
 	// Masks
-	private static final int IS_FALLING = 0b1000;
+	public static final int IS_FALLING = 0b1000;
 	public static final int DISTANCE = 0b0111;
 	
 	// XXX: BAD! Replace with something better
@@ -28,7 +28,7 @@ public class BlockFluid extends Block
 		this.isUpdating = isUpdating;
 		
 		setSolid(false);
-		if (isUpdating && false)
+		if (isUpdating && true)
 			setFaceTextures(new int[] {3, 3, 3, 3, 3, 3});
 		else
 			setFaceTextures(new int[] {13, 13, 13, 13, 13, 13});
@@ -56,24 +56,25 @@ public class BlockFluid extends Block
 	
 	
 	@Override
+	public void onBlockPlaced(World world, int x, int y, int z)
+	{
+		super.onBlockPlaced(world, x, y, z);
+		world.getFluidInstance(getFluid()).addFluidUpdate(x, y, z);
+	}
+	
+	@Override
 	public void onNeighborUpdated(World world, int x, int y, int z, Facing dir)
 	{
 		super.onNeighborUpdated(world, x, y, z, dir);
 		
-		if (!isUpdating)
-		{
-			// Schedule a fluid update
-			world.getFluidInstance(getFluid()).addFluidUpdate(x, y, z);
-			//world.setBlock(x, y, z, getFluid().updatingFluid, world.getBlockMeta(x, y, z), 0);
-		}
-		
+		// Schedule a fluid update
+		world.getFluidInstance(getFluid()).addFluidUpdate(x, y, z);
 	}
 	
-	/*
 	@Override
 	public void onTick(World world, int x, int y, int z)
 	{
-		doWaterSpread(world, x, y, z);
+		super.onTick(world, x, y, z);
 	}
 	
 	// TODO: Move into a per-world fluid manager/instance
@@ -297,8 +298,9 @@ public class BlockFluid extends Block
 			if (!makeStatic.contains(replace))
 				makeStatic.push(replace);
 		}
-	}
+	}//*/
 	
+	/*
 	public static void updateWater(World world)
 	{
 		while (!makeStatic.isEmpty())
@@ -318,7 +320,7 @@ public class BlockFluid extends Block
 			FluidPlacement nextPlace = availableBlocks.pop();
 			world.setBlock(nextPlace.pos.getX(), nextPlace.pos.getY(), nextPlace.pos.getZ(), getFluid().updatingFluid, nextPlace.newMeta, 7);
 		}
-	}*/
+	}//*/
 	
 	@Override
 	public boolean canBeReplacedBy(World world, Block block, byte newMeta, int x, int y, int z)

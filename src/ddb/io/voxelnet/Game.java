@@ -37,6 +37,7 @@ public class Game {
 	
 	public static boolean showThings = false;
 	public static boolean showWireframe = false;
+	public static boolean debugFluid = false;
 	
 	/** Current window associated with this game instance */
 	GameWindow window;
@@ -410,7 +411,7 @@ public class Game {
 		String ligStr = String.format("B %2d S %2d\n", world.getBlockLight(blockX, blockY, blockZ), world.getSkyLight(blockX, blockY, blockZ));
 		String colStr = String.format("H %2d\n", world.getColumnHeight(blockX, blockY, blockZ));
 		
-		if (showThings)
+		if (showThings || debugFluid)
 			fontRenderer.putString(nameVersion+timeStr+posStr+lokStr+blkStr+ligStr+colStr, 0, 0);
 		else
 			fontRenderer.putString(nameVersion, 0, 0);
