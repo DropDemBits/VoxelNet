@@ -81,9 +81,9 @@ public abstract class BlockFluid extends Block
 	public boolean showFace(Block adjacent, Facing dir)
 	{
 		if (dir == Facing.UP)
-			return !(adjacent instanceof BlockFluid);
+			return !getFluid().isSameFluid(adjacent);
 		
-		return !(adjacent instanceof BlockFluid) && (!adjacent.isSolid() || adjacent.isTransparent());
+		return !getFluid().isSameFluid(adjacent) && (!adjacent.isSolid() || adjacent.isTransparent());
 	}
 	
 	public boolean isSameFluid(Block block)

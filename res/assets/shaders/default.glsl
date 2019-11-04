@@ -27,7 +27,7 @@ void main (void) {
     // Compute light value
     // skyLight/shadow, blockLight, face & aoLight
     // (blockLight + (skyLight - shadow)) * faceIntensities[aoLight]
-    //skyLight = (0.5f) * (sin((iTime / 45.f) * interval) + 1.f);
+    skyLight = (0.5f) * (sin((iTime / 45.f) * interval) + 1.f);
 
     int aoIndex = int(lightValues.z);
     float finalLight = clamp(lightValues.y + lightValues.x * skyLight + baseBrightness, 0.f, 15.f);

@@ -270,8 +270,11 @@ public class EntityPlayer extends Entity
 		final Block[] placeBlocks = new Block[] {
 				Blocks.GRASS, Blocks.DIRT, Blocks.STONE,
 				Blocks.PLANKS, Blocks.STONE_BRICKS, Blocks.CLAY_BRICKS,
-				Blocks.DOOR_LOWER, Blocks.GLASS, Blocks.SAND, Blocks.UPDATING_WATER,
-				Blocks.TORCH
+				Blocks.DOOR_LOWER, Blocks.GLASS, Blocks.SAND,
+				
+				// Extended
+				Blocks.UPDATING_WATER, Blocks.UPDATING_LAVA, Blocks.TORCH,
+				Blocks.GRAVEL
 		};
 		
 		if (selection < 0 || selection > placeBlocks.length)

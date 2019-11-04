@@ -21,6 +21,8 @@ public class Blocks
 	public static Block GRAVEL;
 	public static BlockFluid UPDATING_WATER;
 	public static BlockFluid WATER;
+	public static BlockFluid UPDATING_LAVA;
+	public static BlockFluid LAVA;
 	public static Block TORCH;
 	
 }

@@ -31,7 +31,9 @@ public class Block
 		Blocks.GRAVEL       = addBlock(11, new BlockFalling().setSolid(true).setFaceTextures(new int[] {12, 12, 12, 12, 12, 12}));
 		Blocks.UPDATING_WATER = (BlockFluid) addBlock(12, new BlockWater(true));
 		Blocks.WATER        = (BlockFluid) addBlock(13, new BlockWater(false));
-		Blocks.TORCH        = addBlock(14, new BlockTorch());
+		Blocks.UPDATING_LAVA = (BlockFluid) addBlock(14, new BlockLava(true));
+		Blocks.LAVA         = (BlockFluid) addBlock(15, new BlockLava(false));
+		Blocks.TORCH        = addBlock(16, new BlockTorch());
 	}
 	
 	private static Block addBlock(int id, Block instance)

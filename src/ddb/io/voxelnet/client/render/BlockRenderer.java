@@ -303,9 +303,9 @@ public class BlockRenderer
 		
 		// Check the above block
 		Block aboveBlock = getAdjacentBlock(x, y, z, Facing.UP, adjacentChunks);
-		if (!(aboveBlock instanceof BlockFluid))
+		if (!((BlockFluid)block).isSameFluid(aboveBlock))
 		{
-			// Water is not falling
+			// Fluid is not falling
 			heightNW = (float)(tripleAverage(adjacentMetas[1], adjacentMetas[0], adjacentMetas[3], level) * HEIGHT_VAL); // N + NW + W
 			heightSW = (float)(tripleAverage(adjacentMetas[7], adjacentMetas[6], adjacentMetas[3], level) * HEIGHT_VAL); // S + SW + W
 			heightSE = (float)(tripleAverage(adjacentMetas[7], adjacentMetas[8], adjacentMetas[5], level) * HEIGHT_VAL); // S + SE + E
@@ -322,8 +322,25 @@ public class BlockRenderer
 		for (Facing face : Facing.values())
 		{
 			Block adjacent = getAdjacentBlock(x, y, z, face, adjacentChunks);
-			byte skyLight = chunk.getSkyLight(x, y, z);
-			byte blockLight = chunk.getBlockLight(x, y, z);
+			
+			byte blockLight;
+			byte skyLight;
+			
+			if (block.isTransparent())
+			{
+				// Is transparent, get the light values at the current position
+				blockLight = chunk.getBlockLight(x, y, z);
+				skyLight = chunk.getSkyLight(x, y, z);
+			}
+			else
+			{
+				int adjacentX = chunk.chunkX * 16 + x;
+				int adjacentY = chunk.chunkY * 16 + y;
+				int adjacentZ = chunk.chunkZ * 16 + z;
+				
+				blockLight = chunk.world.getBlockLight(adjacentX, adjacentY, adjacentZ);
+				skyLight = chunk.world.getSkyLight(adjacentX, adjacentY, adjacentZ);
+			}
 			
 			// Don't show the face if it's the same block
 			if (!block.showFace(adjacent, face))

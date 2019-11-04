@@ -11,10 +11,14 @@ public class Fluid
 {
 	
 	public static Fluid WATER;
+	public static Fluid LAVA;
+	public static Fluid[] ALL_FLUIDS;
 	
 	public static void init()
 	{
 		 WATER = new Fluid(Blocks.WATER, Blocks.UPDATING_WATER, 7, 1, 5, true);
+		 LAVA = new Fluid(Blocks.LAVA, Blocks.UPDATING_LAVA, 7, 2, 20, false);
+		 ALL_FLUIDS = new Fluid[] { WATER, LAVA };
 	}
 	
 	// Actively updating version of the fluid

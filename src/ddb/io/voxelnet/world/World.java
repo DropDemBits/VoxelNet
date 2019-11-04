@@ -36,8 +36,8 @@ public class World
 	private Queue<LightUpdate> pendingShadowUpdates;
 	
 	// Fluid instances
-	private FluidInstance waterInstance;
-	int fluidTicks;
+	private Map<Fluid, FluidInstance> fluidInstances;
+	private int[] fluidTickSchedules = new int[Fluid.ALL_FLUIDS.length];
 	
 	// WorldGen
 	private long worldSeed;
@@ -61,8 +61,14 @@ public class World
 		pendingShadowUpdates = new ConcurrentLinkedQueue<>();
 		pendingShadowRemoves = new ConcurrentLinkedQueue<>();
 		
-		waterInstance = new FluidInstance(Fluid.WATER);
-		fluidTicks = waterInstance.getFluid().updateRate;
+		fluidInstances = new LinkedHashMap<>();
+		
+		for (int i = 0; i < Fluid.ALL_FLUIDS.length; i++)
+		{
+			Fluid fluid = Fluid.ALL_FLUIDS[i];
+			fluidInstances.put(fluid, new FluidInstance(fluid));
+			fluidTickSchedules[i] = fluid.updateRate;
+		}
 		
 		setWorldSeed(worldSeed);
 	}
@@ -926,7 +932,7 @@ public class World
 	// Fluid management //
 	public FluidInstance getFluidInstance(Fluid fluid)
 	{
-		return waterInstance;
+		return fluidInstances.get(fluid);
 	}
 	
 	// Entity management //
@@ -1043,10 +1049,14 @@ public class World
 			}
 		});
 		
-		if (waterInstance.isFluidTickPending() && --fluidTicks <= 0)
+		for (int i = 0; i < Fluid.ALL_FLUIDS.length; i++)
 		{
-			waterInstance.doFluidTick(this);
-			fluidTicks = waterInstance.getFluid().updateRate;
+			FluidInstance instance = fluidInstances.get(Fluid.ALL_FLUIDS[i]);
+			if (instance.isFluidTickPending() && --fluidTickSchedules[i] <= 0)
+			{
+				instance.doFluidTick(this);
+				fluidTickSchedules[i] = instance.getFluid().updateRate;
+			}
 		}
 	}
 	
