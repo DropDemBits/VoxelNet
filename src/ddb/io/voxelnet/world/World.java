@@ -37,6 +37,7 @@ public class World
 	
 	// Fluid instances
 	private FluidInstance waterInstance;
+	int fluidTicks;
 	
 	// WorldGen
 	private long worldSeed;
@@ -61,6 +62,7 @@ public class World
 		pendingShadowRemoves = new ConcurrentLinkedQueue<>();
 		
 		waterInstance = new FluidInstance(Fluid.WATER);
+		fluidTicks = waterInstance.getFluid().updateRate;
 		
 		setWorldSeed(worldSeed);
 	}
@@ -985,7 +987,7 @@ public class World
 	public void update(float delta)
 	{
 		accumulatedWorldTick += delta;
-		if (accumulatedWorldTick > 1f/4f)
+		if (accumulatedWorldTick > 1f/20f)
 		{
 			accumulatedWorldTick = 0;
 			doBlockTick();
@@ -1028,7 +1030,7 @@ public class World
 			}
 			
 			// Select 24 different positions
-			/*for (int i = 0; i < 24; i++)
+			for (int i = 0; i < 24; i++)
 			{
 				int x = worldRandom.nextInt(16);
 				int y = worldRandom.nextInt(16);
@@ -1038,10 +1040,14 @@ public class World
 				
 				if (block.isRandomlyTickable())
 					block.onRandomTick(this, x + chunk.chunkX * 16, y + chunk.chunkY * 16, z + chunk.chunkZ * 16);
-			}*/
+			}
 		});
 		
-		waterInstance.doFluidTick(this);
+		if (waterInstance.isFluidTickPending() && --fluidTicks <= 0)
+		{
+			waterInstance.doFluidTick(this);
+			fluidTicks = waterInstance.getFluid().updateRate;
+		}
 	}
 	
 	private void processLightUpdate()

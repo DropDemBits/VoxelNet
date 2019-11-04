@@ -29,8 +29,8 @@ public class Block
 		Blocks.GLASS        = addBlock(9,  new BlockGlass());
 		Blocks.SAND         = addBlock(10, new BlockFalling().setSolid(true).setFaceTextures(new int[] {11, 11, 11, 11, 11, 11}));
 		Blocks.GRAVEL       = addBlock(11, new BlockFalling().setSolid(true).setFaceTextures(new int[] {12, 12, 12, 12, 12, 12}));
-		Blocks.UPDATING_WATER = (BlockFluid) addBlock(12, new BlockFluid(true));
-		Blocks.WATER        = (BlockFluid) addBlock(13, new BlockFluid(false));
+		Blocks.UPDATING_WATER = (BlockFluid) addBlock(12, new BlockWater(true));
+		Blocks.WATER        = (BlockFluid) addBlock(13, new BlockWater(false));
 		Blocks.TORCH        = addBlock(14, new BlockTorch());
 	}
 	

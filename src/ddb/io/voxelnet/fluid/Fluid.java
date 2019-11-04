@@ -53,7 +53,7 @@ public class Fluid
 	
 	public boolean isSameFluid(Block other)
 	{
-		return other == staticFluid || other == updatingFluid;
+		return other instanceof BlockFluid && ((BlockFluid)other).getFluid() == this;
 	}
 	
 }

@@ -110,7 +110,7 @@ public class FluidInstance
 		byte currentMeta = world.getBlockMeta(pos.getX(), pos.getY(), pos.getZ());
 		boolean isFalling = (currentMeta & BlockFluid.IS_FALLING) != 0;
 		int currentDistance = currentMeta & BlockFluid.DISTANCE;
-		int newDistance = currentDistance + 1;
+		int newDistance = currentDistance + getFluid().spreadBy;
 		
 		int adjacentSources = 0;
 		int inFlows = 0, outFlows = 0;
@@ -171,7 +171,7 @@ public class FluidInstance
 			
 			// Update the current distance & new distance
 			currentDistance = 0;
-			newDistance = currentDistance + 1;
+			newDistance = currentDistance + getFluid().spreadBy;
 		}
 		
 		// If there are no inflows, and the fluid isn't a source fluid,
@@ -181,23 +181,19 @@ public class FluidInstance
 			// No inflows, begin drainage
 			int drainRate = 1;
 			
-			// If there is more than one outflow or it is falling, increase the drain rate
-			if(isFalling)
-				drainRate = 4;
-			else if (outFlows > 1)
+			// If there is more than one outflow, increase the drain rate
+			if (outFlows > 2)
 				drainRate = 2;
 			
 			byte newMeta = (byte) (currentDistance + drainRate);
 			
-			if (newMeta > 7)
-				newMeta = 7;
+			if (newMeta > getFluid().maxSpread)
+				newMeta = (byte)getFluid().maxSpread;
 			
-			if (isFalling)
-				newMeta |= BlockFluid.IS_FALLING;
-			
-			if ((currentDistance + drainRate) > 7)
+			if ((currentDistance + drainRate) > getFluid().maxSpread || isFalling)
 			{
-				// Dry up
+				// Dry up if the new distance is larger than the max spread,
+				// or is falling
 				pendingClears.add(new FluidPlacement(pos, newMeta));
 			}
 			else
@@ -291,6 +287,11 @@ public class FluidInstance
 				addFluidUpdate(newPos);
 			}
 		}
+	}
+	
+	public boolean isFluidTickPending()
+	{
+		return !pendingUpdates.empty();
 	}
 	
 	/**
