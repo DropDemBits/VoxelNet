@@ -37,6 +37,7 @@ public class World
 	
 	// Fluid instances
 	private Map<Fluid, FluidInstance> fluidInstances;
+	// TODO: Add tick schedules
 	private int[] fluidTickSchedules = new int[Fluid.ALL_FLUIDS.length];
 	
 	// WorldGen

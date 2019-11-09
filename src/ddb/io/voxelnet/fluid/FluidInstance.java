@@ -1,10 +1,8 @@
 package ddb.io.voxelnet.fluid;
 
-import ddb.io.voxelnet.Game;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.BlockFluid;
 import ddb.io.voxelnet.block.Blocks;
-import ddb.io.voxelnet.client.input.PlayerController;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.World;
@@ -14,7 +12,7 @@ import java.util.Stack;
 /**
  * Per-world instance of a fluid
  *
- * Right now, only simulates flood-fill type fluids
+ * As part of the process, fluid placements are done as soon as possible
  */
 public class FluidInstance
 {
@@ -24,9 +22,6 @@ public class FluidInstance
 	
 	private Stack<Vec3i> pendingUpdates;
 	private Stack<Vec3i> processingUpdates;
-	
-	private Stack<FluidPlacement> pendingClears;
-	private Stack<FluidPlacement> pendingDrains;
 	
 	/**
 	 * Creates a new fluid instance
@@ -38,9 +33,6 @@ public class FluidInstance
 		
 		pendingUpdates = new Stack<>();
 		processingUpdates = new Stack<>();
-		
-		pendingClears = new Stack<>();
-		pendingDrains = new Stack<>();
 	}
 	
 	/**
@@ -90,19 +82,6 @@ public class FluidInstance
 			
 			doFluidSpread(world, pos);
 		}
-		
-		// Process the clears and placements
-		while (!pendingClears.isEmpty())
-		{
-			FluidPlacement nextPlace = pendingClears.pop();
-			world.setBlock(nextPlace.pos.getX(), nextPlace.pos.getY(), nextPlace.pos.getZ(), Blocks.AIR, (byte) 0, 7);
-		}
-		
-		while (!pendingDrains.isEmpty())
-		{
-			FluidPlacement nextPlace = pendingDrains.pop();
-			world.setBlock(nextPlace.pos.getX(), nextPlace.pos.getY(), nextPlace.pos.getZ(), getFluid().staticFluid, nextPlace.newMeta, 7);
-		}
 	}
 	
 	private void doFluidSpread(World world, Vec3i pos)
@@ -110,7 +89,7 @@ public class FluidInstance
 		byte currentMeta = world.getBlockMeta(pos.getX(), pos.getY(), pos.getZ());
 		boolean isFalling = (currentMeta & BlockFluid.IS_FALLING) != 0;
 		int currentDistance = currentMeta & BlockFluid.DISTANCE;
-		int newDistance = currentDistance + getFluid().spreadBy;
+		int newDistance;
 		
 		int adjacentSources = 0;
 		int inFlows = 0, outFlows = 0;
@@ -171,7 +150,6 @@ public class FluidInstance
 			
 			// Update the current distance & new distance
 			currentDistance = 0;
-			newDistance = currentDistance + getFluid().spreadBy;
 		}
 		
 		// If there are no inflows, and the fluid isn't a source fluid,
@@ -187,25 +165,27 @@ public class FluidInstance
 			
 			byte newMeta = (byte) (currentDistance + drainRate);
 			
-			if (newMeta > getFluid().maxSpread)
-				newMeta = (byte)getFluid().maxSpread;
+			// Apply drain to get effective current distance
+			currentDistance += drainRate;
 			
-			if ((currentDistance + drainRate) > getFluid().maxSpread || isFalling)
+			if (currentDistance > getFluid().maxSpread || isFalling)
 			{
 				// Dry up if the new distance is larger than the max spread,
 				// or is falling
-				pendingClears.add(new FluidPlacement(pos, newMeta));
+				//pendingClears.add(new FluidPlacement(pos, (byte)0));
+				world.setBlock(pos.getX(), pos.getY(), pos.getZ(), Blocks.AIR, (byte)0, 7);
+				
+				// If not falling, don't spread out
+				if (!isFalling)
+					return;
 			}
 			else
 			{
 				// Gradually disappear
-				FluidPlacement placement = new FluidPlacement(pos, newMeta);
-				pendingDrains.add(placement);
 				addFluidUpdate(pos);
+				// Update the current position
+				world.setBlock(pos.getX(), pos.getY(), pos.getZ(), getFluid().staticFluid, newMeta, 7);
 			}
-			
-			// Move to the next one
-			return;
 		}
 		
 		if (isFalling)
@@ -232,6 +212,9 @@ public class FluidInstance
 				}
 			}
 		}
+		
+		// Derive the new distance from the current distance
+		newDistance = currentDistance + getFluid().spreadBy;
 		
 		// Flow to the surrounding positions
 		for (Facing dir : flowDirs)
