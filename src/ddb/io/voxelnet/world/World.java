@@ -392,8 +392,8 @@ public class World
 		// Only update the current light value if
 		// - The new block is air
 		// - The new block is not transparent
-		// - The new block's light is brighter than the old one
-		if (block == Blocks.AIR || !block.isTransparent() || block.getBlockLight() > lastBlockLight)
+		// - The new block's light is not the same as the old one
+		if (block == Blocks.AIR || !block.isTransparent() || block.getBlockLight() != lastBlockLight)
 			chunk.setBlockLight(blockX, blockY, blockZ, block.getBlockLight());
 		
 		// Update the chunk column
@@ -499,8 +499,12 @@ public class World
 				}
 			}
 			
-			// If the new block is air or not transparent or is somewhat opaque, set it up for removal
-			if (block == Blocks.AIR || !block.isTransparent())
+			// If the new block:
+			// - Is air
+			// - Is not transparent
+			// - Has a smaller block light
+			// set it up for removal
+			if (block == Blocks.AIR || !block.isTransparent() || block.getBlockLight() < lastBlockLight)
 				pendingLightRemoves.add(new LightUpdate(new Vec3i(x, y, z), (byte)lastBlockLight));
 			else
 				pendingLightUpdates.add(new LightUpdate(new Vec3i(x, y, z), (byte)0));
