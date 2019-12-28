@@ -9,6 +9,7 @@ import ddb.io.voxelnet.world.Chunk;
 
 public class BlockRenderer
 {
+	/** Position : 3(float), TexCoord : 2(ushort), LightVals : 3(byte) */
 	public static final BufferLayout BLOCK_LAYOUT = new BufferLayout()
 			// Vertex position
 			.addAttribute(BufferLayout.EnumAttribType.FLOAT, 3, false)

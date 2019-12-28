@@ -3,6 +3,7 @@ package ddb.io.voxelnet;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.client.GameWindow;
 import ddb.io.voxelnet.client.render.entity.EntityRendererFalling;
+import ddb.io.voxelnet.client.render.entity.EntityRendererPlayer;
 import ddb.io.voxelnet.client.render.gl.BufferLayout;
 import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
 import ddb.io.voxelnet.client.render.gl.GLContext;
@@ -44,6 +45,7 @@ public class Game {
 	WorldSave worldSave;
 	World world;
 	
+	EntityPlayer otherPlayer;
 	EntityPlayer player;
 	PlayerController controller;
 	
@@ -137,6 +139,7 @@ public class Game {
 		
 		// Register the entity renderers
 		renderer.registerEntityRenderer(EntityFallingBlock.class, new EntityRendererFalling());
+		renderer.registerEntityRenderer(EntityPlayer.class, new EntityRendererPlayer());
 		
 		///////////////////////////////////////////////
 		// Initialize the gui & hud things
@@ -160,7 +163,7 @@ public class Game {
 		// Setup the player
 		player = new EntityPlayer();
 		world.addEntity(player);
-		worldRenderer.setPlayer(player);
+		worldRenderer.setClientPlayer(player);
 		
 		// Spawn the player at the surface
 		int spawnY = 256;
@@ -176,6 +179,11 @@ public class Game {
 		
 		// Setup the controller
 		controller = new PlayerController(window, player);
+		
+		// Add another player
+		otherPlayer = new EntityPlayer();
+		world.addEntity(otherPlayer);
+		otherPlayer.setPos(0.5f, spawnY + 0.5f, 0.5f);
 		
 		// Setup the camera
 		camera = new Camera(FOV, ZNEAR, ZFAR);
@@ -342,6 +350,7 @@ public class Game {
 	
 	private void update(float delta)
 	{
+		otherPlayer.rotate(1.0f * delta, 1.0f * delta);
 		controller.update(delta);
 		world.update(delta);
 		
@@ -471,7 +480,7 @@ public class Game {
 		int blockY = (int)Math.floor(player.yPos);
 		int blockZ = (int)Math.floor(player.zPos);
 		
-		String nameVersion = "VoxelNet ?.?.?-alpha\n";
+		String nameVersion = "VoxelNet ?.?.?-net_test\n";
 		String timeStr = String.format("FT %-5.2f (%d | %.3f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, currentUPD * 1000d);
 		String posStr = String.format("Pos %.2f / %.2f / %.2f\n", player.xPos, player.yPos, player.zPos);
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);

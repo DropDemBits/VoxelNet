@@ -1,11 +1,11 @@
 package ddb.io.voxelnet.client.render;
 
+import ddb.io.voxelnet.client.render.entity.EntityRendererPlayer;
 import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.Chunk;
 import ddb.io.voxelnet.world.World;
-import org.lwjgl.opengl.GL11;
 
 import java.nio.BufferOverflowException;
 import java.util.*;
@@ -20,7 +20,7 @@ public class WorldRenderer
 	private static final RenderLayer[] transparentLayers = new RenderLayer[] { RenderLayer.TRANSPARENT, RenderLayer.FLUID };
 	
 	// Player that the world is rendered around
-	private EntityPlayer player;
+	private EntityPlayer clientPlayer;
 	// List of all chunk models
 	private final Map<Vec3i, ChunkModel> renderChunks = new LinkedHashMap<>();
 	// List of chunk models to render
@@ -43,9 +43,9 @@ public class WorldRenderer
 		this.atlas = atlas;
 	}
 	
-	public void setPlayer(EntityPlayer player)
+	public void setClientPlayer(EntityPlayer clientPlayer)
 	{
-		this.player = player;
+		this.clientPlayer = clientPlayer;
 	}
 	
 	public void update()
@@ -94,9 +94,9 @@ public class WorldRenderer
 			}
 		}
 		
-		if( (int)player.xPos >> 4 != lastChunkX ||
-			(int)player.yPos >> 4 != lastChunkY ||
-			(int)player.zPos >> 4 != lastChunkZ ||
+		if( (int) clientPlayer.xPos >> 4 != lastChunkX ||
+			(int) clientPlayer.yPos >> 4 != lastChunkY ||
+			(int) clientPlayer.zPos >> 4 != lastChunkZ ||
 			newChunks)
 		{
 			// Sort for every new chunk added or change in the player's chunk
@@ -108,9 +108,9 @@ public class WorldRenderer
 				generateQueue.sort(this::distanceSort);
 			}
 			
-			lastChunkX = (int)player.xPos >> 4;
-			lastChunkY = (int)player.yPos >> 4;
-			lastChunkZ = (int)player.zPos >> 4;
+			lastChunkX = (int) clientPlayer.xPos >> 4;
+			lastChunkY = (int) clientPlayer.yPos >> 4;
+			lastChunkZ = (int) clientPlayer.zPos >> 4;
 		}
 		
 		
@@ -135,7 +135,7 @@ public class WorldRenderer
 			canUpdateChunks = true;
 		}
 		
-		renderer.getCurrentShader().setUniform1i("inWater", player.isInWater() ? 1 : 0);
+		renderer.getCurrentShader().setUniform1i("inWater", clientPlayer.isInWater() ? 1 : 0);
 		
 		long opaqueCount = 0;
 		long opaqueAccum = 0;
@@ -263,7 +263,7 @@ public class WorldRenderer
 		for (Entity e : world.loadedEntities)
 		{
 			// Skip drawing the local player
-			if (e instanceof EntityPlayer)
+			if (e == clientPlayer)
 				continue;
 			
 			renderer.getEntityRenderer(e.getClass()).render(e, renderer);
@@ -294,12 +294,12 @@ public class WorldRenderer
 		Chunk a = modelA.chunk;
 		Chunk b = modelB.chunk;
 		
-		float distA = (float) (Math.pow((a.chunkX << 4) - player.xPos, 2) +
-				Math.pow((a.chunkY << 4) - player.yPos, 2) +
-				Math.pow((a.chunkZ << 4) - player.zPos, 2));
-		float distB = (float) (Math.pow((b.chunkX << 4) - player.xPos, 2) +
-				Math.pow((b.chunkY << 4) - player.yPos, 2) +
-				Math.pow((b.chunkZ << 4) - player.zPos, 2));
+		float distA = (float) (Math.pow((a.chunkX << 4) - clientPlayer.xPos, 2) +
+				Math.pow((a.chunkY << 4) - clientPlayer.yPos, 2) +
+				Math.pow((a.chunkZ << 4) - clientPlayer.zPos, 2));
+		float distB = (float) (Math.pow((b.chunkX << 4) - clientPlayer.xPos, 2) +
+				Math.pow((b.chunkY << 4) - clientPlayer.yPos, 2) +
+				Math.pow((b.chunkZ << 4) - clientPlayer.zPos, 2));
 		return Float.compare(distB, distA);
 	}
 	

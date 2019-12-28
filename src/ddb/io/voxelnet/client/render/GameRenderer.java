@@ -122,6 +122,9 @@ public class GameRenderer
 	
 	/**
 	 * Draws a single model
+	 * The model does not need to be bound before calling this method,
+	 * as the bind/unbind will be performed inside here
+	 *
 	 * @param model The model to draw
 	 */
 	public void drawModel(Model model)
