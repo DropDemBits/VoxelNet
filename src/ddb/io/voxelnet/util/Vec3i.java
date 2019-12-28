@@ -60,7 +60,9 @@ public class Vec3i
 	@Override
 	public int hashCode()
 	{
-		return Objects.hash(x, y, z);
+		// Order:
+		// (Y hi 14) (X lo 5) (Z lo 5) (Y lo 4)
+		return ((y & ~0xF) << (14 - 4)) | ((x & 0x1F) << 9) | ((z & 0x1F) << 4) | (y & 0xF);
 	}
 	
 	@Override

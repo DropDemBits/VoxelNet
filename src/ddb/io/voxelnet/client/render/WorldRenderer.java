@@ -120,20 +120,6 @@ public class WorldRenderer
 	
 	public void render(GameRenderer renderer)
 	{
-		// Enqueue all the changed chunks
-		if (!generateQueue.isEmpty())
-		{
-			System.out.println("Model Upd (" + generateQueue.size() + ")");
-			//while (!generateQueue.isEmpty())
-			for (int i = 0; i < 16 && !generateQueue.isEmpty(); i++)
-			{
-				ChunkModel model = generateQueue.peek();
-				//System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
-				generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
-				//new ThreadedChunkGenerator(generateQueue.pop()).run();
-			}
-		}
-		
 		// List of chunks that have transparent blocks
 		List<ChunkModel> transparentChunks = new ArrayList<>();
 		boolean canUpdateChunks = false;
@@ -281,6 +267,20 @@ public class WorldRenderer
 				continue;
 			
 			renderer.getEntityRenderer(e.getClass()).render(e, renderer);
+		}
+		
+		// Enqueue all the changed chunks
+		if (!generateQueue.isEmpty())
+		{
+			System.out.println("Model Upd (" + generateQueue.size() + ")");
+			//while (!generateQueue.isEmpty())
+			for (int i = 0; i < 16 && !generateQueue.isEmpty(); i++)
+			{
+				ChunkModel model = generateQueue.peek();
+				//System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
+				generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
+				//new ThreadedChunkGenerator(generateQueue.pop()).run();
+			}
 		}
 	}
 	
