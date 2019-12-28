@@ -15,7 +15,6 @@ public class EntityRendererFalling extends EntityRenderer
 	public EntityRendererFalling()
 	{
 		model = new Model(BlockRenderer.BLOCK_LAYOUT);
-		model.setTransform(new Matrix4f());
 		
 		builder = new ModelBuilder(BlockRenderer.BLOCK_LAYOUT, EnumDrawMode.TRIANGLES);
 	}

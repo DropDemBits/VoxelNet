@@ -27,8 +27,8 @@ public class GameWindow
 	// Handle to the GLFW window instance
 	private long window;
 	private Game gameInstance;
-	private int initialWidth;
-	private int initialHeight;
+	private int width;
+	private int height;
 	
 	// Last position of the mouse
 	private double lastX = 0.0f, lastY = 0.0f;
@@ -42,8 +42,8 @@ public class GameWindow
 	public GameWindow(Game instance, int initialWidth, int initialHeight)
 	{
 		this.gameInstance = instance;
-		this.initialWidth = initialWidth;
-		this.initialHeight = initialHeight;
+		this.width = initialWidth;
+		this.height = initialHeight;
 	}
 	
 	/**
@@ -55,7 +55,7 @@ public class GameWindow
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-		window = glfwCreateWindow(initialWidth, initialHeight, "VoxelNet", 0, 0);
+		window = glfwCreateWindow(width, height, "VoxelNet", 0, 0);
 		
 		if (window == 0)
 			throw new IllegalStateException("Failure creating the window");
@@ -92,6 +92,9 @@ public class GameWindow
 		glfwSetWindowSizeCallback(window, (win, width, height) -> {
 			// Update the GL viewport size
 			glViewport(0, 0, width, height);
+			this.width = width;
+			this.height = height;
+			
 			// Update the perspective matrices
 			gameInstance.camera.updatePerspective((float) width / (float) height);
 			gameInstance.guiCamera.updateOrtho(width, height);
@@ -166,6 +169,16 @@ public class GameWindow
 	public boolean isKeyDown(int keycode)
 	{
 		return glfwGetKey(window, keycode) == GLFW_PRESS;
+	}
+	
+	public int getWidth()
+	{
+		return width;
+	}
+	
+	public int getHeight()
+	{
+		return height;
 	}
 	
 }

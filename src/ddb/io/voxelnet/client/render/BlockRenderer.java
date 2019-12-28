@@ -130,45 +130,45 @@ public class BlockRenderer
 		{
 			case NORTH:
 				// North Face
-				builder.pos3(x + 0.0f, y + 1.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 1.0f, z + 0.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 1.0f, z + 0.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 1.0f, z + 0.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case WEST:
 				// West Face
-				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 1.0f, z + 1.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 1.0f, z + 0.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 1.0f, z + 1.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 1.0f, z + 0.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case SOUTH:
 				// South Face
-				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 1.0f, z + 1.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 1.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 1.0f, z + 1.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 1.0f, z + 1.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case EAST:
 				// East Face
-				builder.pos3(x + 1.0f, y + 1.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 1.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 1.0f, z + 0.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 1.0f, z + 1.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case UP:
 				// Up/Top Face
-				builder.pos3(x + 0.0f, y + 1.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 1.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 1.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 1.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 1.0f, z + 0.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 1.0f, z + 1.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 1.0f, z + 1.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 1.0f, z + 0.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case DOWN:
 				// Down/Bottom Face
-				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 		}
 	}
@@ -184,45 +184,45 @@ public class BlockRenderer
 		{
 			case NORTH:
 				// North Face
-				builder.pos3(x + 0.0f, y + 1.0f, z + 0.5f - 1f/16f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 1.0f, z + 0.5f - 1f/16f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 0.5f - 1f/16f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 0.0f, z + 0.5f - 1f/16f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 1.0f, z + 0.5f - 1f/16f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 1.0f, z + 0.5f - 1f/16f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 0.5f - 1f/16f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 0.5f - 1f/16f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case WEST:
 				// West Face
-				builder.pos3(x + 0.5f - 1/16f, y + 0.0f, z + 0.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f - 1/16f, y + 0.0f, z + 1.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f - 1/16f, y + 1.0f, z + 1.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f - 1/16f, y + 1.0f, z + 0.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f - 1/16f, y + 0.0f, z + 0.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f - 1/16f, y + 0.0f, z + 1.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f - 1/16f, y + 1.0f, z + 1.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f - 1/16f, y + 1.0f, z + 0.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case SOUTH:
 				// South Face
-				builder.pos3(x + 0.0f, y + 0.0f, z + 0.5f + 1f/16f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 0.5f + 1f/16f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 1.0f, z + 0.5f + 1f/16f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 1.0f, z + 0.5f + 1f/16f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 0.5f + 1f/16f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 0.5f + 1f/16f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 1.0f, z + 0.5f + 1f/16f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 1.0f, z + 0.5f + 1f/16f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case EAST:
 				// East Face
-				builder.pos3(x + 0.5f + 1/16f, y + 1.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f + 1/16f, y + 1.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f + 1/16f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f + 1/16f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f + 1/16f, y + 1.0f, z + 0.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f + 1/16f, y + 1.0f, z + 1.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f + 1/16f, y + 0.0f, z + 1.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f + 1/16f, y + 0.0f, z + 0.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case UP:
 				// Up/Top Face
-				builder.pos3(x + 0.5f + 1/16f, y + 9/16f, z + 0.5f + 1/16f).tex2(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*7/16f)).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f + 1/16f, y + 9/16f, z + 0.5f - 1/16f).tex2(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*7/16f)).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f - 1/16f, y + 9/16f, z + 0.5f - 1/16f).tex2(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*7/16f)).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f - 1/16f, y + 9/16f, z + 0.5f + 1/16f).tex2(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*7/16f)).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f + 1/16f, y + 9/16f, z + 0.5f + 1/16f).tex2i(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*7/16f)).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f + 1/16f, y + 9/16f, z + 0.5f - 1/16f).tex2i(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*7/16f)).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f - 1/16f, y + 9/16f, z + 0.5f - 1/16f).tex2i(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*7/16f)).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f - 1/16f, y + 9/16f, z + 0.5f + 1/16f).tex2i(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*7/16f)).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case DOWN:
 				// Down/Bottom face
-				builder.pos3(x + 0.5f - 1/16f, y + 0.0f, z + 0.5f + 1/16f).tex2(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*0/16f)).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f - 1/16f, y + 0.0f, z + 0.5f - 1/16f).tex2(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*0/16f)).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f + 1/16f, y + 0.0f, z + 0.5f - 1/16f).tex2(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*14/16f)).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.5f + 1/16f, y + 0.0f, z + 0.5f + 1/16f).tex2(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*14/16f)).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f - 1/16f, y + 0.0f, z + 0.5f + 1/16f).tex2i(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*0/16f)).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f - 1/16f, y + 0.0f, z + 0.5f - 1/16f).tex2i(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[1] + (int)(atlas.getPixelScaleY()*0/16f)).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f + 1/16f, y + 0.0f, z + 0.5f - 1/16f).tex2i(texCoords[0] + (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*14/16f)).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.5f + 1/16f, y + 0.0f, z + 0.5f + 1/16f).tex2i(texCoords[2] - (int)(atlas.getPixelScaleX()*7/16f), texCoords[3] - (int)(atlas.getPixelScaleY()*14/16f)).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 		}
 	}
@@ -375,11 +375,11 @@ public class BlockRenderer
 			// Figure out which one should be the one
 			double h1 = -1f, h2 = -1f;
 			
-			if (a >= 0f) { h1 = a; }
+			if (a >= 0f) { h1 = a; avgCount--; }
 			if (b >= 0f) { if (h1 < 0f) h1 = b; else h2 = b; avgCount--; }
 			if (c >= 0f) { if (h1 < 0f) h1 = c; else h2 = c; avgCount--; }
 			
-			assert(avgCount == 0);
+			assert avgCount == 0 : "AvgCount is " + avgCount;
 			
 			retval = (h1 + h2 + def) / 3f;
 		}
@@ -406,45 +406,45 @@ public class BlockRenderer
 		{
 			case NORTH:
 				// North Face
-				builder.pos3(x + 0.0f, y + nw,   z + 0.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + ne,   z + 0.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + nw,   z + 0.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + ne,   z + 0.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case WEST:
 				// West Face
-				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + sw,   z + 1.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + nw,   z + 0.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + sw,   z + 1.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + nw,   z + 0.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case SOUTH:
 				// South Face
-				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + se,   z + 1.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + sw,   z + 1.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + se,   z + 1.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + sw,   z + 1.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case EAST:
 				// East Face
-				builder.pos3(x + 1.0f, y + ne,   z + 0.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + se,   z + 1.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + ne,   z + 0.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + se,   z + 1.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case UP:
 				// Up/Top Face
-				builder.pos3(x + 0.0f, y + nw,   z + 0.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + sw,   z + 1.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + se,   z + 1.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + ne,   z + 0.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + nw,   z + 0.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + sw,   z + 1.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + se,   z + 1.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + ne,   z + 0.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 			case DOWN:
 				// Down/Bottom Face
-				builder.pos3(x + 1.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 1.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[3]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 0.0f, z + 1.0f).tex2(texCoords[0], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
-				builder.pos3(x + 0.0f, y + 0.0f, z + 0.0f).tex2(texCoords[2], texCoords[1]).light3(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[0], texCoords[3]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
+				builder.pos3f(x + 0.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight, blockLight, aoLight).endVertex();
 				break;
 		}
 	}

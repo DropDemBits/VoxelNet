@@ -57,6 +57,10 @@ public class Game {
 	// The main texture atlas
 	Texture texture;
 	
+	ModelBuilder quadrator;
+	Model quads;
+	Texture hudTexture;
+	
 	public Camera camera;
 	public Camera guiCamera;
 	WorldRenderer worldRenderer;
@@ -134,6 +138,13 @@ public class Game {
 		// Register the entity renderers
 		renderer.registerEntityRenderer(EntityFallingBlock.class, new EntityRendererFalling());
 		
+		///////////////////////////////////////////////
+		// Initialize the gui & hud things
+		hudTexture = new Texture("assets/textures/hud.png");
+		quads = new Model(BufferLayout.QUAD_LAYOUT);
+		quadrator = new ModelBuilder(BufferLayout.QUAD_LAYOUT, EnumDrawMode.TRIANGLES, 4);
+		//quads.setTransform(new Matrix4f().identity());
+		
 		// Setup the world, world save/loader, and world renderer
 		// "world-allthings" is main world
 		world = new World();
@@ -180,44 +191,43 @@ public class Game {
 			ModelBuilder builder = new ModelBuilder(simpleLayout, EnumDrawMode.LINES, 4);
 			
 			hitBox = new Model(simpleLayout);
-			hitBox.setTransform(new Matrix4f());
 			hitBox.setDrawMode(EnumDrawMode.LINES);
 			
 			builder.addPoly(4);
-			builder.pos3(0f, 1f, 0f).endVertex();
-			builder.pos3(1f, 1f, 0f).endVertex();
-			builder.pos3(1f, 0f, 0f).endVertex();
-			builder.pos3(0f, 0f, 0f).endVertex();
+			builder.pos3f(0f, 1f, 0f).endVertex();
+			builder.pos3f(1f, 1f, 0f).endVertex();
+			builder.pos3f(1f, 0f, 0f).endVertex();
+			builder.pos3f(0f, 0f, 0f).endVertex();
 			
 			builder.addPoly(4);
-			builder.pos3(0f, 1f, 1f).endVertex();
-			builder.pos3(1f, 1f, 1f).endVertex();
-			builder.pos3(1f, 0f, 1f).endVertex();
-			builder.pos3(0f, 0f, 1f).endVertex();
+			builder.pos3f(0f, 1f, 1f).endVertex();
+			builder.pos3f(1f, 1f, 1f).endVertex();
+			builder.pos3f(1f, 0f, 1f).endVertex();
+			builder.pos3f(0f, 0f, 1f).endVertex();
 			
 			builder.addPoly(4);
-			builder.pos3(0f, 0f, 0f).endVertex();
-			builder.pos3(0f, 1f, 0f).endVertex();
-			builder.pos3(0f, 1f, 1f).endVertex();
-			builder.pos3(0f, 0f, 1f).endVertex();
+			builder.pos3f(0f, 0f, 0f).endVertex();
+			builder.pos3f(0f, 1f, 0f).endVertex();
+			builder.pos3f(0f, 1f, 1f).endVertex();
+			builder.pos3f(0f, 0f, 1f).endVertex();
 			
 			builder.addPoly(4);
-			builder.pos3(1f, 0f, 1f).endVertex();
-			builder.pos3(1f, 1f, 1f).endVertex();
-			builder.pos3(1f, 1f, 0f).endVertex();
-			builder.pos3(1f, 0f, 0f).endVertex();
+			builder.pos3f(1f, 0f, 1f).endVertex();
+			builder.pos3f(1f, 1f, 1f).endVertex();
+			builder.pos3f(1f, 1f, 0f).endVertex();
+			builder.pos3f(1f, 0f, 0f).endVertex();
 			
 			builder.addPoly(4);
-			builder.pos3(0f, 0f, 0f).endVertex();
-			builder.pos3(0f, 0f, 1f).endVertex();
-			builder.pos3(1f, 0f, 1f).endVertex();
-			builder.pos3(1f, 0f, 0f).endVertex();
+			builder.pos3f(0f, 0f, 0f).endVertex();
+			builder.pos3f(0f, 0f, 1f).endVertex();
+			builder.pos3f(1f, 0f, 1f).endVertex();
+			builder.pos3f(1f, 0f, 0f).endVertex();
 			
 			builder.addPoly(4);
-			builder.pos3(0f, 1f, 0f).endVertex();
-			builder.pos3(0f, 1f, 1f).endVertex();
-			builder.pos3(1f, 1f, 1f).endVertex();
-			builder.pos3(1f, 1f, 0f).endVertex();
+			builder.pos3f(0f, 1f, 0f).endVertex();
+			builder.pos3f(0f, 1f, 1f).endVertex();
+			builder.pos3f(1f, 1f, 1f).endVertex();
+			builder.pos3f(1f, 1f, 0f).endVertex();
 			
 			hitBox.bind();
 			hitBox.updateVertices(builder);
@@ -363,7 +373,8 @@ public class Game {
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		
 		// ???: Is the hit box technically part of the HUD?
-		// TODO: Pull out of main game class
+		// - Yep, also the in-world item display
+		// TODO: Pull out of main game class into HUD rendering
 		if (player.lastHit != RaycastResult.NO_RESULT)
 		{
 			// ???: Should the model matrix be part of the model?
@@ -386,18 +397,76 @@ public class Game {
 			renderer.finishShader();
 		}
 		
-		// TODO: Draw HUD & GUI elements here
-		glPointSize(5.0f);
-		glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
-		glBegin(GL_POINTS);
-		glVertex2f(0, 0);
-		glEnd();
-		
-		// Test string
 		renderer.useCamera(guiCamera);
 		renderer.useShader(quadShader);
 		renderer.prepareShader();
 		
+		// Draw gui & hud things here
+		drawGuiLayer(partialTicks);
+		
+		renderer.finishShader();
+	}
+	
+	private void drawTexturedQuad(int x, int y,
+	                              int width, int height,
+	                              int u, int v,
+	                              int sliceWidth, int sliceHeight,
+	                              int colour,
+	                              Texture texture)
+	{
+		// Pre-calculate the dimensions & texture coordinates
+		int xMin, yMin;
+		int xMax, yMax;
+		short uMin, vMin;
+		short uMax, vMax;
+		
+		xMin = x;
+		yMin = y;
+		xMax = x + width;
+		yMax = y + height;
+		
+		float uScale = (1.f / texture.getWidth()) * 65535.f;
+		float vScale = (1.f / texture.getHeight()) * 65535.f;
+		
+		uMin = (short)((int) (u  * uScale) & 0xFFFF);
+		vMin = (short)((int)((v * vScale)) & 0xFFFF);
+		uMax = (short)((int)((u + sliceWidth ) * uScale) & 0xFFFF);
+		vMax = (short)((int)((v + sliceHeight) * vScale) & 0xFFFF);
+		
+		// Split up the four components of the colour
+		float r, g, b, a;
+		
+		r = ((colour >> (0*8)) & 0xFF) / 255.f;
+		g = ((colour >> (1*8)) & 0xFF) / 255.f;
+		b = ((colour >> (2*8)) & 0xFF) / 255.f;
+		a = ((colour >> (3*8)) & 0xFF) / 255.f;
+		
+		quadrator.addPoly(4);
+		quadrator.pos2f(xMin, yMin).tex2i(uMin, vMax).colour4(r,g,b,a).endVertex();
+		quadrator.pos2f(xMin, yMax).tex2i(uMin, vMin).colour4(r,g,b,a).endVertex();
+		quadrator.pos2f(xMax, yMax).tex2i(uMax, vMin).colour4(r,g,b,a).endVertex();
+		quadrator.pos2f(xMax, yMin).tex2i(uMax, vMax).colour4(r,g,b,a).endVertex();
+	}
+	
+	private void drawGuiLayer(double partialTicks)
+	{
+		hudTexture.bind(1);
+		
+		// Draw select cursor
+		quadrator.reset();
+		
+		final int crosshairSize = 16;
+		drawTexturedQuad((window.getWidth() - crosshairSize) / 2, (window.getHeight() - crosshairSize) / 2,
+					      crosshairSize, crosshairSize,
+				          0, (16-4)*16, 16, 16,
+		                  0xBEFFFFFF, hudTexture);
+		
+		quads.bind();
+		quads.updateVertices(quadrator);
+		renderer.drawModel(quads);
+		quads.unbind();
+		
+		// Draw debug strings
 		int blockX = (int)Math.floor(player.xPos);
 		int blockY = (int)Math.floor(player.yPos);
 		int blockZ = (int)Math.floor(player.zPos);
@@ -416,8 +485,6 @@ public class Game {
 		else
 			fontRenderer.putString(nameVersion, 0, 0);
 		fontRenderer.flush();
-		
-		renderer.finishShader();
 	}
 	
 	private void parseArgs(String[] args) {}

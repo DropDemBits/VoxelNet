@@ -222,23 +222,23 @@ public class ModelBuilder
 	}
 	
 	////////////// Common Puts \\\\\\\\\\\\\\
-	public ModelBuilder pos2(float x, float y)
+	public ModelBuilder pos2f(float x, float y)
 	{
 		return vec2f(x, y);
 	}
 	
-	public ModelBuilder pos3(float x, float y, float z)
+	public ModelBuilder pos3f(float x, float y, float z)
 	{
 		//return vec3s((short)(x * 255.f), (short)(y * 255.f), (short)(z * 255.f));
 		return vec3f(x, y, z);
 	}
 	
-	public ModelBuilder tex2(int u, int v)
+	public ModelBuilder tex2i(int u, int v)
 	{
 		return vec2s((short)u, (short)v);
 	}
 	
-	public ModelBuilder light3(byte skyLight, byte blockLight, byte aoLight)
+	public ModelBuilder light3b(byte skyLight, byte blockLight, byte aoLight)
 	{
 		return vec3b(skyLight, blockLight, aoLight);
 	}

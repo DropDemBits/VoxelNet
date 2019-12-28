@@ -79,10 +79,10 @@ public class FontRenderer
 		// |\|
 		// 1-2
 		quadBuilder.addPoly(4);
-		quadBuilder.pos2(xMin, yMin).tex2(texCoords[0], texCoords[3]).colour4(1, 1, 1, 1).endVertex(); // 0
-		quadBuilder.pos2(xMin, yMax).tex2(texCoords[0], texCoords[1]).colour4(1, 1, 1, 1).endVertex(); // 1
-		quadBuilder.pos2(xMax, yMax).tex2(texCoords[2], texCoords[1]).colour4(1, 1, 1, 1).endVertex(); // 2
-		quadBuilder.pos2(xMax, yMin).tex2(texCoords[2], texCoords[3]).colour4(1, 1, 1, 1).endVertex(); // 3
+		quadBuilder.pos2f(xMin, yMin).tex2i(texCoords[0], texCoords[3]).colour4(1, 1, 1, 1).endVertex(); // 0
+		quadBuilder.pos2f(xMin, yMax).tex2i(texCoords[0], texCoords[1]).colour4(1, 1, 1, 1).endVertex(); // 1
+		quadBuilder.pos2f(xMax, yMax).tex2i(texCoords[2], texCoords[1]).colour4(1, 1, 1, 1).endVertex(); // 2
+		quadBuilder.pos2f(xMax, yMin).tex2i(texCoords[2], texCoords[3]).colour4(1, 1, 1, 1).endVertex(); // 3
 		
 		if (quadBuilder.needsResize())
 			flush();

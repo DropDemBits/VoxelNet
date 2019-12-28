@@ -16,11 +16,9 @@ public class PlayerController
 {
 	private static final float MOUSE_SENSITIVITY = 0.45f;
 	private final EntityPlayer player;
-	private final GameWindow window;
 	
 	public PlayerController(GameWindow window, EntityPlayer player)
 	{
-		this.window = window;
 		this.player = player;
 		
 		// Register the input handlers
@@ -53,6 +51,10 @@ public class PlayerController
 			player.changeSelectedBlock(9);
 		else if(e.keycode == GLFW_KEY_MINUS)
 			player.changeSelectedBlock(10);
+		else if(e.keycode == GLFW_KEY_EQUAL)
+			player.changeSelectedBlock(11);
+		else if(e.keycode == GLFW_KEY_GRAVE_ACCENT)
+			player.changeSelectedBlock(12);
 		
 		// Toggle flying
 		if (e.keycode == GLFW_KEY_F)

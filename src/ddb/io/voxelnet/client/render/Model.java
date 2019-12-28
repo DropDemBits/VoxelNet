@@ -36,6 +36,8 @@ public class Model
 	{
 		this.layout = layout;
 		
+		modelMatrix = new Matrix4f().identity();
+		
 		// Create the buffers
 		vboHandle = glGenBuffers();
 		iboHandle = glGenBuffers();
@@ -64,9 +66,12 @@ public class Model
 	
 	/**
 	 * Updates the data of the GL Buffers with the given model builder
+	 * The model must be bound with "bind()" before calling this method
 	 */
 	public void updateVertices(ModelBuilder builder)
 	{
+		assert isBound : "Model must be bound before updating the buffer data";
+		
 		indicesCount = builder.indexCount;
 		
 		if (indicesCount > 0)
@@ -129,6 +134,9 @@ public class Model
 	
 	/**
 	 * Sets the transform matrix of the model
+	 *
+	 * By default, a new matrix is always created. This can be used to replace
+	 * the default matrix with one shared with other models.
 	 * @param matrix The matrix to use as the transform
 	 */
 	public void setTransform(Matrix4f matrix)
