@@ -24,15 +24,16 @@ public class EntityRendererPlayer extends EntityRenderer
 		// Build crude player model
 		playerBuilder.reset();
 		// Body
-		/*addCube(0f, 0f, 0f,
-				16,16,16,
-				0, 0,
-				playerBuilder, playerTexture);*/
-		// Head
-		addCube(-0.5f, 1.00001f, -0.5f,
+		addCube(-0.5f, 0.00000f, -0.5f,
 				1f,1f, 1f,
-				0f, 0,
-				32,32,16,
+				0f, 0f,
+				16,16,16,
+				playerBuilder, playerTexture);
+		// Head
+		addCube(-0.25f, 1.25f, -0.25f,
+				0.5f,0.5f, 0.5f,
+				0f, 32f,
+				16,16,16,
 				playerBuilder, playerTexture);
 		
 		playerModel.bind();
@@ -62,8 +63,8 @@ public class EntityRendererPlayer extends EntityRenderer
 	                     ModelBuilder builder, Texture texture)
 	{
 		// Scales for the uv coordinates
-		float uScale = texture.getWidth() * 0xFFFF;
-		float vScale = texture.getHeight() * 0xFFFF;
+		float uScale = 65535.0f / texture.getWidth();
+		float vScale = 65535.0f / texture.getHeight();
 		byte skyLight = (byte)255;
 		byte blockLight = (byte)255;
 		byte aoLight = 0;
@@ -73,14 +74,55 @@ public class EntityRendererPlayer extends EntityRenderer
 		short uMin, vMin;
 		short uMax, vMax;
 		
-		// Front face
+		// Top Face
 		uOff = uStart + depth;
 		vOff = vStart + depth;
+		uMin = (short)((uOff) * uScale);
+		vMin = (short)((vOff) * vScale);
+		uMax = (short)((uOff + width) * uScale);
+		vMax = (short)((vOff + height) * vScale);
 		
-		uMin = (short)0x0000;//((uOff) * uScale);
-		vMin = (short)0x0000;//((vOff) * vScale);
-		uMax = (short)0xFFFF;//((uOff + width) * uScale);
-		vMax = (short)0xFFFF;//((vOff + height) * vScale);
+		builder.addPoly(4);
+		builder.pos3f(xOff + 0.0f * xSize, yOff + 1.0f * ySize, zOff + 0.0f * zSize).tex2i(uMax, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 0.0f * xSize, yOff + 1.0f * ySize, zOff + 1.0f * zSize).tex2i(uMax, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 1.0f * xSize, yOff + 1.0f * ySize, zOff + 1.0f * zSize).tex2i(uMin, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 1.0f * xSize, yOff + 1.0f * ySize, zOff + 0.0f * zSize).tex2i(uMin, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
+		
+		// Bottom Face
+		uOff = uStart + depth + width;
+		vOff = vStart + depth;
+		uMin = (short)((uOff) * uScale);
+		vMin = (short)((vOff) * vScale);
+		uMax = (short)((uOff + width) * uScale);
+		vMax = (short)((vOff + height) * vScale);
+		
+		builder.addPoly(4);
+		builder.pos3f(xOff + 1.0f * xSize, yOff + 0.0f * ySize, zOff + 0.0f * zSize).tex2i(uMin, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 1.0f * xSize, yOff + 0.0f * ySize, zOff + 1.0f * zSize).tex2i(uMin, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 0.0f * xSize, yOff + 0.0f * ySize, zOff + 1.0f * zSize).tex2i(uMax, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 0.0f * xSize, yOff + 0.0f * ySize, zOff + 0.0f * zSize).tex2i(uMax, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
+		
+		// Right face
+		uOff = uStart + 0;
+		vOff = vStart + 0;
+		uMin = (short)((uOff) * uScale);
+		vMin = (short)((vOff) * vScale);
+		uMax = (short)((uOff + width) * uScale);
+		vMax = (short)((vOff + height) * vScale);
+		
+		builder.addPoly(4);
+		builder.pos3f(xOff + 1.0f * xSize, yOff + 1.0f * ySize, zOff + 0.0f * zSize).tex2i(uMax, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 1.0f * xSize, yOff + 1.0f * ySize, zOff + 1.0f * zSize).tex2i(uMin, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 1.0f * xSize, yOff + 0.0f * ySize, zOff + 1.0f * zSize).tex2i(uMin, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 1.0f * xSize, yOff + 0.0f * ySize, zOff + 0.0f * zSize).tex2i(uMax, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
+		
+		// Front face
+		uOff = uStart + depth;
+		vOff = vStart + 0;
+		uMin = (short)((uOff) * uScale);
+		vMin = (short)((vOff) * vScale);
+		uMax = (short)((uOff + width) * uScale);
+		vMax = (short)((vOff + height) * vScale);
 		
 		builder.addPoly(4);
 		builder.pos3f(xOff + 0.0f * xSize, yOff + 1.0f * ySize, zOff + 0.0f * zSize).tex2i(uMax, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
@@ -88,26 +130,33 @@ public class EntityRendererPlayer extends EntityRenderer
 		builder.pos3f(xOff + 1.0f * xSize, yOff + 0.0f * ySize, zOff + 0.0f * zSize).tex2i(uMin, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
 		builder.pos3f(xOff + 0.0f * xSize, yOff + 0.0f * ySize, zOff + 0.0f * zSize).tex2i(uMax, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
 		
-		// Back face
-		builder.addPoly(4);
-		builder.pos3f(xOff + 0.0f * xSize, yOff + 0.0f * ySize, zOff + 1.0f * zSize).tex2i(uMin, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
-		builder.pos3f(xOff + 1.0f * xSize, yOff + 0.0f * ySize, zOff + 1.0f * zSize).tex2i(uMax, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
-		builder.pos3f(xOff + 1.0f * xSize, yOff + 1.0f * ySize, zOff + 1.0f * zSize).tex2i(uMax, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
-		builder.pos3f(xOff + 0.0f * xSize, yOff + 1.0f * ySize, zOff + 1.0f * zSize).tex2i(uMin, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
-		
 		// Left face
+		uOff = uStart + depth + width;
+		vOff = vStart + 0;
+		uMin = (short)((uOff) * uScale);
+		vMin = (short)((vOff) * vScale);
+		uMax = (short)((uOff + width) * uScale);
+		vMax = (short)((vOff + height) * vScale);
+		
 		builder.addPoly(4);
 		builder.pos3f(xOff + 0.0f * xSize, yOff + 0.0f * ySize, zOff + 0.0f * zSize).tex2i(uMin, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
 		builder.pos3f(xOff + 0.0f * xSize, yOff + 0.0f * ySize, zOff + 1.0f * zSize).tex2i(uMax, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
 		builder.pos3f(xOff + 0.0f * xSize, yOff + 1.0f * ySize, zOff + 1.0f * zSize).tex2i(uMax, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
 		builder.pos3f(xOff + 0.0f * xSize, yOff + 1.0f * ySize, zOff + 0.0f * zSize).tex2i(uMin, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
 		
-		// Right face
+		// Back face
+		uOff = uStart + depth + width + depth;
+		vOff = vStart + 0;
+		uMin = (short)((uOff) * uScale);
+		vMin = (short)((vOff) * vScale);
+		uMax = (short)((uOff + width) * uScale);
+		vMax = (short)((vOff + height) * vScale);
+		
 		builder.addPoly(4);
-		builder.pos3f(xOff + 1.0f * xSize, yOff + 1.0f * ySize, zOff + 0.0f * zSize).tex2i(uMax, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
-		builder.pos3f(xOff + 1.0f * xSize, yOff + 1.0f * ySize, zOff + 1.0f * zSize).tex2i(uMin, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
-		builder.pos3f(xOff + 1.0f * xSize, yOff + 0.0f * ySize, zOff + 1.0f * zSize).tex2i(uMin, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
-		builder.pos3f(xOff + 1.0f * xSize, yOff + 0.0f * ySize, zOff + 0.0f * zSize).tex2i(uMax, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 0.0f * xSize, yOff + 0.0f * ySize, zOff + 1.0f * zSize).tex2i(uMin, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 1.0f * xSize, yOff + 0.0f * ySize, zOff + 1.0f * zSize).tex2i(uMax, vMin).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 1.0f * xSize, yOff + 1.0f * ySize, zOff + 1.0f * zSize).tex2i(uMax, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
+		builder.pos3f(xOff + 0.0f * xSize, yOff + 1.0f * ySize, zOff + 1.0f * zSize).tex2i(uMin, vMax).light3b(skyLight, blockLight, aoLight).endVertex();
 	}
 	
 	@Override

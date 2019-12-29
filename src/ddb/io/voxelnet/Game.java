@@ -148,46 +148,8 @@ public class Game {
 		quadrator = new ModelBuilder(BufferLayout.QUAD_LAYOUT, EnumDrawMode.TRIANGLES, 4);
 		//quads.setTransform(new Matrix4f().identity());
 		
-		// Setup the world, world save/loader, and world renderer
-		// "world-allthings" is main world
-		world = new World();
-		worldSave = new WorldSave(world, "world.dat");
-		worldRenderer = new WorldRenderer(world, atlas);
-		
-		// Load / Generate the world
-		if (worldSave.canLoad())
-			worldSave.load();
-		else
-			world.generate();
-		
-		// Setup the player
-		player = new EntityPlayer();
-		world.addEntity(player);
-		worldRenderer.setClientPlayer(player);
-		
-		// Spawn the player at the surface
-		int spawnY = 256;
-		
-		for (; spawnY >= 0; spawnY--)
-		{
-			boolean isSolid = world.getBlock(0, spawnY - 1, 0).isSolid();
-			if (isSolid)
-				break;
-		}
-		
-		player.setPos(0.5f, spawnY + 0.5F, 0.5f);
-		
-		// Setup the controller
-		controller = new PlayerController(window, player);
-		
-		// Add another player
-		otherPlayer = new EntityPlayer();
-		world.addEntity(otherPlayer);
-		otherPlayer.setPos(0.5f, spawnY + 0.5f, 0.5f);
-		
 		// Setup the camera
 		camera = new Camera(FOV, ZNEAR, ZFAR);
-		camera.setOffset(0, player.eyeHeight, 0);
 		renderer.useCamera(camera);
 		
 		{
@@ -249,10 +211,6 @@ public class Game {
 		// Setup the initial projection matrix
 		camera.updatePerspective((float) INITIAL_WIDTH / (float) INITIAL_HEIGHT);
 		
-		// Setup the view matrix
-		camera.asPlayer(player, 0);
-		camera.updateView();
-		
 		// Setup the main texture
 		chunkShader.bind();
 		chunkShader.setUniform1i("texture0", 0);
@@ -265,6 +223,48 @@ public class Game {
 		quadShader.bind();
 		quadShader.setUniform1i("texture0", 1);
 		quadShader.unbind();
+		
+		// Setup the world, world save/loader, and world renderer
+		// "world-allthings" is main world
+		world = new World();
+		worldSave = new WorldSave(world, "world.dat");
+		worldRenderer = new WorldRenderer(world, atlas);
+		
+		// Load / Generate the world
+		if (worldSave.canLoad())
+			worldSave.load();
+		else
+			world.generate();
+		
+		// Setup the player
+		player = new EntityPlayer();
+		world.addEntity(player);
+		worldRenderer.setClientPlayer(player);
+		
+		// Spawn the player at the surface
+		int spawnY = 256;
+		
+		for (; spawnY >= 0; spawnY--)
+		{
+			boolean isSolid = world.getBlock(0, spawnY - 1, 0).isSolid();
+			if (isSolid)
+				break;
+		}
+		
+		player.setPos(0.5f, spawnY + 0.5F, 0.5f);
+		
+		// Setup the controller
+		controller = new PlayerController(window, player);
+		
+		// Add another player
+		otherPlayer = new EntityPlayer();
+		world.addEntity(otherPlayer);
+		otherPlayer.setPos(0.5f, spawnY + 0.5f, 0.5f);
+		
+		// Setup the camera view matrix
+		camera.setOffset(0, player.eyeHeight, 0);
+		camera.asPlayer(player, 0);
+		camera.updateView();
 	}
 	
 	private void loop()
@@ -350,7 +350,7 @@ public class Game {
 	
 	private void update(float delta)
 	{
-		otherPlayer.rotate(1.0f * delta, 1.0f * delta);
+		otherPlayer.rotate(0f, 45.0f * delta);
 		controller.update(delta);
 		world.update(delta);
 		
