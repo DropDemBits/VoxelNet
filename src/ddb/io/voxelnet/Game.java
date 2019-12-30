@@ -1,6 +1,7 @@
 package ddb.io.voxelnet;
 
 import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.client.ClientChannelHandler;
 import ddb.io.voxelnet.client.GameWindow;
 import ddb.io.voxelnet.client.render.entity.EntityRendererFalling;
 import ddb.io.voxelnet.client.render.entity.EntityRendererPlayer;
@@ -16,11 +17,25 @@ import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.event.input.KeyEvent;
 import ddb.io.voxelnet.event.input.MouseEvent;
 import ddb.io.voxelnet.fluid.Fluid;
+import ddb.io.voxelnet.network.PCSPosRotUpdate;
+import ddb.io.voxelnet.network.PSEstablishConnection;
+import ddb.io.voxelnet.network.Packet;
+import ddb.io.voxelnet.network.PacketCodec;
 import ddb.io.voxelnet.util.RaycastResult;
 import ddb.io.voxelnet.world.World;
 import ddb.io.voxelnet.world.WorldSave;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFWErrorCallback;
+
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -57,6 +72,7 @@ public class Game {
 	Shader quadShader;
 	
 	// The main texture atlas
+	TextureAtlas atlas;
 	Texture texture;
 	
 	ModelBuilder quadrator;
@@ -79,6 +95,20 @@ public class Game {
 	// Global Event Bus
 	public static final EventBus GLOBAL_BUS = new EventBus();
 	
+	// Networking Things //
+	EventLoopGroup bossGroup = new NioEventLoopGroup();
+	Channel clientChannel;
+	boolean isConnected = false;
+	public Queue<Packet> packetQueue = new ConcurrentLinkedQueue<>();
+	public int clientID = -1;
+	
+	Game instance;
+	
+	private Game()
+	{
+		this.instance = this;
+	}
+	
 	private void run()
 	{
 		/// Init ///
@@ -87,6 +117,9 @@ public class Game {
 		// Catch all the bad exceptions
 		try
 		{
+			// Network Init
+			networkInit();
+			
 			/// Main Loop ///
 			loop();
 		}
@@ -128,7 +161,7 @@ public class Game {
 		texture.bind(0);
 		
 		// Create the texture atlas
-		TextureAtlas atlas = new TextureAtlas(texture, 16, 16);
+		atlas = new TextureAtlas(texture, 16, 16);
 		
 		// Initialize the blocks
 		Block.init();
@@ -224,6 +257,7 @@ public class Game {
 		quadShader.setUniform1i("texture0", 1);
 		quadShader.unbind();
 		
+		///////////////////////////////////////////////
 		// Setup the world, world save/loader, and world renderer
 		// "world-allthings" is main world
 		world = new World();
@@ -238,28 +272,13 @@ public class Game {
 		
 		// Setup the player
 		player = new EntityPlayer();
-		world.addEntity(player);
 		worldRenderer.setClientPlayer(player);
-		
-		// Spawn the player at the surface
-		int spawnY = 256;
-		
-		for (; spawnY >= 0; spawnY--)
-		{
-			boolean isSolid = world.getBlock(0, spawnY - 1, 0).isSolid();
-			if (isSolid)
-				break;
-		}
-		
-		player.setPos(0.5f, spawnY + 0.5F, 0.5f);
-		
-		// Setup the controller
-		controller = new PlayerController(window, player);
 		
 		// Add another player
 		otherPlayer = new EntityPlayer();
-		world.addEntity(otherPlayer);
-		otherPlayer.setPos(0.5f, spawnY + 0.5f, 0.5f);
+		
+		// Setup the controller
+		controller = new PlayerController(window, player);
 		
 		// Setup the camera view matrix
 		camera.setOffset(0, player.eyeHeight, 0);
@@ -267,14 +286,42 @@ public class Game {
 		camera.updateView();
 	}
 	
+	private void networkInit() throws InterruptedException
+	{
+		String host = "localhost";
+		int port = 7997;
+		
+		Bootstrap bootstrap = new Bootstrap();
+		bootstrap.group(bossGroup)
+				.channel(NioSocketChannel.class)
+				.handler(new ChannelInitializer<SocketChannel>()
+				{
+					@Override
+					protected void initChannel(SocketChannel ch) throws Exception
+					{
+						ch.pipeline().addLast(new LengthFieldPrepender(2));
+						ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(0xFFFF, 0, 2));
+						ch.pipeline().addLast(new PacketCodec());
+						ch.pipeline().addLast(new ClientChannelHandler(instance));
+					}
+				})
+				.option(ChannelOption.SO_KEEPALIVE, true);
+		
+		ChannelFuture f = bootstrap.connect(host, port).sync();
+		clientChannel = f.channel();
+		System.out.println("Connected to " + host + ":" + port);
+	}
+	
 	private void loop()
 	{
 		int fps = 0, ups = 0;
 		double last = glfwGetTime();
+		double lastNetworkTick = 0.0D; // Update immediately
 		double lag = 0;
 		
 		double secondTimer = glfwGetTime();
 		final double MS_PER_PHYSICS_TICK = 1.0 / 60.0;
+		final double MS_PER_NETWORK_TICK = 1000.0 / 1000.0;
 		
 		while(window.isWindowOpen())
 		{
@@ -307,6 +354,14 @@ public class Game {
 			if(didUpdate)
 				updTime += glfwGetTime() - updTick;
 			
+			// Network Stage
+			now = glfwGetTime();
+			if (now >= (lastNetworkTick + MS_PER_NETWORK_TICK))
+			{
+				networkTick();
+				lastNetworkTick = now;
+			}
+			
 			// Render Stage
 			double renderTick = glfwGetTime();
 			render(lag * MS_PER_PHYSICS_TICK);
@@ -317,7 +372,7 @@ public class Game {
 			{
 				// Update the things
 				currentFPS = fps;
-				currentUPD = updTime;
+				currentUPD = updTime / ups;
 				
 				updTime = 0;
 				
@@ -333,6 +388,21 @@ public class Game {
 	
 	private void cleanup()
 	{
+		// Wait until the client socket is closed
+		try
+		{
+			if (clientChannel != null)
+				clientChannel.close().sync();
+		}
+		catch (InterruptedException e)
+		{
+			e.printStackTrace();
+		}
+		finally
+		{
+			bossGroup.shutdownGracefully();
+		}
+		
 		// Free the context
 		GLContext.INSTANCE.free();
 		
@@ -357,6 +427,64 @@ public class Game {
 		worldRenderer.update();
 	}
 	
+	private void networkTick()
+	{
+		// Process packets in network update
+		for (int count = 0; count < 10 && !packetQueue.isEmpty(); count++)
+		{
+			Packet packet = packetQueue.poll();
+			
+			if (packet.getPacketID() == 0)
+			{
+				// PSEstablishConnection
+				clientID = ((PSEstablishConnection)packet).clientID;
+				
+				// Init the world...
+				clientInit();
+				
+				isConnected = true;
+			}
+			else if (packet.getPacketID() == 1)
+			{
+				// CSPosRotUpdate
+				// Get the specific player to update
+			}
+			else if (packet.getPacketID() == 2)
+			{
+				// SSpawnPlayer
+				// Spawn new player in the world
+			}
+		}
+		
+		if (isConnected)
+		{
+			// Send position updates to the server
+			PCSPosRotUpdate posUpdate = new PCSPosRotUpdate(clientID, player);
+			clientChannel.writeAndFlush(posUpdate);
+		}
+	}
+	
+	private void clientInit()
+	{
+		// Add player to the world
+		world.addEntity(player);
+		
+		// Spawn the player at the surface
+		int spawnY = 256;
+		
+		for (; spawnY >= 0; spawnY--)
+		{
+			boolean isSolid = world.getBlock(0, spawnY - 1, 0).isSolid();
+			if (isSolid)
+				break;
+		}
+		
+		player.setPos(0.5f, spawnY + 0.5F, 0.5f);
+		
+		world.addEntity(otherPlayer);
+		otherPlayer.setPos(0.5f, spawnY + 0.5f, 0.5f);
+	}
+	
 	private void render(double partialTicks)
 	{
 		camera.asPlayer(player, partialTicks);
@@ -368,15 +496,18 @@ public class Game {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		
-		// Draw the world
-		texture.bind(0);
-		renderer.useCamera(camera);
-		renderer.useShader(chunkShader);
-		renderer.prepareShader();
-		renderer.getCurrentShader().setUniform1f("iTime", (float) elapsed);
-		worldRenderer.render(renderer);
-		renderer.finishShader();
+	
+		if (isConnected)
+		{
+			// Draw the world
+			texture.bind(0);
+			renderer.useCamera(camera);
+			renderer.useShader(chunkShader);
+			renderer.prepareShader();
+			renderer.getCurrentShader().setUniform1f("iTime", (float) elapsed);
+			worldRenderer.render(renderer);
+			renderer.finishShader();
+		}
 		
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

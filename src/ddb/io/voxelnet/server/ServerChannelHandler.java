@@ -2,12 +2,10 @@ package ddb.io.voxelnet.server;
 
 import ddb.io.voxelnet.network.PCSPosRotUpdate;
 import ddb.io.voxelnet.network.PSEstablishConnection;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
 
-public class ServerChannelHandler extends ChannelInboundHandlerAdapter
+public class ServerChannelHandler extends ChannelDuplexHandler
 {
 	
 	int clientID;
@@ -27,8 +25,8 @@ public class ServerChannelHandler extends ChannelInboundHandlerAdapter
 		// Send back client id
 		PSEstablishConnection packet = new PSEstablishConnection(clientID);
 		
-		channel.write(packet);
-		channel.flush();
+		// Wait until the client id is actually sent
+		channel.writeAndFlush(packet).sync();
 	}
 	
 	@Override
@@ -48,9 +46,15 @@ public class ServerChannelHandler extends ChannelInboundHandlerAdapter
 		}
 		finally
 		{
-			//todo: player pos data
 			ReferenceCountUtil.release(msg);
 		}
+	}
+	
+	@Override
+	public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception
+	{
+		System.out.println("HEH!");
+		super.write(ctx, msg, promise);
 	}
 	
 	@Override

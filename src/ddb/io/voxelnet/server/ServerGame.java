@@ -5,6 +5,7 @@ import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.fluid.Fluid;
 import ddb.io.voxelnet.network.PCSPosRotUpdate;
+import ddb.io.voxelnet.network.PacketCodec;
 import ddb.io.voxelnet.world.World;
 import ddb.io.voxelnet.world.WorldSave;
 import io.netty.bootstrap.ServerBootstrap;
@@ -111,29 +112,29 @@ public class ServerGame
 	{
 		ServerBootstrap bootstrap = new ServerBootstrap();
 		bootstrap.group(bossGroup, workerGroup)
-		.channel(NioServerSocketChannel.class) // Channel type
-		.childHandler(new ChannelInitializer<SocketChannel>() // Setup ChannelInitializer
-		{
-			@Override
-			protected void initChannel(SocketChannel ch) throws Exception
-			{
-				// On client connect:
-				// Send back client-id
-				
-				// Client side:
-				// Send back position of player
-				// client id | pos x | pos y | pos z
-				
-				// Server side:
-				// Broadcast all player positions
-				ch.pipeline().addLast(new LengthFieldPrepender(2));
-				ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(0xFFFF, 0, 2));
-				ch.pipeline().addLast(new PacketCodec());
-				ch.pipeline().addLast(new ServerChannelHandler(instance));
-			}
-		})
-		.option(ChannelOption.SO_BACKLOG, 128)
-		.childOption(ChannelOption.SO_KEEPALIVE, true);
+				.channel(NioServerSocketChannel.class) // Channel type
+				.childHandler(new ChannelInitializer<SocketChannel>() // Setup ChannelInitializer
+				{
+					@Override
+					protected void initChannel(SocketChannel ch) throws Exception
+					{
+						// On client connect:
+						// Send back client-id
+						
+						// Client side:
+						// Send back position of player
+						// client id | pos x | pos y | pos z
+						
+						// Server side:
+						// Broadcast all player positions
+						ch.pipeline().addLast(new LengthFieldPrepender(2));
+						ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(0xFFFF, 0, 2));
+						ch.pipeline().addLast(new PacketCodec());
+						ch.pipeline().addLast(new ServerChannelHandler(instance));
+					}
+				})
+				.option(ChannelOption.SO_BACKLOG, 128)
+				.childOption(ChannelOption.SO_KEEPALIVE, true);
 		
 		// Bind & start accepting connections
 		ChannelFuture f = bootstrap.bind(settings.hostPort).sync();
@@ -214,7 +215,7 @@ public class ServerGame
 				System.out.println("UPS: " + ups + " (Tick time " + (currentUPD * 1000.0D) + " ms)");
 				
 				// Broadcast player position
-				clientChannels.writeAndFlush(new PCSPosRotUpdate(0, player));
+				//clientChannels.writeAndFlush(new PCSPosRotUpdate(0, player));
 				secondTimer = now;
 			}
 		}

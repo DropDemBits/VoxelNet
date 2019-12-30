@@ -1,18 +1,23 @@
-package ddb.io.voxelnet.server;
+package ddb.io.voxelnet.network;
 
-import ddb.io.voxelnet.network.PCSPosRotUpdate;
-import ddb.io.voxelnet.network.Packet;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageCodec;
-import io.netty.handler.codec.ReplayingDecoder;
-import io.netty.util.concurrent.EventExecutorGroup;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PacketCodec extends ByteToMessageCodec<Packet>
 {
+	
+	private static final Map<Integer, Class<? extends Packet>> idToPacket = new LinkedHashMap<>();
+	
+	static
+	{
+		idToPacket.put(0, PSEstablishConnection.class);
+		idToPacket.put(1, PCSPosRotUpdate.class);
+	}
 	
 	@Override
 	protected void encode(ChannelHandlerContext ctx, Packet msg, ByteBuf out) throws Exception
@@ -32,14 +37,23 @@ public class PacketCodec extends ByteToMessageCodec<Packet>
 	{
 		int packetLength = in.readShort();
 		
-		if (packetLength < 2 || in.getShort(in.readerIndex()) != 1)
+		if (packetLength < 2)
 		{
+			System.out.println("Skipping bad packet (" + packetLength + ")");
+			// Bad length, skip
 			in.skipBytes(packetLength);
 			return;
 		}
 		
+		// Create the appropriate packet
 		int packetID = in.readShort();
-		Packet packet = new PCSPosRotUpdate();
+		Class<? extends Packet> packetInstance = idToPacket.get(packetID);
+		Packet packet;
+		
+		if (packetInstance == null)
+			throw new IllegalArgumentException("Unknown PacketID " + packetID);
+		packet = packetInstance.newInstance();
+		
 		packet.decodePayload(in);
 		out.add(packet);
 	}

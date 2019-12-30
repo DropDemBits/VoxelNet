@@ -12,6 +12,8 @@ public class PCSPosRotUpdate extends Packet
 	public float pitch;
 	public float yaw;
 	
+	public PCSPosRotUpdate() {}
+	
 	public PCSPosRotUpdate(int clientID, EntityPlayer entity)
 	{
 		this(clientID, entity.xPos, entity.yPos, entity.zPos, entity.pitch, entity.yaw);
@@ -28,8 +30,6 @@ public class PCSPosRotUpdate extends Packet
 		this.pitch = pitch;
 		this.yaw = yaw;
 	}
-	
-	public PCSPosRotUpdate() {}
 	
 	@Override
 	public void decodePayload(ByteBuf data)

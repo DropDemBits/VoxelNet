@@ -6,6 +6,8 @@ public class PSEstablishConnection extends Packet
 {
 	public int clientID;
 	
+	public PSEstablishConnection() {}
+	
 	public PSEstablishConnection(int clientID)
 	{
 		this.clientID = clientID;
