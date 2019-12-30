@@ -1,7 +1,10 @@
 package ddb.io.voxelnet.entity;
 
+import ddb.io.voxelnet.Game;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
+import ddb.io.voxelnet.network.PCSBreakBlock;
+import ddb.io.voxelnet.network.PCSPlaceBlock;
 import ddb.io.voxelnet.util.AABBCollider;
 import ddb.io.voxelnet.util.MathUtil;
 import ddb.io.voxelnet.util.RaycastResult;
@@ -179,6 +182,12 @@ public class EntityPlayer extends Entity
 			
 			if (isBreaking && (lastHit = raycast()) != RaycastResult.NO_RESULT)
 			{
+				if (world.isClient)
+				{
+					// TODO: Replace with NetworkManager packet sending
+					Game.getInstance().clientChannel.write(new PCSBreakBlock(Game.getInstance().clientID, lastHit));
+				}
+				
 				// Break the block, with the appropriate block callbacks being called
 				Block block = world.getBlock(lastHit.blockX, lastHit.blockY, lastHit.blockZ);
 				block.onBlockBroken(world, lastHit.blockX, lastHit.blockY, lastHit.blockZ);
@@ -203,6 +212,13 @@ public class EntityPlayer extends Entity
 				
 				Block block = placeBlock;
 				
+				if (world.isClient)
+				{
+					// TODO: Broadcast place event on appropriate event bus
+					// TODO: Replace with NetworkManager packet sending
+					Game.getInstance().clientChannel.write(new PCSPlaceBlock(Game.getInstance().clientID, lastHit, placeBlock));
+				}
+				
 				// If the block can't be placed, don't place it
 				if(!block.canPlaceBlock(
 						world,
@@ -215,7 +231,7 @@ public class EntityPlayer extends Entity
 						lastHit.blockX + lastHit.face.getOffsetX(),
 						lastHit.blockY + lastHit.face.getOffsetY(),
 						lastHit.blockZ + lastHit.face.getOffsetZ(),
-						placeBlock);
+						block);
 				block.onBlockPlaced(
 						world,
 						lastHit.blockX + lastHit.face.getOffsetX(),

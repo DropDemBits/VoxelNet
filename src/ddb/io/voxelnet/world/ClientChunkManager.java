@@ -10,6 +10,20 @@ public class ClientChunkManager extends ChunkManager
 		super(world);
 	}
 	
+	@Override
+	public Chunk loadChunk(Vec3i pos)
+	{
+		// TODO: Load chunk from the server
+		return super.loadChunk(pos);
+	}
+	
+	@Override
+	public ChunkColumn loadColumn(Vec3i pos)
+	{
+		// TODO: Load chunk from the server
+		return super.loadColumn(pos);
+	}
+	
 	/**
 	 * Processes a chunk data packet
 	 * @param chunkData The chunk data packet to process

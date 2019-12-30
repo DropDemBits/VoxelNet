@@ -1,10 +1,12 @@
 package ddb.io.voxelnet.server;
 
 import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.fluid.Fluid;
 import ddb.io.voxelnet.network.*;
+import ddb.io.voxelnet.util.RaycastResult;
 import ddb.io.voxelnet.world.Chunk;
 import ddb.io.voxelnet.world.ChunkColumn;
 import ddb.io.voxelnet.world.World;
@@ -351,6 +353,51 @@ public class ServerGame
 			PCSPosRotUpdate packet = (PCSPosRotUpdate) msg;
 			System.out.printf("\t Ply%d-Pos: (%f, %f, %f) - (%f, %f)\n", packet.clientID, packet.xPos, packet.yPos, packet.zPos, packet.pitch, packet.yaw);
 			clientChannels.write(packet);
+		}
+		else if (msg.getPacketID() == 5)
+		{
+			// Block place, handle that
+			PCSPlaceBlock blockPlace = (PCSPlaceBlock)msg;
+			RaycastResult lastHit = blockPlace.hitResult;
+			Block block = blockPlace.placingBlock;
+			
+			// If the block can't be placed, don't place it
+			if(!block.canPlaceBlock(
+					world,
+					lastHit.blockX + lastHit.face.getOffsetX(),
+					lastHit.blockY + lastHit.face.getOffsetY(),
+					lastHit.blockZ + lastHit.face.getOffsetZ()))
+				return;
+			
+			world.setBlock(
+					lastHit.blockX + lastHit.face.getOffsetX(),
+					lastHit.blockY + lastHit.face.getOffsetY(),
+					lastHit.blockZ + lastHit.face.getOffsetZ(),
+					block);
+			block.onBlockPlaced(
+					world,
+					lastHit.blockX + lastHit.face.getOffsetX(),
+					lastHit.blockY + lastHit.face.getOffsetY(),
+					lastHit.blockZ + lastHit.face.getOffsetZ());
+			
+			// Broadcast to the other players
+			// TODO: Correct for misplaces
+			clientChannels.write(blockPlace);
+		}
+		else if (msg.getPacketID() == 6)
+		{
+			// Block break, handle that
+			PCSBreakBlock blockBreak = (PCSBreakBlock)msg;
+			RaycastResult lastHit = blockBreak.hitResult;
+			
+			// Break the block, with the appropriate block callbacks being called
+			Block block = world.getBlock(lastHit.blockX, lastHit.blockY, lastHit.blockZ);
+			block.onBlockBroken(world, lastHit.blockX, lastHit.blockY, lastHit.blockZ);
+			world.setBlock(lastHit.blockX, lastHit.blockY, lastHit.blockZ, Blocks.AIR);
+			
+			// Broadcast to the other players
+			// TODO: Correct for mis-breaks
+			clientChannels.write(blockBreak);
 		}
 	}
 	

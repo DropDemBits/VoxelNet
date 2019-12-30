@@ -1,6 +1,7 @@
 package ddb.io.voxelnet;
 
 import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.client.ClientChannelHandler;
 import ddb.io.voxelnet.client.GameWindow;
 import ddb.io.voxelnet.client.input.PlayerController;
@@ -97,16 +98,24 @@ public class Game {
 	
 	// Networking Things //
 	EventLoopGroup bossGroup = new NioEventLoopGroup();
-	Channel clientChannel;
+	public Channel clientChannel;
 	boolean isConnected = false;
 	public Queue<Packet> packetQueue = new ConcurrentLinkedQueue<>();
 	public int clientID = -1;
 	
-	Game instance;
+	static Game instance;
+	
+	// TODO: Remove hacky getInstance thing
+	// Only used by EntityPlayer to send packets
+	// Give a network manager to networked entities
+	public static Game getInstance()
+	{
+		return instance;
+	}
 	
 	private Game()
 	{
-		this.instance = this;
+		instance = this;
 	}
 	
 	private void run()
@@ -493,6 +502,49 @@ public class Game {
 				// Process the chunk data
 				PSChunkData chunkData = (PSChunkData)packet;
 				((ClientChunkManager)world.chunkManager).processNetLoad(chunkData);
+			}
+			else if (packet.getPacketID() == 5)
+			{
+				// Block place, handle that
+				PCSPlaceBlock blockPlace = (PCSPlaceBlock)packet;
+				RaycastResult lastHit = blockPlace.hitResult;
+				Block block = blockPlace.placingBlock;
+				
+				if (clientID == blockPlace.clientID)
+					continue;
+				
+				// If the block can't be placed, don't place it
+				if(!block.canPlaceBlock(
+						world,
+						lastHit.blockX + lastHit.face.getOffsetX(),
+						lastHit.blockY + lastHit.face.getOffsetY(),
+						lastHit.blockZ + lastHit.face.getOffsetZ()))
+					continue;
+				
+				world.setBlock(
+						lastHit.blockX + lastHit.face.getOffsetX(),
+						lastHit.blockY + lastHit.face.getOffsetY(),
+						lastHit.blockZ + lastHit.face.getOffsetZ(),
+						block);
+				block.onBlockPlaced(
+						world,
+						lastHit.blockX + lastHit.face.getOffsetX(),
+						lastHit.blockY + lastHit.face.getOffsetY(),
+						lastHit.blockZ + lastHit.face.getOffsetZ());
+			}
+			else if (packet.getPacketID() == 6)
+			{
+				// Block break, handle that
+				PCSBreakBlock blockBreak = (PCSBreakBlock)packet;
+				RaycastResult lastHit = blockBreak.hitResult;
+				
+				if (clientID == blockBreak.clientID)
+					continue;
+				
+				// Break the block, with the appropriate block callbacks being called
+				Block block = world.getBlock(lastHit.blockX, lastHit.blockY, lastHit.blockZ);
+				block.onBlockBroken(world, lastHit.blockX, lastHit.blockY, lastHit.blockZ);
+				world.setBlock(lastHit.blockX, lastHit.blockY, lastHit.blockZ, Blocks.AIR);
 			}
 		}
 		

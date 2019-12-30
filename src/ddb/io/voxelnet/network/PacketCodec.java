@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class PacketCodec extends ByteToMessageCodec<Packet>
 {
-	
+	// TODO: Create PacketRegistry
 	private static final Map<Integer, Class<? extends Packet>> idToPacket = new LinkedHashMap<>();
 	
 	static
@@ -20,6 +20,8 @@ public class PacketCodec extends ByteToMessageCodec<Packet>
 		idToPacket.put(2, PSSpawnPlayer.class);
 		idToPacket.put(3, PSKillPlayer.class);
 		idToPacket.put(4, PSChunkData.class);
+		idToPacket.put(5, PCSPlaceBlock.class);
+		idToPacket.put(6, PCSBreakBlock.class);
 	}
 	
 	@Override
