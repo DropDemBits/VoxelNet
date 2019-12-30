@@ -17,10 +17,7 @@ import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.event.input.KeyEvent;
 import ddb.io.voxelnet.event.input.MouseEvent;
 import ddb.io.voxelnet.fluid.Fluid;
-import ddb.io.voxelnet.network.PCSPosRotUpdate;
-import ddb.io.voxelnet.network.PSEstablishConnection;
-import ddb.io.voxelnet.network.Packet;
-import ddb.io.voxelnet.network.PacketCodec;
+import ddb.io.voxelnet.network.*;
 import ddb.io.voxelnet.util.RaycastResult;
 import ddb.io.voxelnet.world.World;
 import ddb.io.voxelnet.world.WorldSave;
@@ -34,7 +31,9 @@ import io.netty.handler.codec.LengthFieldPrepender;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFWErrorCallback;
 
+import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -60,7 +59,7 @@ public class Game {
 	WorldSave worldSave;
 	World world;
 	
-	EntityPlayer otherPlayer;
+	Map<Integer, EntityPlayer> playerIDMappings = new ConcurrentHashMap<>();
 	EntityPlayer player;
 	PlayerController controller;
 	
@@ -274,9 +273,6 @@ public class Game {
 		player = new EntityPlayer();
 		worldRenderer.setClientPlayer(player);
 		
-		// Add another player
-		otherPlayer = new EntityPlayer();
-		
 		// Setup the controller
 		controller = new PlayerController(window, player);
 		
@@ -316,12 +312,12 @@ public class Game {
 	{
 		int fps = 0, ups = 0;
 		double last = glfwGetTime();
-		double lastNetworkTick = 0.0D; // Update immediately
 		double lag = 0;
+		double nextNetworkTick = 0.0D; // Update immediately
 		
 		double secondTimer = glfwGetTime();
 		final double MS_PER_PHYSICS_TICK = 1.0 / 60.0;
-		final double MS_PER_NETWORK_TICK = 1000.0 / 1000.0;
+		final double MS_PER_NETWORK_TICK = 1.0 / 10.0; // 10 Hz / 100 ms interval
 		
 		while(window.isWindowOpen())
 		{
@@ -356,10 +352,10 @@ public class Game {
 			
 			// Network Stage
 			now = glfwGetTime();
-			if (now >= (lastNetworkTick + MS_PER_NETWORK_TICK))
+			if (now >= nextNetworkTick)
 			{
 				networkTick();
-				lastNetworkTick = now;
+				nextNetworkTick = now + MS_PER_NETWORK_TICK;
 			}
 			
 			// Render Stage
@@ -420,7 +416,6 @@ public class Game {
 	
 	private void update(float delta)
 	{
-		otherPlayer.rotate(0f, 45.0f * delta);
 		controller.update(delta);
 		world.update(delta);
 		
@@ -438,6 +433,7 @@ public class Game {
 			{
 				// PSEstablishConnection
 				clientID = ((PSEstablishConnection)packet).clientID;
+				System.out.println("NewID: " + clientID);
 				
 				// Init the world...
 				clientInit();
@@ -448,11 +444,47 @@ public class Game {
 			{
 				// CSPosRotUpdate
 				// Get the specific player to update
+				PCSPosRotUpdate posUpdate = (PCSPosRotUpdate)packet;
+				
+				// Skip movement updates for this local player
+				if (clientID == posUpdate.clientID)
+					continue;
+				
+				EntityPlayer player = playerIDMappings.getOrDefault(posUpdate.clientID, null);
+				
+				// If non-existant move on to the next packet
+				if (player == null)
+					continue;
+				
+				player.setPos(posUpdate.xPos, posUpdate.yPos, posUpdate.zPos);
+				player.setOrientation(posUpdate.pitch, posUpdate.yaw);
 			}
 			else if (packet.getPacketID() == 2)
 			{
 				// SSpawnPlayer
 				// Spawn new player in the world
+				PSSpawnPlayer spawn = (PSSpawnPlayer)packet;
+				System.out.println("PSpawn (" + spawn.clientID + ")");
+				
+				// Add the player to the mapping
+				EntityPlayer player = new EntityPlayer();
+				world.addEntity(player);
+				playerIDMappings.put(spawn.clientID, player);
+			}
+			else if (packet.getPacketID() == 3)
+			{
+				// SKillPlayer
+				// Remove the player from the world
+				PSKillPlayer kill = (PSKillPlayer)packet;
+				System.out.println("PSpawn (" + kill.clientID + ")");
+				
+				EntityPlayer player = playerIDMappings.getOrDefault(kill.clientID, null);
+				
+				// If non-existant move on to the next packet
+				if (player == null)
+					continue;
+				
+				player.setDead();
 			}
 		}
 		
@@ -460,7 +492,8 @@ public class Game {
 		{
 			// Send position updates to the server
 			PCSPosRotUpdate posUpdate = new PCSPosRotUpdate(clientID, player);
-			clientChannel.writeAndFlush(posUpdate);
+			clientChannel.write(posUpdate);
+			clientChannel.flush();
 		}
 	}
 	
@@ -481,8 +514,8 @@ public class Game {
 		
 		player.setPos(0.5f, spawnY + 0.5F, 0.5f);
 		
-		world.addEntity(otherPlayer);
-		otherPlayer.setPos(0.5f, spawnY + 0.5f, 0.5f);
+		// Add our player to the mappings
+		playerIDMappings.put(clientID, player);
 	}
 	
 	private void render(double partialTicks)

@@ -2,6 +2,7 @@ package ddb.io.voxelnet.server;
 
 import ddb.io.voxelnet.network.PCSPosRotUpdate;
 import ddb.io.voxelnet.network.PSEstablishConnection;
+import ddb.io.voxelnet.network.Packet;
 import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
 
@@ -21,18 +22,12 @@ public class ServerChannelHandler extends ChannelDuplexHandler
 	{
 		Channel channel = ctx.channel();
 		clientID = serverInstance.addClient(channel);
-		
-		// Send back client id
-		PSEstablishConnection packet = new PSEstablishConnection(clientID);
-		
-		// Wait until the client id is actually sent
-		channel.writeAndFlush(packet).sync();
 	}
 	
 	@Override
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception
 	{
-		serverInstance.clientChannels.remove(ctx.channel());
+		serverInstance.removeClient(ctx.channel(), clientID);
 	}
 	
 	@Override
@@ -40,9 +35,7 @@ public class ServerChannelHandler extends ChannelDuplexHandler
 	{
 		try
 		{
-			// Position updates, feed to main server
-			PCSPosRotUpdate packet = (PCSPosRotUpdate) msg;
-			System.out.printf("\t Ply%d-Pos: (%f, %f, %f) - (%f, %f)\n", packet.clientID, packet.xPos, packet.yPos, packet.zPos, packet.pitch, packet.yaw);
+			serverInstance.handlePacket((Packet)msg);
 		}
 		finally
 		{
@@ -51,10 +44,10 @@ public class ServerChannelHandler extends ChannelDuplexHandler
 	}
 	
 	@Override
-	public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception
+	public void flush(ChannelHandlerContext ctx) throws Exception
 	{
-		System.out.println("HEH!");
-		super.write(ctx, msg, promise);
+		System.out.println("Broadcast");
+		super.flush(ctx);
 	}
 	
 	@Override

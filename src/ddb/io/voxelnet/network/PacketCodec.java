@@ -17,6 +17,8 @@ public class PacketCodec extends ByteToMessageCodec<Packet>
 	{
 		idToPacket.put(0, PSEstablishConnection.class);
 		idToPacket.put(1, PCSPosRotUpdate.class);
+		idToPacket.put(2, PSSpawnPlayer.class);
+		idToPacket.put(3, PSKillPlayer.class);
 	}
 	
 	@Override

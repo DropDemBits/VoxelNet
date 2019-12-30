@@ -45,7 +45,7 @@ public class PCSPosRotUpdate extends Packet
 	@Override
 	public void encodePayload(ByteBuf data)
 	{
-		data.writeFloat(clientID);
+		data.writeInt(clientID);
 		data.writeFloat(xPos);
 		data.writeFloat(yPos);
 		data.writeFloat(zPos);

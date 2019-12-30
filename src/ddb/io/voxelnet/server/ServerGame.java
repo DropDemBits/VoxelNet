@@ -4,13 +4,13 @@ import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.fluid.Fluid;
-import ddb.io.voxelnet.network.PCSPosRotUpdate;
-import ddb.io.voxelnet.network.PacketCodec;
+import ddb.io.voxelnet.network.*;
 import ddb.io.voxelnet.world.World;
 import ddb.io.voxelnet.world.WorldSave;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.ChannelMatcher;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -18,6 +18,12 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.util.concurrent.GlobalEventExecutor;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static org.lwjgl.glfw.GLFW.glfwGetTime;
 
 public class ServerGame
 {
@@ -28,8 +34,8 @@ public class ServerGame
 	WorldSave worldSave;
 	World world;
 	
-	EntityPlayer otherPlayer;
-	EntityPlayer player;
+	// Player - ClientID Mapping
+	private Map<Integer, EntityPlayer> playerIDMappings = new ConcurrentHashMap<>();
 	
 	double elapsed = 0.0d;
 	
@@ -104,8 +110,6 @@ public class ServerGame
 			worldSave.load();
 		else
 			world.generate();*/
-		
-		spawnPlayers();
 	}
 	
 	private void networkInit() throws InterruptedException
@@ -141,38 +145,16 @@ public class ServerGame
 		serverChannel = f.channel();
 	}
 	
-	private void spawnPlayers()
-	{
-		// Setup the player
-		player = new EntityPlayer();
-		world.addEntity(player);
-		
-		// Spawn the player at the surface
-		int spawnY = 256;
-		
-		for (; spawnY >= 0; spawnY--)
-		{
-			boolean isSolid = world.getBlock(0, spawnY - 1, 0).isSolid();
-			if (isSolid)
-				break;
-		}
-		
-		player.setPos(0.5f, spawnY + 0.5F, 0.5f);
-		
-		// Add another player
-		otherPlayer = new EntityPlayer();
-		world.addEntity(otherPlayer);
-		otherPlayer.setPos(0.5f, spawnY + 0.5f, 0.5f);
-	}
-	
 	private void loop()
 	{
 		int ups = 0;
 		double last = getSystemTime();
 		double lag = 0;
+		double nextNetworkTick = 0.0D;
 		
 		double secondTimer = getSystemTime();
 		final double MS_PER_PHYSICS_TICK = 1.0 / 60.0;
+		final double MS_PER_NETWORK_TICK = 1.0 / 10.0; // 10 Hz / 100 ms interval
 		
 		while(isRunning)
 		{
@@ -205,6 +187,14 @@ public class ServerGame
 			if(didUpdate)
 				updTime += getSystemTime() - updTick;
 			
+			// Network Stage
+			now = getSystemTime();
+			if (now >= nextNetworkTick)
+			{
+				networkTick();
+				nextNetworkTick = now + MS_PER_NETWORK_TICK;
+			}
+			
 			if (now - secondTimer > 1)
 			{
 				// Update the things
@@ -213,9 +203,6 @@ public class ServerGame
 				ups = 0;
 				
 				System.out.println("UPS: " + ups + " (Tick time " + (currentUPD * 1000.0D) + " ms)");
-				
-				// Broadcast player position
-				//clientChannels.writeAndFlush(new PCSPosRotUpdate(0, player));
 				secondTimer = now;
 			}
 		}
@@ -249,20 +236,94 @@ public class ServerGame
 	
 	private void update(float delta)
 	{
-		player.move(0.0f, 1.0f);
-		otherPlayer.rotate(1.0f * delta, 1.0f * delta);
 		world.update(delta);
+	}
+	
+	private void networkTick()
+	{
+		// Flush pending packets
+		clientChannels.flush();
 	}
 	
 	public int addClient(Channel channel)
 	{
+		int clientID = nextClientID++;
 		clientChannels.add(channel);
-		return nextClientID++;
+		
+		// Spawn the client's player
+		spawnPlayer(clientID);
+		
+		// Spawn the client on the other channels
+		PSSpawnPlayer packet = new PSSpawnPlayer(clientID);
+		// Flush later
+		clientChannels.write(packet, (otherChannel) -> otherChannel != channel);
+		
+		// Send back client id
+		channel.write(new PSEstablishConnection(clientID));
+		
+		// Spawn the other players on this channel
+		for (Integer id : playerIDMappings.keySet())
+		{
+			if (id == clientID)
+				continue;
+			
+			channel.write(new PSSpawnPlayer(id));
+		}
+		channel.flush();
+		
+		return clientID;
 	}
 	
 	public void removeClient(Channel channel, int clientID)
 	{
 		clientChannels.add(channel);
+		despawnPlayer(clientID);
+		
+		// Kill the client on the other channels
+		PSKillPlayer packet = new PSKillPlayer(clientID);
+		clientChannels.write(packet);
+	}
+	
+	private void spawnPlayer(int clientID)
+	{
+		// Setup the player
+		EntityPlayer player = new EntityPlayer();
+		world.addEntity(player);
+		
+		// Spawn the player at the surface
+		int spawnY = 256;
+		
+		for (; spawnY >= 0; spawnY--)
+		{
+			boolean isSolid = world.getBlock(0, spawnY - 1, 0).isSolid();
+			if (isSolid)
+				break;
+		}
+		
+		player.setPos(0.5f, spawnY + 0.5F, 0.5f);
+		
+		// Add to the mappings
+		playerIDMappings.put(clientID, player);
+	}
+	
+	private void despawnPlayer(int clientID)
+	{
+		System.out.println("Goodbye, client #" + clientID);
+		// Remove the player from the mappings
+		EntityPlayer oldPlayer = playerIDMappings.remove(clientID);
+		// Remove the player entity
+		oldPlayer.setDead();
+	}
+	
+	public void handlePacket(Packet msg)
+	{
+		if (msg.getPacketID() == 1)
+		{
+			// Position updates, broadcast to everyone else
+			PCSPosRotUpdate packet = (PCSPosRotUpdate) msg;
+			System.out.printf("\t Ply%d-Pos: (%f, %f, %f) - (%f, %f)\n", packet.clientID, packet.xPos, packet.yPos, packet.zPos, packet.pitch, packet.yaw);
+			clientChannels.write(packet);
+		}
 	}
 	
 }

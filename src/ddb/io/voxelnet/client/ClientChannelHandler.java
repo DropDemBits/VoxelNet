@@ -19,8 +19,6 @@ public class ClientChannelHandler extends ChannelDuplexHandler
 	{
 		Packet packet = (Packet)msg;
 		clientInstance.packetQueue.offer(packet);
-		
-		System.out.println("Hey... (" + packet.getPacketID() + ")");
 	}
 	
 	@Override
