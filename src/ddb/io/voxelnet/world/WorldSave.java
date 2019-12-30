@@ -14,6 +14,7 @@ import java.nio.file.StandardCopyOption;
  */
 public class WorldSave
 {
+	// TODO: Use ChunkManager's chunk list instead of World's loaded chunks
 	//TODO: Pack lighting & meta together in world save (v1)
 	private static final byte[] SAVE_MAGIC = "VXNT".getBytes();
 	private static final int CHUNK_ENTRY_SIZE = 4*3 + 2 + 512 + 4096;
@@ -73,11 +74,11 @@ public class WorldSave
 			
 			///////////////////////////////////////////////////////////////////
 			// Write out the column entry count
-			int columnEntries = world.chunkColumns.size();
+			int columnEntries = world.chunkManager.chunkColumns.size();
 			stream.write(serializeInt(columnEntries)); // Column Entry Count
 			
 			// Iterate through all of the ChunkColumns
-			for (ChunkColumn column : world.chunkColumns.values())
+			for (ChunkColumn column : world.chunkManager.chunkColumns.values())
 			{
 				// Need to save
 				// Position (Cx, Cz)
@@ -97,7 +98,7 @@ public class WorldSave
 			// Iterate through all of the loaded chunks in the world to
 			// determine the save count
 			int chunkEntries = 0;
-			for (Chunk chunk : world.loadedChunks.values())
+			for (Chunk chunk : world.chunkManager.loadedChunks.values())
 			{
 				if (!chunk.isEmpty())
 					++chunkEntries;
@@ -107,7 +108,7 @@ public class WorldSave
 			
 			// Iterate through all of the loaded chunks in the world again to
 			// actually save them
-			for (Chunk chunk : world.loadedChunks.values())
+			for (Chunk chunk : world.chunkManager.loadedChunks.values())
 			{
 				// Skip empty chunks
 				if (chunk.isEmpty())
@@ -185,7 +186,7 @@ public class WorldSave
 			{
 				fis.read(columnData);
 				ChunkColumn column = deserializeColumn(columnData);
-				world.chunkColumns.put(new Vec3i(column.columnX, 0, column.columnZ), column);
+				world.chunkManager.chunkColumns.put(new Vec3i(column.columnX, 0, column.columnZ), column);
 			}
 			
 			// Build the chunk data

@@ -14,14 +14,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class World
 {
-	// Map of currently loaded chunks
-	public final Map<Vec3i, Chunk> loadedChunks = new LinkedHashMap<>();
-	// Highest, opaque block in each chunk column (vertical group of chunks)
-	// Accessed by index = x + z * 16
-	// TODO: Add Vec2i
-	final Map<Vec3i, ChunkColumn> chunkColumns = new LinkedHashMap<>();
-	// Empty Chunk
-	public final Chunk EMPTY_CHUNK;
+	// The chunk manager
+	public final ChunkManager chunkManager;
 	
 	private float accumulatedWorldTick;
 	
@@ -33,7 +27,7 @@ public class World
 	private Queue<LightUpdate> pendingLightRemoves;
 	private Queue<LightUpdate> pendingLightUpdates;
 	private Queue<LightUpdate> pendingShadowRemoves;
-	private Queue<LightUpdate> pendingShadowUpdates;
+	public Queue<LightUpdate> pendingShadowUpdates;
 	
 	// Fluid instances
 	private Map<Fluid, FluidInstance> fluidInstances;
@@ -43,18 +37,15 @@ public class World
 	// WorldGen
 	private long worldSeed;
 	public final Random worldRandom;
-	private final PerlinOctaves perlinNoise;
 	
 	public World()
 	{
-		EMPTY_CHUNK = new Chunk(this, 0, -64, 0);
 		//worldSeed = System.currentTimeMillis();
 		//worldSeed = 1566757735901L;
 		worldSeed = 1566847034636L;
 		worldRandom = new Random(worldSeed);
 		loadedEntities = new ArrayList<>();
 		pendingEntities = new ArrayList<>();
-		perlinNoise = new PerlinOctaves(1, 0.9);
 		
 		pendingLightUpdates = new ConcurrentLinkedQueue<>();
 		pendingLightRemoves = new ConcurrentLinkedQueue<>();
@@ -71,6 +62,8 @@ public class World
 			fluidTickSchedules[i] = fluid.updateRate;
 		}
 		
+		chunkManager = new ChunkManager(this);
+		
 		setWorldSeed(worldSeed);
 	}
 	
@@ -86,7 +79,7 @@ public class World
 		{
 			for (int cz = -8; cz <= 7; cz++)
 			{
-				generateChunk(cx, cz);
+				chunkManager.generateChunk(cx, cz);
 			}
 		}
 		System.out.println("Done terrain generation in " + (System.currentTimeMillis() - startGen) + " ms");
@@ -112,7 +105,7 @@ public class World
 	{
 		worldSeed = newSeed;
 		worldRandom.setSeed(newSeed);
-		perlinNoise.seed(worldSeed);
+		chunkManager.perlinNoise.seed(worldSeed);
 	}
 	
 	public long getWorldSeed()
@@ -132,7 +125,7 @@ public class World
 		int blockZ = z & 0xF;
 		
 		// Check the ChunkColumn for access to the sky
-		ChunkColumn column = chunkColumns.getOrDefault(new Vec3i(chunkX, 0, chunkZ), null);
+		ChunkColumn column = chunkManager.getColumn(chunkX, chunkZ);
 		if (column == null)
 			return 0;
 		
@@ -151,7 +144,7 @@ public class World
 		int blockZ = z & 0xF;
 		
 		// Check the ChunkColumn for access to the sky
-		ChunkColumn column = chunkColumns.getOrDefault(new Vec3i(chunkX, 0, chunkZ), null);
+		ChunkColumn column = chunkManager.getColumn(chunkX, chunkZ);
 		boolean canSeeSky;
 		
 		if (column == null)
@@ -210,11 +203,8 @@ public class World
 		int blockY = y & 0xF;
 		int blockZ = z & 0xF;
 		
-		Vec3i chunkPos = new Vec3i(chunkX, chunkY, chunkZ);
-		byte skyLight = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK).getSkyLight(blockX, blockY, blockZ);
-		
 		// Technically a shadow map, but whatever
-		return skyLight;
+		return chunkManager.getChunk(chunkX, chunkY, chunkZ, false).getSkyLight(blockX, blockY, blockZ);
 	}
 	
 	/**
@@ -239,8 +229,7 @@ public class World
 		int blockY = y & 0xF;
 		int blockZ = z & 0xF;
 		
-		Vec3i chunkPos = new Vec3i(chunkX, chunkY, chunkZ);
-		return loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK).getBlockLight(blockX, blockY, blockZ);
+		return chunkManager.getChunk(chunkX, chunkY, chunkZ, false).getBlockLight(blockX, blockY, blockZ);
 	}
 	
 	private void setBlockLight(int x, int y, int z, byte newLight)
@@ -248,16 +237,7 @@ public class World
 		if (newLight < 0)
 			return;
 		
-		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
-		Chunk chunk = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK);
-		
-		if (chunk == EMPTY_CHUNK && newLight > 0)
-		{
-			// Add a new chunk if the new light value is not zero
-			chunk = new Chunk(this, chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
-			loadedChunks.put(chunkPos, chunk);
-		}
-		
+		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, newLight > 0);
 		chunk.setBlockLight(x & 0xF, y & 0xF, z & 0xF, newLight);
 	}
 	
@@ -266,16 +246,7 @@ public class World
 		if (newLight > 15 || newLight < 0)
 			return;
 		
-		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
-		Chunk chunk = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK);
-		
-		if (chunk == EMPTY_CHUNK && newLight != 0)
-		{
-			// Add a new chunk if the new light value is not zero
-			chunk = new Chunk(this, chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
-			loadedChunks.put(chunkPos, chunk);
-		}
-		
+		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, newLight != 0);
 		chunk.setSkyLight(x & 0xF, y & 0xF, z & 0xF, newLight);
 	}
 	
@@ -294,11 +265,9 @@ public class World
 		if (y < 0)
 			return Blocks.VOID;
 		
-		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
-		if (!loadedChunks.containsKey(chunkPos))
-			return Blocks.AIR;
+		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);
 		
-		return Block.idToBlock(loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK).getBlock(x & 0xF, y & 0xF, z & 0xF));
+		return Block.idToBlock(chunk.getBlock(x & 0xF, y & 0xF, z & 0xF));
 	}
 	
 	/**
@@ -366,14 +335,7 @@ public class World
 			return;
 		
 		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
-		Chunk chunk = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK);
-		
-		if (chunk == EMPTY_CHUNK && block != Blocks.AIR)
-		{
-			// Add a new chunk if the id is not zero
-			chunk = new Chunk(this, chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
-			loadedChunks.put(chunkPos, chunk);
-		}
+		Chunk chunk = chunkManager.getChunk(chunkPos, block != Blocks.AIR);
 		
 		// Block positions within the chunk
 		int blockX = x & 0xF;
@@ -398,17 +360,15 @@ public class World
 			chunk.setBlockLight(blockX, blockY, blockZ, block.getBlockLight());
 		
 		// Update the chunk column
-		Vec3i columnPos = new Vec3i(x >> 4, 0, z >> 4);
-		ChunkColumn chunkColumn = chunkColumns.getOrDefault(columnPos, null);
+		ChunkColumn chunkColumn = chunkManager.getColumn(x >> 4, z >> 4);
 		
 		if (chunkColumn == null)
 		{
 			if (block == Blocks.AIR)
 				return; // Don't need to add a column if air is being placed
 			
-			// Add a new chunk column if the block isn't air
-			chunkColumn = new ChunkColumn(columnPos.getX(), columnPos.getZ());
-			chunkColumns.put(columnPos, chunkColumn);
+			// Force load the column (should have been loaded with the chunks)
+			chunkColumn = chunkManager.loadColumn(x >> 4, z >> 4);
 		}
 		
 		int oldestHeight = Byte.toUnsignedInt(chunkColumn.opaqueColumns[columnIdx]);
@@ -515,7 +475,7 @@ public class World
 		{
 			// Update the adjacent in the column chunks if the block is at one of the chunk edges
 			if (blockY == 15)
-				loadedChunks.getOrDefault(chunkPos.add(0, 1, 0), EMPTY_CHUNK).forceLayerRebuild();
+				chunkManager.getChunk(chunkPos.add(0, 1, 0), false).forceLayerRebuild();
 			
 			int limit = y - oldestHeight;
 			
@@ -524,7 +484,7 @@ public class World
 				int yOff = yPos - chunkPos.getY();
 				
 				if (yOff != 0)
-					loadedChunks.getOrDefault(chunkPos.add(0, yOff, 0), EMPTY_CHUNK).forceLayerRebuild();
+					chunkManager.getChunk(chunkPos.add(0, yOff, 0), false).forceLayerRebuild();
 				
 				// If there was no lighting update, only update the directly
 				// adjacent chunks
@@ -534,14 +494,14 @@ public class World
 				// TODO update corner chunks
 				
 				if (blockX == 0)
-					loadedChunks.getOrDefault(chunkPos.add(-1, yOff, 0), EMPTY_CHUNK).forceLayerRebuild();
+					chunkManager.getChunk(chunkPos.add(-1, yOff, 0), false).forceLayerRebuild();
 				else if (blockX == 15)
-					loadedChunks.getOrDefault(chunkPos.add(1, yOff, 0), EMPTY_CHUNK).forceLayerRebuild();
+					chunkManager.getChunk(chunkPos.add(1, yOff, 0), false).forceLayerRebuild();
 				
 				if (blockZ == 0)
-					loadedChunks.getOrDefault(chunkPos.add(0, yOff, -1), EMPTY_CHUNK).forceLayerRebuild();
+					chunkManager.getChunk(chunkPos.add(0, yOff, -1), false).forceLayerRebuild();
 				else if (blockZ == 15)
-					loadedChunks.getOrDefault(chunkPos.add(0, yOff, 1), EMPTY_CHUNK).forceLayerRebuild();
+					chunkManager.getChunk(chunkPos.add(0, yOff, 1), false).forceLayerRebuild();
 			}
 		}
 		
@@ -577,10 +537,9 @@ public class World
 		if (y < 0 || y > 255)
 			return;
 		
-		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
-		Chunk chunk = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK);
+		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);
 		
-		if (chunk == EMPTY_CHUNK)
+		if (chunk == chunkManager.EMPTY_CHUNK)
 			return;
 		
 		// Block positions within the chunk
@@ -605,10 +564,9 @@ public class World
 		if (y < 0 || y > 255)
 			return 0;
 		
-		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
-		Chunk chunk = loadedChunks.getOrDefault(chunkPos, EMPTY_CHUNK);
+		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);
 		
-		if (chunk == EMPTY_CHUNK)
+		if (chunk == chunkManager.EMPTY_CHUNK)
 			return 0;
 		
 		// Block positions within the chunk
@@ -618,25 +576,6 @@ public class World
 		
 		// Get the block meta
 		return chunk.getBlockMeta(blockX, blockY, blockZ);
-	}
-	
-	/**
-	 * Gets the chunk for the requested position
-	 * @param cx The x position of the target chunk (in chunks)
-	 * @param cy The y position of the target chunk (in chunks)
-	 * @param cz The z position of the target chunk (in chunks)
-	 * @return The requested chunk
-	 */
-	public Chunk getChunk(int cx, int cy, int cz)
-	{
-		Vec3i pos = new Vec3i(cx, cy, cz);
-		return loadedChunks.getOrDefault(pos, EMPTY_CHUNK);
-	}
-	
-	public boolean isChunkPresent(int cx, int cy, int cz)
-	{
-		//return getChunk(cx, cy, cz) != EMPTY_CHUNK;
-		return loadedChunks.containsKey(new Vec3i(cx, cy, cz));
 	}
 	
 	/**
@@ -814,124 +753,25 @@ public class World
 	
 	// Chunk management //
 	/**
-	 * Generates a chunk column at the specified chunk position
-	 * @param cx The x position of the new chunk column
-	 * @param cz The z position of the new chunk column
+	 * Gets the chunk for the requested position
+	 * @param chunkX The x position of the target chunk (in chunks)
+	 * @param chunkY The y position of the target chunk (in chunks)
+	 * @param chunkZ The z position of the target chunk (in chunks)
+	 * @return The requested chunk
 	 */
-	public void generateChunk(int cx, int cz)
+	public Chunk getChunk(int chunkX, int chunkY, int chunkZ)
 	{
-		// Make the chunk columns
-		ChunkColumn column = new ChunkColumn(cx, cz);
-		chunkColumns.put(new Vec3i(cx, 0, cz), column);
-		
-		// Pre-generate heightmap
-		double[] heights = new double[16 * 16];
-		for (int z = 15; z >= 0; z--)
-		{
-			for (int x = 15; x >= 0; x--)
-			{
-				double noiseX, noiseZ;
-				
-				noiseX = (0.25d * (cx * 16f + x) / 16.0d);
-				noiseZ = (0.25d * (cz * 16f + z) / 16.0d);
-				
-				heights[x + z * 16] = perlinNoise.perlinOctaves(noiseX, noiseZ, 0.5d);
-			}
-		}
-		
-		int depth = 0;
-		int waterLevel = 64;
-		
-		for (int z = 0; z < 16; z++)
-		for (int x = 0; x < 16; x++)
-		{
-			boolean foundTallest = false;
-			int colIdx = x + (z << 4);
-			
-			int height = 55 + (int)Math.floor(heights[colIdx] * 28.0d);
-			int y = height;
-			
-			if (y < waterLevel)
-			{
-				// Generate water
-				y = waterLevel;
-			}
-			
-			// Used in generating the blocks below the top layer
-			Block blockBelow = Blocks.AIR;
-			
-			for (; y >= 0; y--)
-			{
-				Block block = Blocks.STONE;
-				
-				// Setup the top layers
-				if (depth == 0)
-				{
-					if (y >= waterLevel + 1)
-					{
-						block = Blocks.GRASS;
-						blockBelow = Blocks.DIRT;
-					}
-					else if (y >= (waterLevel - 3))
-					{
-						block = Blocks.SAND;
-						blockBelow = Blocks.SAND;
-					}
-					else
-					{
-						block = Blocks.GRAVEL;
-						blockBelow = Blocks.GRAVEL;
-					}
-				}
-				else if (depth < 3)
-				{
-					block = blockBelow;
-				}
-				else if ((y <= 4 && worldRandom.nextInt(8) == 0) || y == 0)
-				{
-					block = Blocks.PLANKS;
-				}
-				
-				if (y > height)
-				{
-					// Generate water between the water level & the generated height
-					block = Blocks.WATER;
-				}
-				
-				byte flags = 0b1000;
-				
-				setBlock((cx << 4) + x, y, (cz << 4) + z, block, (byte)0, flags);
-				
-				if ((block == Blocks.WATER && y < waterLevel) || !block.isTransparent())
-				{
-					// Remove skylight if the height is 1 below the water level, or the block is not transparent
-					getChunk(cx, y >> 4, cz).setSkyLight(x & 0xF, y & 0xF, z & 0xF, (byte) 0);
-				}
-				else if ((block == Blocks.WATER && y == waterLevel))
-				{
-					// Set the light level to the attenuated light
-					getChunk(cx, y >> 4, cz).setSkyLight(x & 0xF, y & 0xF, z & 0xF, (byte) (15-block.getOpacity()));
-					// Add pending sky light updates
-					pendingShadowUpdates.add(new LightUpdate(new Vec3i((cx << 4) + x, y, (cz << 4) + z), (byte) 0));
-				}
-				
-				if (!foundTallest)
-				{
-					// Update the respective column so that the lighting is correct
-					if (!block.isTransparent() && column.opaqueColumns[colIdx] < y)
-					{
-						column.opaqueColumns[colIdx] = (byte) y;
-						foundTallest = true;
-					}
-				}
-				
-				// Only increase the depth once the generated height is reached
-				if (y <= height)
-					depth++;
-			}
-			
-			depth = 0;
-		}
+		return chunkManager.getChunk(chunkX, chunkY, chunkZ);
+	}
+	
+	/**
+	 * Gets the chunk for the requested position
+	 * @param pos The position of the target chunk (in chunks)
+	 * @return The requested chunk
+	 */
+	public Chunk getChunk(Vec3i pos)
+	{
+		return chunkManager.getChunk(pos);
 	}
 	
 	// Fluid management //
@@ -1027,7 +867,7 @@ public class World
 			return;
 		
 		// Update the loaded chunks
-		List<Chunk> workingList = new ArrayList<>(loadedChunks.values());
+		List<Chunk> workingList = new ArrayList<>(chunkManager.loadedChunks.values());
 		workingList.iterator().forEachRemaining((chunk) ->
 		{
 			for (int pos : chunk.tickables)
@@ -1219,12 +1059,12 @@ public class World
 		}
 	}
 	
-	private static class LightUpdate
+	static class LightUpdate
 	{
 		final Vec3i pos;
 		final byte newLight;
 		
-		private LightUpdate(Vec3i pos, byte newLight)
+		public LightUpdate(Vec3i pos, byte newLight)
 		{
 			this.pos = pos;
 			this.newLight = newLight;
