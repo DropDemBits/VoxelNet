@@ -1,10 +1,8 @@
 package ddb.io.voxelnet.world;
 
-import ddb.io.voxelnet.Game;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.client.render.RenderLayer;
-import ddb.io.voxelnet.util.Vec3i;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,19 +13,24 @@ import java.util.List;
  */
 public class Chunk
 {
+	public static final int LAYER_DATA_SIZE = 16;
+	public static final int LIGHT_DATA_SIZE = 16 * 16 * 16;
+	public static final int BLOCK_DATA_SIZE = 16 * 16 * 16;
+	public static final int META_DATA_SIZE = 8 * 16 * 16;
+	
 	public final int chunkX, chunkY, chunkZ;
-	public final World world;
+	public World world;
 	
 	// Number of solid blocks on each layer
-	private final short[] blockLayers = new short[16];
+	private final short[] blockLayers = new short[LAYER_DATA_SIZE];
 	// Block light & sky light data for each block
-	private final byte[] lightData = new byte[16 * 16 * 16];
+	private final byte[] lightData = new byte[LIGHT_DATA_SIZE];
 	// The number of blocks in the chunk
 	private short blockCount = 0;
 	// Actual chunk data
-	private final byte[] blockData = new byte[16 * 16 * 16];
+	private final byte[] blockData = new byte[BLOCK_DATA_SIZE];
 	// Block metadata (2 block clusters)
-	private final byte[] blockMeta = new byte[8 * 16 * 16];
+	private final byte[] blockMeta = new byte[META_DATA_SIZE];
 	// If the chunk holds data (by default, they are empty)
 	private boolean isEmpty = true;
 	// If the chunk needs to be re-rendered (per-layer)
@@ -58,22 +61,26 @@ public class Chunk
 	}
 	
 	/**
-	 * Constructs a chunk from existing data
-	 * @param world The world associated with the chunk
-	 * @param x The chunk x position
-	 * @param y The chunk y position
-	 * @param z The chunk z position
+	 * Deserialize a chunk from existing data
 	 * @param blockData The chunk block data
 	 * @param blockLights The chunk block light data
+	 * @param blockMetas The chunk block meta data
+	 * @param layerData The chunk layer data
+	 * @param tickables The tickable blocks in the chunk
 	 * @param blockCount The chunk's block count
 	 */
-	public Chunk(World world, int x, int y, int z, byte[] blockData, byte[] blockLights, short blockCount)
+	public void deserialize(byte[] blockData, byte[] blockLights, byte[] blockMetas,
+	                        short[] layerData, int[] tickables, int blockCount)
 	{
-		this(world, x, y, z);
-		
-		this.blockCount = blockCount;
+		this.blockCount = (short)blockCount;
 		System.arraycopy(blockData, 0, this.blockData, 0, this.blockData.length);
 		System.arraycopy(blockLights, 0, this.lightData, 0, this.lightData.length);
+		System.arraycopy(blockMetas, 0, this.blockMeta, 0, this.blockMeta.length);
+		System.arraycopy(layerData, 0, this.blockLayers, 0, this.blockLayers.length);
+		
+		// Add all the tickables
+		for (int tickable : tickables)
+			this.tickables.add(tickable);
 		
 		// Update the rebuild state
 		forceLayerRebuild();
@@ -90,6 +97,16 @@ public class Chunk
 	 * @return The block data for this chunk
 	 */
 	public byte[] getData() { return blockData; }
+	
+	/**
+	 * Gets the block meta data for the chunk
+	 * The data is organized in a single dimension list, and is always accessed
+	 * using the following formula:
+	 * <code>(x >> 1) + (z * 8) + (y * 8 * 16)</code>
+	 * with each of the nibbles making up two block's metadatas
+	 * @return The block meta data for this chunk
+	 */
+	public byte[] getMetaData() { return blockMeta; }
 	
 	public short[] getLayerData() { return blockLayers; }
 	

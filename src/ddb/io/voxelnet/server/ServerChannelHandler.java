@@ -1,9 +1,9 @@
 package ddb.io.voxelnet.server;
 
-import ddb.io.voxelnet.network.PCSPosRotUpdate;
-import ddb.io.voxelnet.network.PSEstablishConnection;
 import ddb.io.voxelnet.network.Packet;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.ReferenceCountUtil;
 
 public class ServerChannelHandler extends ChannelDuplexHandler
@@ -41,13 +41,6 @@ public class ServerChannelHandler extends ChannelDuplexHandler
 		{
 			ReferenceCountUtil.release(msg);
 		}
-	}
-	
-	@Override
-	public void flush(ChannelHandlerContext ctx) throws Exception
-	{
-		System.out.println("Broadcast");
-		super.flush(ctx);
 	}
 	
 	@Override

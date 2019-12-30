@@ -6,7 +6,10 @@ import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.fluid.Fluid;
 import ddb.io.voxelnet.fluid.FluidInstance;
-import ddb.io.voxelnet.util.*;
+import ddb.io.voxelnet.util.AABBCollider;
+import ddb.io.voxelnet.util.Facing;
+import ddb.io.voxelnet.util.RaycastResult;
+import ddb.io.voxelnet.util.Vec3i;
 import org.joml.Vector3d;
 
 import java.util.*;
@@ -14,6 +17,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class World
 {
+	// Sidedness
+	// True if the world is on the client side
+	public final boolean isClient;
+	
 	// The chunk manager
 	public final ChunkManager chunkManager;
 	
@@ -38,8 +45,10 @@ public class World
 	private long worldSeed;
 	public final Random worldRandom;
 	
-	public World()
+	public World(boolean isClient)
 	{
+		this.isClient = isClient;
+		
 		//worldSeed = System.currentTimeMillis();
 		//worldSeed = 1566757735901L;
 		worldSeed = 1566847034636L;
@@ -62,7 +71,11 @@ public class World
 			fluidTickSchedules[i] = fluid.updateRate;
 		}
 		
-		chunkManager = new ChunkManager(this);
+		// TODO: Request dynamic client chunk loads
+		if (isClient)
+			chunkManager = new ClientChunkManager(this);
+		else
+			chunkManager = new ChunkManager(this);
 		
 		setWorldSeed(worldSeed);
 	}
@@ -75,9 +88,11 @@ public class World
 		System.out.println("Generating world with seed " + worldSeed);
 		
 		long startGen = System.currentTimeMillis();
-		for (int cx = -8; cx <= 7; cx++)
+		final int radius = 4;
+		
+		for (int cx = -radius; cx <= radius; cx++)
 		{
-			for (int cz = -8; cz <= 7; cz++)
+			for (int cz = -radius; cz <= radius; cz++)
 			{
 				chunkManager.generateChunk(cx, cz);
 			}

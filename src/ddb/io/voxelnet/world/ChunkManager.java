@@ -22,7 +22,7 @@ public class ChunkManager
 	public final PerlinOctaves perlinNoise;
 	
 	// World associated with this chunk manager
-	private final World world;
+	protected final World world;
 	
 	public ChunkManager(World world)
 	{

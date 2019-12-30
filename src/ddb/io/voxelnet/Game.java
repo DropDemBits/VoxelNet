@@ -3,6 +3,8 @@ package ddb.io.voxelnet;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.client.ClientChannelHandler;
 import ddb.io.voxelnet.client.GameWindow;
+import ddb.io.voxelnet.client.input.PlayerController;
+import ddb.io.voxelnet.client.render.*;
 import ddb.io.voxelnet.client.render.entity.EntityRendererFalling;
 import ddb.io.voxelnet.client.render.entity.EntityRendererPlayer;
 import ddb.io.voxelnet.client.render.gl.BufferLayout;
@@ -11,14 +13,13 @@ import ddb.io.voxelnet.client.render.gl.GLContext;
 import ddb.io.voxelnet.client.render.util.Camera;
 import ddb.io.voxelnet.entity.EntityFallingBlock;
 import ddb.io.voxelnet.entity.EntityPlayer;
-import ddb.io.voxelnet.client.input.PlayerController;
-import ddb.io.voxelnet.client.render.*;
 import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.event.input.KeyEvent;
 import ddb.io.voxelnet.event.input.MouseEvent;
 import ddb.io.voxelnet.fluid.Fluid;
 import ddb.io.voxelnet.network.*;
 import ddb.io.voxelnet.util.RaycastResult;
+import ddb.io.voxelnet.world.ClientChunkManager;
 import ddb.io.voxelnet.world.World;
 import ddb.io.voxelnet.world.WorldSave;
 import io.netty.bootstrap.Bootstrap;
@@ -259,15 +260,15 @@ public class Game {
 		///////////////////////////////////////////////
 		// Setup the world, world save/loader, and world renderer
 		// "world-allthings" is main world
-		world = new World();
-		worldSave = new WorldSave(world, "world.dat");
+		world = new World(true);
+		//worldSave = new WorldSave(world, "world.dat");
 		worldRenderer = new WorldRenderer(world, atlas);
 		
 		// Load / Generate the world
-		if (worldSave.canLoad())
+		/*if (worldSave.canLoad())
 			worldSave.load();
 		else
-			world.generate();
+			world.generate();*/
 		
 		// Setup the player
 		player = new EntityPlayer();
@@ -485,6 +486,13 @@ public class Game {
 					continue;
 				
 				player.setDead();
+			}
+			else if (packet.getPacketID() == 4)
+			{
+				// SChunkData
+				// Process the chunk data
+				PSChunkData chunkData = (PSChunkData)packet;
+				((ClientChunkManager)world.chunkManager).processNetLoad(chunkData);
 			}
 		}
 		

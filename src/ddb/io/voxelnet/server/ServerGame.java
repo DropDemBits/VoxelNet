@@ -5,12 +5,13 @@ import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.fluid.Fluid;
 import ddb.io.voxelnet.network.*;
+import ddb.io.voxelnet.world.Chunk;
+import ddb.io.voxelnet.world.ChunkColumn;
 import ddb.io.voxelnet.world.World;
 import ddb.io.voxelnet.world.WorldSave;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.ChannelMatcher;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -19,11 +20,8 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.lwjgl.glfw.GLFW.glfwGetTime;
 
 public class ServerGame
 {
@@ -102,14 +100,14 @@ public class ServerGame
 		
 		// Setup the world, world save/loader, and world renderer
 		// "world-allthings" is main world
-		world = new World();
+		world = new World(false);
 		worldSave = new WorldSave(world, "world.dat");
 		
 		// Load / Generate the world
-		/*if (worldSave.canLoad())
+		if (worldSave.canLoad())
 			worldSave.load();
 		else
-			world.generate();*/
+			world.generate();
 	}
 	
 	private void networkInit() throws InterruptedException
@@ -258,7 +256,37 @@ public class ServerGame
 		// Flush later
 		clientChannels.write(packet, (otherChannel) -> otherChannel != channel);
 		
-		// Send back client id
+		// Send the surrounding chunks over
+		int radius = 3;
+		for (int z = -radius; z <= radius; z++)
+		{
+			for (int x = -radius; x <= radius; x++)
+			{
+				ChunkColumn column = world.chunkManager.getColumn(x, z);
+				
+				// Skip column if null (No chunks there)
+				if (column == null)
+					continue;
+				
+				// Construct a new chunk data packet
+				PSChunkData chunkData = new PSChunkData(x, z, world.chunkManager.getColumn(x, z));
+				
+				for (int y = 0; y < 256 / 16; y++)
+				{
+					Chunk chunk = world.chunkManager.getChunk(x, y, z, false);
+					
+					if (chunk == world.chunkManager.EMPTY_CHUNK)
+						continue;
+					
+					chunkData.addChunk(chunk);
+				}
+				
+				// Send out the chunk
+				channel.write(chunkData);
+			}
+		}
+		
+		// Send back client id / Start client comms
 		channel.write(new PSEstablishConnection(clientID));
 		
 		// Spawn the other players on this channel

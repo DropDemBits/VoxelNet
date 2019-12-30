@@ -2,7 +2,10 @@ package ddb.io.voxelnet.world;
 
 import ddb.io.voxelnet.util.Vec3i;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
@@ -343,7 +346,10 @@ public class WorldSave
 		buf.get(blockLighting);
 		buf.get(blockData);
 		
-		return new Chunk(world, cx, cy, cz, blockData, blockLighting, blockCount);
+		Chunk chunk = new Chunk(world, cx, cy, cz);
+		// Workaround to stop errors
+		chunk.deserialize(blockData, blockLighting, new byte[0], new short[0], new int[0], blockCount);
+		return chunk;
 	}
 	
 	private ChunkColumn deserializeColumn(byte[] data)

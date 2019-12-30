@@ -19,6 +19,7 @@ public class PacketCodec extends ByteToMessageCodec<Packet>
 		idToPacket.put(1, PCSPosRotUpdate.class);
 		idToPacket.put(2, PSSpawnPlayer.class);
 		idToPacket.put(3, PSKillPlayer.class);
+		idToPacket.put(4, PSChunkData.class);
 	}
 	
 	@Override
@@ -31,7 +32,16 @@ public class PacketCodec extends ByteToMessageCodec<Packet>
 		// Payload:  Packet data
 		// Length is already handled by LengthFieldPrepender
 		out.writeShort(msg.getPacketID()); // Packet ID
-		msg.encodePayload(out);
+		
+		try
+		{
+			msg.encodePayload(out);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			ctx.fireExceptionCaught(e);
+		}
 	}
 	
 	@Override
@@ -60,4 +70,10 @@ public class PacketCodec extends ByteToMessageCodec<Packet>
 		out.add(packet);
 	}
 	
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception
+	{
+		cause.printStackTrace();
+		ctx.close();
+	}
 }
