@@ -350,9 +350,23 @@ public class ServerGame
 		if (msg.getPacketID() == 1)
 		{
 			// Position updates, broadcast to everyone else
-			PCSPosRotUpdate packet = (PCSPosRotUpdate) msg;
-			System.out.printf("\t Ply%d-Pos: (%f, %f, %f) - (%f, %f)\n", packet.clientID, packet.xPos, packet.yPos, packet.zPos, packet.pitch, packet.yaw);
-			clientChannels.write(packet);
+			PCSPosRotUpdate posUpdate = (PCSPosRotUpdate)msg;
+			
+			// CSPosRotUpdate
+			// Get the specific player to update
+			
+			EntityPlayer player = playerIDMappings.getOrDefault(posUpdate.clientID, null);
+			
+			// If non-existant move on to the next packet
+			if (player == null)
+				return;
+			
+			System.out.printf("\t Ply%d-Pos: (%f, %f, %f) - (%f, %f)\n", posUpdate.clientID, posUpdate.xPos, posUpdate.yPos, posUpdate.zPos, posUpdate.pitch, posUpdate.yaw);
+			player.setPos(posUpdate.xPos, posUpdate.yPos, posUpdate.zPos);
+			player.setVelocity(posUpdate.xVel, posUpdate.yVel, posUpdate.zVel);
+			player.setOrientation(posUpdate.pitch, posUpdate.yaw);
+			
+			clientChannels.write(posUpdate);
 		}
 		else if (msg.getPacketID() == 5)
 		{

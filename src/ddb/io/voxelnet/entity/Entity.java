@@ -63,6 +63,13 @@ public class Entity
 		this.zPos = z;
 	}
 	
+	public void setVelocity(float x, float y, float z)
+	{
+		this.xVel = x;
+		this.yVel = y;
+		this.zVel = z;
+	}
+	
 	public void setOrientation(float pitch, float yaw)
 	{
 		this.pitch = pitch;

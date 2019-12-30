@@ -467,6 +467,7 @@ public class Game {
 					continue;
 				
 				player.setPos(posUpdate.xPos, posUpdate.yPos, posUpdate.zPos);
+				player.setVelocity(posUpdate.xVel, posUpdate.yVel, posUpdate.zVel);
 				player.setOrientation(posUpdate.pitch, posUpdate.yaw);
 			}
 			else if (packet.getPacketID() == 2)
