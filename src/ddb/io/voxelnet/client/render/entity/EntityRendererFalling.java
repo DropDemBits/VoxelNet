@@ -20,7 +20,7 @@ public class EntityRendererFalling extends EntityRenderer
 	}
 	
 	@Override
-	public void render(Entity e, GameRenderer renderer)
+	public void render(Entity e, GameRenderer renderer, double partialTicks)
 	{
 		EntityFallingBlock entity = (EntityFallingBlock)e;
 		

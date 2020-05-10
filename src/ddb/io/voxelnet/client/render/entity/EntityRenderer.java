@@ -14,6 +14,6 @@ public abstract class EntityRenderer
 	 * @param e The entity instance to render
 	 * @param renderer The game render used for rendering
 	 */
-	public abstract void render(Entity e, GameRenderer renderer);
+	public abstract void render(Entity e, GameRenderer renderer, double partialTicks);
 	
 }

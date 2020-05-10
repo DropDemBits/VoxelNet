@@ -599,7 +599,7 @@ public class Game {
 			renderer.useShader(chunkShader);
 			renderer.prepareShader();
 			renderer.getCurrentShader().setUniform1f("iTime", (float) elapsed);
-			worldRenderer.render(renderer);
+			worldRenderer.render(renderer, partialTicks);
 			renderer.finishShader();
 		}
 		

@@ -118,7 +118,7 @@ public class WorldRenderer
 			new ThreadedChunkGenerator(generateQueue.pop()).run();*/
 	}
 	
-	public void render(GameRenderer renderer)
+	public void render(GameRenderer renderer, double partialTicks)
 	{
 		// List of chunks that have transparent blocks
 		List<ChunkModel> transparentChunks = new ArrayList<>();
@@ -266,7 +266,7 @@ public class WorldRenderer
 			if (e == clientPlayer)
 				continue;
 			
-			renderer.getEntityRenderer(e.getClass()).render(e, renderer);
+			renderer.getEntityRenderer(e.getClass()).render(e, renderer, partialTicks);
 		}
 		
 		// Enqueue all the changed chunks

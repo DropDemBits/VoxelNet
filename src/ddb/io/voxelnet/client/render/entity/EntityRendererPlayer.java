@@ -160,13 +160,14 @@ public class EntityRendererPlayer extends EntityRenderer
 	}
 	
 	@Override
-	public void render(Entity e, GameRenderer renderer)
+	public void render(Entity e, GameRenderer renderer, double partialTicks)
 	{
 		Matrix4f playerTransform = playerModel.getTransform().identity();
 		playerTransform.identity();
 		
 		// Currently setup so that the entire player model pitches
-		playerTransform.translate(e.xPos, e.yPos, e.zPos);
+		float pt = (float)1.0f/60.0f;
+		playerTransform.translate(e.xPos + e.xVel * pt, e.yPos + e.yVel * pt, e.zPos + e.zVel * pt);
 		//playerTransform.translate(-0.5f, 0.0f, -0.5f);
 		playerTransform.rotate((float)Math.toRadians(e.yaw), 0.f, 1.f, 0.f);
 		playerTransform.rotate((float)Math.toRadians(e.pitch), 1.f, 0.f, 0.f);
