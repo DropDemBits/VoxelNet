@@ -61,7 +61,6 @@ public class Game {
 	WorldSave worldSave;
 	World world;
 	
-	Map<Integer, EntityPlayer> playerIDMappings = new ConcurrentHashMap<>();
 	EntityPlayer player;
 	PlayerController controller;
 	
@@ -102,12 +101,17 @@ public class Game {
 	boolean isConnected = false;
 	public Queue<Packet> packetQueue = new ConcurrentLinkedQueue<>();
 	public int clientID = -1;
+	Map<Integer, EntityPlayer> playerIDMappings = new ConcurrentHashMap<>();
+	
+	// Server Address
+	private String serverAddress = "localhost";
+	private int serverPort = 7997;
 	
 	static Game instance;
 	
 	// TODO: Remove hacky getInstance thing
 	// Only used by EntityPlayer to send packets
-	// Give a network manager to networked entities
+	// Give a network channel / attach network component to networked entities
 	public static Game getInstance()
 	{
 		return instance;
@@ -294,9 +298,6 @@ public class Game {
 	
 	private void networkInit() throws InterruptedException
 	{
-		String host = "localhost";
-		int port = 7997;
-		
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.group(bossGroup)
 				.channel(NioSocketChannel.class)
@@ -313,9 +314,9 @@ public class Game {
 				})
 				.option(ChannelOption.SO_KEEPALIVE, true);
 		
-		ChannelFuture f = bootstrap.connect(host, port).sync();
+		ChannelFuture f = bootstrap.connect(serverAddress, serverPort).sync();
 		clientChannel = f.channel();
-		System.out.println("Connected to " + host + ":" + port);
+		System.out.println("Connected to " + serverAddress + ":" + serverPort);
 	}
 	
 	private void loop()
@@ -721,7 +722,44 @@ public class Game {
 		fontRenderer.flush();
 	}
 	
-	private void parseArgs(String[] args) {}
+	private void parseArgs(String[] args)
+	{
+		// --[argname]=[value]
+		for (String argLine : args)
+		{
+			if (!argLine.startsWith("--") || argLine.length() <= 2)
+			{
+				System.out.println("Skipping non-argument \"" + argLine + "\"");
+				continue;
+			}
+			else if (argLine.contains("=") && argLine.indexOf('=') + 1 == argLine.length())
+			{
+				// Skip if there's no value for the given argument
+				System.out.println("Skipping bad argument \"" + argLine + "\"");
+				continue;
+			}
+			
+			// Trim & Split
+			String[] pair = argLine.substring(2).split("=");
+			String arg, value;
+			
+			arg = pair[0];
+			value = (pair.length > 1) ? pair[1] : "";
+			
+			// Parse argument
+			switch (arg)
+			{
+				case "address":
+					serverAddress = value;
+					break;
+				case "port":
+					serverPort = Integer.parseInt(value);
+					break;
+				default:
+					System.out.println("Unknown argument \"" + arg + "\"");
+			}
+		}
+	}
 	
 	public static void main(String... args)
 	{
