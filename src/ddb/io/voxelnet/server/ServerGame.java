@@ -22,12 +22,15 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ServerGame
 {
-	public boolean isRunning = true;
+	public boolean isRunning = false;
 	
 	private ServerSettings settings = null;
 	
@@ -75,6 +78,7 @@ public class ServerGame
 			init();
 			
 			/// Main Loop ///
+			isRunning = true;
 			loop();
 		}
 		catch (Exception e)
@@ -103,7 +107,7 @@ public class ServerGame
 		// Setup the world, world save/loader, and world renderer
 		// "world-allthings" is main world
 		world = new World(false);
-		worldSave = new WorldSave(world, "world.dat");
+		worldSave = new WorldSave(world, "world-server.dat");
 		
 		// Load / Generate the world
 		if (worldSave.canLoad())
@@ -201,8 +205,6 @@ public class ServerGame
 				currentUPD = updTime / ups;
 				updTime = 0;
 				ups = 0;
-				
-				System.out.println("UPS: " + ups + " (Tick time " + (currentUPD * 1000.0D) + " ms)");
 				secondTimer = now;
 			}
 		}
@@ -213,12 +215,17 @@ public class ServerGame
 		return System.currentTimeMillis() / 1000.0D;
 	}
 	
+	private void beginShutdown()
+	{
+		this.isRunning = false;
+	}
+	
 	private void cleanup()
 	{
 		// Wait until the server socket is closed
 		try
 		{
-			serverChannel.closeFuture().sync();
+			serverChannel.close().sync();
 		}
 		catch (Exception e)
 		{
@@ -230,13 +237,48 @@ public class ServerGame
 			bossGroup.shutdownGracefully();
 		}
 		
+		System.out.println("Shutting down");
+		
 		// Save the world
 		//worldSave.save();
 	}
 	
 	private void update(float delta)
 	{
+		// Process command input from command line
+		processCommandLine();
+		
+		/// Process World Things ///
 		world.update(delta);
+	}
+	
+	private void processCommandLine()
+	{
+		try
+		{
+			final BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+			
+			while (System.in.available() > 0)
+			{
+				// Keep processing lines
+				String inputLine = reader.readLine();
+				
+				if (inputLine.equals("stop") || inputLine.equals("exit"))
+				{
+					// Gracefully exit
+					beginShutdown();
+					break;
+				}
+				else if (inputLine.equals("status"))
+				{
+					System.out.println("Last tick time " + (currentUPD * 1000.0D) + " ms");
+				}
+			}
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
 	}
 	
 	private void networkTick()
