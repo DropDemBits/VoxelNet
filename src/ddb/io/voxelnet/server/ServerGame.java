@@ -240,7 +240,7 @@ public class ServerGame
 		System.out.println("Shutting down");
 		
 		// Save the world
-		//worldSave.save();
+		worldSave.save();
 	}
 	
 	private void update(float delta)
