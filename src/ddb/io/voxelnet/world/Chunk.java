@@ -4,6 +4,7 @@ import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.client.render.RenderLayer;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -16,7 +17,20 @@ public class Chunk
 	public static final int LAYER_DATA_SIZE = 16;
 	public static final int LIGHT_DATA_SIZE = 16 * 16 * 16;
 	public static final int BLOCK_DATA_SIZE = 16 * 16 * 16;
-	public static final int META_DATA_SIZE = 8 * 16 * 16;
+	public static final int META_DATA_SIZE = (16/2) * 16 * 16;
+	
+	// Size of the fixed area in bytes
+	// Save Format:
+	// cX | cY | cZ | blockCount | blockLayers | blockLighting | blockData | blockMeta  ~ tickablesCount | tickables
+	public static final int FIXED_SIZE =
+			Integer.BYTES * 3 +             // Chunk Pos
+			Short.BYTES +                   // blockCount
+			LAYER_DATA_SIZE * Short.BYTES +
+			LIGHT_DATA_SIZE * Byte.BYTES +
+			BLOCK_DATA_SIZE * Byte.BYTES +
+			META_DATA_SIZE  * Byte.BYTES +
+			Short.BYTES; // for tickables count
+	public static final int TICKPOS_BYTES = 3;
 	
 	public final int chunkX, chunkY, chunkZ;
 	public World world;

@@ -1,6 +1,7 @@
 package ddb.io.voxelnet.world;
 
 import ddb.io.voxelnet.util.Vec3i;
+import org.lwjgl.system.MemoryUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,9 +19,13 @@ import java.nio.file.StandardCopyOption;
 public class WorldSave
 {
 	// TODO: Use ChunkManager's chunk list instead of World's loaded chunks
-	//TODO: Pack lighting & meta together in world save (v1)
+	private static final int SAVE_VERSION = 1;
 	private static final byte[] SAVE_MAGIC = "VXNT".getBytes();
-	private static final int CHUNK_ENTRY_SIZE = 4*3 + 2 + 512 + 4096;
+	private static final int CHUNK_ENTRY_SIZE0 = 4*3 + 2 + 512 + 4096;
+	
+	// Save Format:
+	// cX | cY | cZ | blockCount | blockLayers | blockLighting | blockData | blockMeta  ~ tickablesCount | tickables
+	private static final int CHUNK_FIXED_ENTRY_SIZE_V1 = Chunk.FIXED_SIZE;
 	private static final int COLUMN_ENTRY_SIZE = 4 * 2 + 256;
 	
 	// The world to save / load
@@ -72,7 +77,7 @@ public class WorldSave
 			// worldSeed (long): Seed used in world generation
 			
 			stream.write(SAVE_MAGIC);                          // Magic
-			stream.write(serializeInt(0));               // Save Version
+			stream.write(serializeInt(SAVE_VERSION));               // Save Version
 			stream.write(serializeLong(world.getWorldSeed())); // Seed
 			
 			///////////////////////////////////////////////////////////////////
@@ -122,9 +127,9 @@ public class WorldSave
 				// Block Lighting (blockLights)
 				// Block count (blockCount)
 				// Block Data (blockData)
+				// blockLayers (blockLayers)
 				
 				// Don't need to save
-				// blockLayers (not used)
 				// isEmpty (implied in block count)
 				// needsRebuild & isDirty (only used during runtime)
 				// recentlyGenerated (only used to generate the chunk's ChunkModel)
@@ -136,7 +141,7 @@ public class WorldSave
 				// blockCount: 2 bytes
 				
 				// Save Format:
-				// cX | cY | cZ | blockCount | blockLighting | blockData
+				// cX | cY | cZ | blockCount | blockLayers | blockLighting | blockData | blockMeta  ~ tickablesCount | tickables
 				// Always stored in big endian
 				byte[] chunkBytes = serializeChunk(chunk);
 				stream.write(chunkBytes);
@@ -158,17 +163,23 @@ public class WorldSave
 		// Build the chunk data
 		try (FileInputStream fis = new FileInputStream(saveFile))
 		{
-			// Skip the header magic & the save version
-			long skipped = fis.skip(SAVE_MAGIC.length + 4);
+			// Temporary holder
+			byte[] intBytes = new byte[4];
+			
+			// Skip the header magic
+			long skipped = fis.skip(SAVE_MAGIC.length);
 			
 			// Sanity check
-			if (skipped != SAVE_MAGIC.length + 4)
+			if (skipped != SAVE_MAGIC.length)
 			{
 				System.err.println("Error: save file is too small!");
 				return false;
 			}
 			
-			// TODO: Actually care about the save version now
+			// saveVersion (int): World's save version
+			fis.read(intBytes);
+			int saveVersion = deserializeInt(intBytes);
+			
 			// worldSeed (long): Seed used in world generation
 			
 			// Fetch the seed
@@ -176,9 +187,6 @@ public class WorldSave
 			fis.read(seedBytes);
 			long seed = deserializeLong(seedBytes);
 			world.setWorldSeed(seed);
-			
-			// Temporary holder
-			byte[] intBytes = new byte[4];
 			
 			// Build the column data
 			fis.read(intBytes);
@@ -192,17 +200,10 @@ public class WorldSave
 				world.chunkManager.chunkColumns.put(new Vec3i(column.columnX, 0, column.columnZ), column);
 			}
 			
-			// Build the chunk data
-			fis.read(intBytes);
-			int chunkEntries = deserializeInt(intBytes);
-			
-			byte[] chunkData = new byte[CHUNK_ENTRY_SIZE];
-			for (int i = 0; i < chunkEntries; i++)
-			{
-				fis.read(chunkData);
-				Chunk chunk = deserializeChunk(chunkData);
-				world.loadedChunks.put(new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ), chunk);
-			}
+			if (saveVersion == 0)
+				loadChunksV0(fis);
+			else
+				loadChunksV1(fis);
 		} catch (IOException e)
 		{
 			System.out.println("Failed to load a world from " + saveFile + ", generating a new one");
@@ -212,6 +213,42 @@ public class WorldSave
 		
 		System.out.println("Successfully loaded world");
 		return true;
+	}
+	
+	private void loadChunksV0(FileInputStream fis) throws IOException
+	{
+		// Temporary holder
+		byte[] intBytes = new byte[4];
+		
+		// Build the chunk data
+		fis.read(intBytes);
+		int chunkEntries = deserializeInt(intBytes);
+		
+		byte[] chunkData = new byte[CHUNK_ENTRY_SIZE0];
+		for (int i = 0; i < chunkEntries; i++)
+		{
+			fis.read(chunkData);
+			Chunk chunk = deserializeChunkV0(chunkData);
+			world.chunkManager.loadedChunks.put(new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ), chunk);
+		}
+	}
+	
+	private void loadChunksV1(FileInputStream fis) throws IOException
+	{
+		byte[] intBytes = new byte[4];
+		
+		// Build the chunk data
+		fis.read(intBytes);
+		int chunkEntries = deserializeInt(intBytes);
+		
+		byte[] chunkData = new byte[CHUNK_FIXED_ENTRY_SIZE_V1];
+		for (int i = 0; i < chunkEntries; i++)
+		{
+			// Read in fixed area (deserializeChunkV1 takes care of variable ended data)
+			fis.read(chunkData);
+			Chunk chunk = deserializeChunkV1(chunkData, fis);
+			world.chunkManager.loadedChunks.put(new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ), chunk);
+		}
 	}
 	
 	/**
@@ -234,17 +271,31 @@ public class WorldSave
 	private byte[] serializeChunk(Chunk chunk)
 	{
 		// Save Format:
-		// cX | cY | cZ | blockCount | blockLighting | blockData
-		byte[] data = new byte[CHUNK_ENTRY_SIZE];
-		final ByteBuffer buf = ByteBuffer.allocate(data.length).order(ByteOrder.BIG_ENDIAN);
+		// cX | cY | cZ | blockCount | blockLayers | blockLighting | blockData | blockMeta  ~ tickablesCount | tickables
+		int chunkSaveSize = CHUNK_FIXED_ENTRY_SIZE_V1 + chunk.tickables.size() * Chunk.TICKPOS_BYTES;
+		
+		byte[] data = new byte[chunkSaveSize];
+		ByteBuffer buf = ByteBuffer.allocate(data.length).order(ByteOrder.BIG_ENDIAN);
 		
 		// Serialize the chunk in the specified format
 		buf.putInt(chunk.chunkX);
 		buf.putInt(chunk.chunkY);
 		buf.putInt(chunk.chunkZ);
+		
+		// Fixed area
 		buf.putShort(chunk.getBlockCount());
+		
+		for (short s : chunk.getLayerData())
+			buf.putShort(s);
 		buf.put(chunk.getLightData());
 		buf.put(chunk.getData());
+		buf.put(chunk.getMetaData());
+		
+		buf.putShort((short)chunk.tickables.size());
+		
+		// Variable area
+		for (int tickerPos : chunk.tickables)
+			buf.put(serializeMedium(tickerPos));
 		buf.flip();
 		
 		buf.get(data);
@@ -264,7 +315,7 @@ public class WorldSave
 		// Save format
 		// cX | cZ | opaqueColumns
 		byte[] data = new byte[COLUMN_ENTRY_SIZE];
-		final ByteBuffer buf = ByteBuffer.allocate(data.length).order(ByteOrder.BIG_ENDIAN);
+		ByteBuffer buf = ByteBuffer.allocate(data.length).order(ByteOrder.BIG_ENDIAN);
 		
 		// Serialize the chunk in the specified format
 		buf.putInt(column.columnX);
@@ -282,6 +333,16 @@ public class WorldSave
 	{
 		return new byte[] {
 				(byte)((value >> 24) & 0xFF),
+				(byte)((value >> 16) & 0xFF),
+				(byte)((value >>  8) & 0xFF),
+				(byte)((value >>  0) & 0xFF),
+		};
+	}
+	
+	// 3 byte num
+	private byte[] serializeMedium(int value)
+	{
+		return new byte[] {
 				(byte)((value >> 16) & 0xFF),
 				(byte)((value >>  8) & 0xFF),
 				(byte)((value >>  0) & 0xFF),
@@ -310,6 +371,14 @@ public class WorldSave
 				| (Byte.toUnsignedInt(bytes[3]) << 0);
 	}
 	
+	// 3 byte num
+	private int deserializeMedium(byte[] bytes)
+	{
+		return    (Byte.toUnsignedInt(bytes[1]) << 16)
+				| (Byte.toUnsignedInt(bytes[2]) << 8)
+				| (Byte.toUnsignedInt(bytes[3]) << 0);
+	}
+	
 	private long deserializeLong(byte[] bytes)
 	{
 		return    (Byte.toUnsignedLong(bytes[0]) << 56)
@@ -322,9 +391,9 @@ public class WorldSave
 				| (Byte.toUnsignedLong(bytes[7]) << 0);
 	}
 	
-	private Chunk deserializeChunk(byte[] data)
+	private Chunk deserializeChunkV0(byte[] data)
 	{
-		final ByteBuffer buf = ByteBuffer.allocate(CHUNK_ENTRY_SIZE);
+		final ByteBuffer buf = ByteBuffer.allocate(CHUNK_ENTRY_SIZE0);
 		buf.put(data);
 		buf.flip();
 		
@@ -349,6 +418,52 @@ public class WorldSave
 		Chunk chunk = new Chunk(world, cx, cy, cz);
 		// Workaround to stop errors
 		chunk.deserialize(blockData, blockLighting, new byte[0], new short[0], new int[0], blockCount);
+		return chunk;
+	}
+	
+	private Chunk deserializeChunkV1(byte[] data, FileInputStream fis) throws IOException
+	{
+		ByteBuffer buf = ByteBuffer.allocate(data.length).order(ByteOrder.BIG_ENDIAN);
+		buf.put(data);
+		buf.flip();
+		
+		// Save Format:
+		// cX | cY | cZ | blockCount | blockLayers | blockLighting | blockData | blockMeta ~ tickablesCount | tickables
+		
+		// Fetch the chunk position
+		int cx = buf.getInt();
+		int cy = buf.getInt();
+		int cz = buf.getInt();
+		
+		// Fetch the block count
+		short blockCount = buf.getShort();
+		
+		short[] blockLayers = new short[Chunk.LAYER_DATA_SIZE];
+		byte[] blockLighting = new byte[Chunk.LIGHT_DATA_SIZE];
+		byte[] blockData = new byte[Chunk.BLOCK_DATA_SIZE];
+		byte[] blockMeta = new byte[Chunk.META_DATA_SIZE];
+		
+		for(int i = 0; i < blockLayers.length; i++)
+			blockLayers[i] = buf.getShort();
+		buf.get(blockLighting);
+		buf.get(blockData);
+		buf.get(blockMeta);
+		
+		// Fetch the tickables count
+		int tickerCount = buf.getShort();
+		int[] tickables = new int[tickerCount];
+		
+		byte[] tickPos = new byte[Chunk.TICKPOS_BYTES];
+		
+		for (int i = 0; i < tickerCount; i++)
+		{
+			// Read from the file
+			fis.read(tickPos);
+			tickables[i] = deserializeMedium(tickPos);
+		}
+		
+		Chunk chunk = new Chunk(world, cx, cy, cz);
+		chunk.deserialize(blockData, blockLighting, blockMeta, blockLayers, tickables, blockCount);
 		return chunk;
 	}
 	
