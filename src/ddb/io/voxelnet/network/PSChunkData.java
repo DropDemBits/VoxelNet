@@ -10,12 +10,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
+import java.util.zip.*;
 
 public class PSChunkData extends Packet
 {
+	private static final int UNCOMPRESSED_CHUNK_SIZE = Chunk.BLOCK_DATA_SIZE + Chunk.LIGHT_DATA_SIZE + Chunk.META_DATA_SIZE + Chunk.LAYER_DATA_SIZE * 2;
+	
 	public int chunkX;
 	public int chunkZ;
 	public ChunkColumn column;
@@ -51,11 +53,11 @@ public class PSChunkData extends Packet
 	}
 	
 	@Override
-	public void decodePayload(ByteBuf data) throws IOException
+	public void decodePayload(ByteBuf data) throws IOException, DataFormatException
 	{
 		// Decode the chunk data
-		ByteArrayInputStream input;
-		GZIPInputStream inflator;
+		//ByteArrayInputStream input;
+		//GZIPInputStream inflator;
 		
 		// ub = unsigned byte
 		// us = unsigned short
@@ -70,27 +72,27 @@ public class PSChunkData extends Packet
 		// OpaqueColumns (1*size, b) |
 		
 		int chunkCount;
-		int compressedColumnLen;
-		int decompressedCount;
-		byte[] colData;
+		int decompressedSize;
+		byte[] compressedColData;
 		byte[] deflatedData;
 		
 		chunkX = data.readInt();
 		chunkZ = data.readInt();
 		chunkCount = data.readUnsignedByte();
-		compressedColumnLen = data.readUnsignedShort();
-		colData = new byte[compressedColumnLen];
+		int compressedColumnLen = data.readUnsignedShort();
+		compressedColData = new byte[compressedColumnLen];
 		
 		// Deflate the column
-		data.readBytes(colData);
-		input = new ByteArrayInputStream(colData);
-		inflator = new GZIPInputStream(input);
+		data.readBytes(compressedColData);
+		ByteArrayInputStream columnInput = new ByteArrayInputStream(compressedColData);
+		GZIPInputStream columnInflator = new GZIPInputStream(columnInput);
 		
 		deflatedData = new byte[ChunkColumn.COLUMNS_SIZE];
-		decompressedCount = inflator.read(deflatedData);
-		inflator.close();
+		decompressedSize = columnInflator.read(deflatedData);
+		columnInflator.close();
+		columnInput.close();
 		
-		assert decompressedCount == ChunkColumn.COLUMNS_SIZE : "Mismatch in sizes (" + decompressedCount + " != " + ChunkColumn.COLUMNS_SIZE + ")";
+		assert decompressedSize == ChunkColumn.COLUMNS_SIZE : "Mismatch in sizes (" + decompressedSize + " != " + ChunkColumn.COLUMNS_SIZE + ")";
 		
 		column = new ChunkColumn(chunkX, chunkZ, deflatedData);
 		
@@ -103,6 +105,19 @@ public class PSChunkData extends Packet
 		// BlockData[] (1*size, b) | Lighting[] (1*size, b)  | BlockMeta[] (1*size, b) |
 		// LayerData[] (2*size, s) |
 		
+		// Decompressed chunk data
+		final byte[] decompressedData = new byte[UNCOMPRESSED_CHUNK_SIZE];
+		
+		// "Chunk.deserialize" clones the data, so buffers can be shared
+		final byte[] blockData = new byte[Chunk.BLOCK_DATA_SIZE];
+		final byte[] lightData  = new byte[Chunk.LIGHT_DATA_SIZE];
+		final byte[] metaData= new byte[Chunk.META_DATA_SIZE];
+		final byte[] layerIntermediate = new byte[Chunk.LAYER_DATA_SIZE * 2];
+		final short[] layerData = new short[Chunk.LAYER_DATA_SIZE];
+		
+		Inflater chunkInflater = new Inflater();
+		ByteArrayInputStream chunkData = new ByteArrayInputStream(decompressedData);
+		
 		for (int i = 0; i < chunkCount; i++)
 		{
 			// Decode chunk data
@@ -113,16 +128,13 @@ public class PSChunkData extends Packet
 			int[] tickables;
 			byte[] compressedData;
 			
-			byte[] blockData;
-			byte[] lightData;
-			byte[] metaData;
-			byte[] layerIntermediate;
-			short[] layerData;
-			
 			Chunk chunk;
 			
+			// Read in chunk position & info
 			chunkY = data.readInt();
 			blockCount = data.readUnsignedShort();
+			
+			// Setup tickables
 			tickableCount = data.readUnsignedShort();
 			tickables = new int[tickableCount];
 			
@@ -130,32 +142,27 @@ public class PSChunkData extends Packet
 			for (int j = 0; j < tickableCount; j++)
 				tickables[j] = data.readInt();
 			
+			// Read in the compressed data
 			compressedLen = data.readUnsignedShort();
 			compressedData = new byte[compressedLen];
+			data.readBytes(compressedData, 0, compressedLen);
 			
-			data.readBytes(compressedData);
+			// Uncompress the data
+			chunkInflater.setInput(compressedData);
+			decompressedSize = chunkInflater.inflate(decompressedData);
+			chunkInflater.end();
+			chunkInflater.reset();
 			
-			// Done working with the ByteBuf, now decoding compressed data
-			decompressedCount = 0;
+			// Done working with the compressed data, now de-aggregating chunk data
+			chunkData.read(blockData);
+			chunkData.read(lightData);
+			chunkData.read(metaData);
+			chunkData.read(layerIntermediate);
+			chunkData.reset();
 			
-			blockData = new byte[Chunk.BLOCK_DATA_SIZE];
-			lightData = new byte[Chunk.LIGHT_DATA_SIZE];
-			metaData  = new byte[Chunk.META_DATA_SIZE];
-			layerIntermediate = new byte[Chunk.LAYER_DATA_SIZE * 2];
-			layerData = new short[Chunk.LAYER_DATA_SIZE];
-			
-			input = new ByteArrayInputStream(compressedData);
-			inflator = new GZIPInputStream(input);
-			
-			decompressedCount += inflator.read(blockData);
-			decompressedCount += inflator.read(lightData);
-			decompressedCount += inflator.read(metaData);
-			decompressedCount += inflator.read(layerIntermediate);
-			
-			inflator.close();
-			
-			assert decompressedCount == (Chunk.BLOCK_DATA_SIZE + Chunk.LIGHT_DATA_SIZE + Chunk.META_DATA_SIZE + Chunk.LAYER_DATA_SIZE * 2)
-					: "Mismatch in chunk decompression count! (" + chunkY + ")";
+			assert decompressedSize == UNCOMPRESSED_CHUNK_SIZE
+					: "Mismatch in chunk decompression count! (" + chunkX + "," + chunkY + ", " + chunkZ + ")"
+					+ "[" + decompressedSize + " != " + UNCOMPRESSED_CHUNK_SIZE + "]";
 			
 			// Convert layer data into short array
 			ByteBuffer.wrap(layerIntermediate).asShortBuffer().get(layerData);
@@ -164,6 +171,8 @@ public class PSChunkData extends Packet
 			chunk.deserialize(blockData, lightData, metaData, layerData, tickables, blockCount);
 			chunkList.add(chunk);
 		}
+		
+		chunkData.close();
 	}
 	
 	@Override
@@ -197,21 +206,23 @@ public class PSChunkData extends Packet
 		data.writeInt(chunkZ);
 		data.writeByte(chunkList.size());
 		
+		// Compress the column data
 		// May throw IOExceptions
-		ByteArrayOutputStream output = new ByteArrayOutputStream(4096);
-		GZIPOutputStream compressor = new GZIPOutputStream(output);
-		compressor.write(column.opaqueColumns);
-		
-		compressor.flush();
-		compressor.finish();
+		ByteArrayOutputStream aggregator = new ByteArrayOutputStream(UNCOMPRESSED_CHUNK_SIZE);
+		GZIPOutputStream columnCompressor = new GZIPOutputStream(aggregator);
+		columnCompressor.write(column.opaqueColumns);
+		columnCompressor.flush();
+		columnCompressor.close();
 		
 		// Chunk column data
-		byte[] colData = output.toByteArray();
+		byte[] colData = aggregator.toByteArray();
 		data.writeShort(colData.length);
 		data.writeBytes(colData);
-		output.reset();
+		aggregator.reset();
 		
-		ByteBuf layerHolder = data.alloc().buffer(Chunk.LAYER_DATA_SIZE * 2);
+		// Working buffers
+		final byte[] layerIntermediate = new byte[Chunk.LAYER_DATA_SIZE * 2];
+		final byte[] deflateBuffer = new byte[UNCOMPRESSED_CHUNK_SIZE * 2];
 		
 		// Variable block start:
 		for (Chunk chunk : chunkList)
@@ -225,31 +236,33 @@ public class PSChunkData extends Packet
 			for (int tickable : chunk.tickables)
 				data.writeInt(tickable);
 			
-			// Compress the other arrays
-			compressor = new GZIPOutputStream(output);
-			compressor.write(chunk.getData());
-			compressor.write(chunk.getLightData());
-			compressor.write(chunk.getMetaData());
+			// Copy the layer data to the holding area
+			ByteBuffer.wrap(layerIntermediate).asShortBuffer().put(chunk.getLayerData());
 			
-			// Copy the layer data
-			for (int i = 0; i < Chunk.LAYER_DATA_SIZE; i++)
-				layerHolder.writeShort(chunk.getLayerData()[i]);
+			// Aggregate the arrays
+			aggregator.write(chunk.getData());
+			aggregator.write(chunk.getLightData());
+			aggregator.write(chunk.getMetaData());
+			aggregator.write(layerIntermediate);
+			aggregator.flush();
+			byte[] aggregateData = aggregator.toByteArray();
 			
-			// Write out the data
-			layerHolder.getBytes(0, compressor, layerHolder.capacity());
-			layerHolder.resetWriterIndex();
-			layerHolder.resetReaderIndex();
+			// Compress the chunk data
+			Deflater chunkCompressor = new Deflater(Deflater.BEST_SPEED);
+			chunkCompressor.setInput(aggregateData);
+			chunkCompressor.finish();
+			int compressSize = chunkCompressor.deflate(deflateBuffer);
+			chunkCompressor.end();
 			
-			// Submit the data to the array
-			compressor.flush();
-			compressor.finish();
+			// Add the compressed data to the packet
+			data.writeShort(compressSize);
+			data.writeBytes(deflateBuffer, 0, compressSize);
 			
-			output.flush();
-			byte[] chunkData = output.toByteArray();
-			data.writeShort(chunkData.length);
-			data.writeBytes(chunkData);
-			output.reset();
+			// Reset for next chunk
+			aggregator.reset();
 		}
+		
+		aggregator.close();
 	}
 	
 	@Override

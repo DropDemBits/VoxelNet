@@ -49,7 +49,7 @@ public class PacketCodec extends ByteToMessageCodec<Packet>
 	@Override
 	protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception
 	{
-		int packetLength = in.readShort();
+		int packetLength = Short.toUnsignedInt(in.readShort());
 		
 		if (packetLength < 2)
 		{
