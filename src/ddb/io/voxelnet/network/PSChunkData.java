@@ -150,7 +150,6 @@ public class PSChunkData extends Packet
 			// Uncompress the data
 			chunkInflater.setInput(compressedData);
 			decompressedSize = chunkInflater.inflate(decompressedData);
-			chunkInflater.end();
 			chunkInflater.reset();
 			
 			// Done working with the compressed data, now de-aggregating chunk data
@@ -172,6 +171,7 @@ public class PSChunkData extends Packet
 			chunkList.add(chunk);
 		}
 		
+		chunkInflater.end();
 		chunkData.close();
 	}
 	
@@ -224,6 +224,9 @@ public class PSChunkData extends Packet
 		final byte[] layerIntermediate = new byte[Chunk.LAYER_DATA_SIZE * 2];
 		final byte[] deflateBuffer = new byte[UNCOMPRESSED_CHUNK_SIZE * 2];
 		
+		// Compressor
+		Deflater chunkCompressor = new Deflater(Deflater.BEST_SPEED);
+		
 		// Variable block start:
 		for (Chunk chunk : chunkList)
 		{
@@ -248,11 +251,10 @@ public class PSChunkData extends Packet
 			byte[] aggregateData = aggregator.toByteArray();
 			
 			// Compress the chunk data
-			Deflater chunkCompressor = new Deflater(Deflater.BEST_SPEED);
 			chunkCompressor.setInput(aggregateData);
 			chunkCompressor.finish();
 			int compressSize = chunkCompressor.deflate(deflateBuffer);
-			chunkCompressor.end();
+			chunkCompressor.reset();
 			
 			// Add the compressed data to the packet
 			data.writeShort(compressSize);
@@ -263,6 +265,7 @@ public class PSChunkData extends Packet
 		}
 		
 		aggregator.close();
+		chunkCompressor.end();
 	}
 	
 	@Override
