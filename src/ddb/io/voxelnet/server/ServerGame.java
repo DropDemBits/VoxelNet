@@ -5,7 +5,7 @@ import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.fluid.Fluid;
-import ddb.io.voxelnet.network.*;
+import ddb.io.voxelnet.network.packet.*;
 import ddb.io.voxelnet.util.RaycastResult;
 import ddb.io.voxelnet.world.Chunk;
 import ddb.io.voxelnet.world.ChunkColumn;

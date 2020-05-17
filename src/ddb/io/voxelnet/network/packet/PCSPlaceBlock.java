@@ -1,20 +1,23 @@
-package ddb.io.voxelnet.network;
+package ddb.io.voxelnet.network.packet;
 
+import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.util.RaycastResult;
 import io.netty.buffer.ByteBuf;
 
-public class PCSBreakBlock extends Packet
+public class PCSPlaceBlock extends Packet
 {
 	public int clientID;
 	public RaycastResult hitResult;
+	public Block placingBlock;
 	
-	public PCSBreakBlock() {}
+	public PCSPlaceBlock() {}
 	
-	public PCSBreakBlock(int clientID, RaycastResult hitResult)
+	public PCSPlaceBlock(int clientID, RaycastResult hitResult, Block placeBlock)
 	{
 		this.clientID = clientID;
 		this.hitResult = hitResult;
+		this.placingBlock = placeBlock;
 	}
 	
 	@Override
@@ -33,6 +36,8 @@ public class PCSBreakBlock extends Packet
 		hitResult.blockZ = data.readInt();
 		
 		hitResult.face = Facing.values()[data.readUnsignedByte()];
+		
+		placingBlock = Block.idToBlock((byte)data.readUnsignedShort());
 	}
 	
 	@Override
@@ -52,12 +57,14 @@ public class PCSBreakBlock extends Packet
 		
 		// Hit face
 		data.writeByte(hitResult.face.ordinal());
+		
+		// Block ID (as short)
+		data.writeShort(placingBlock.getId());
 	}
 	
 	@Override
 	public int getPacketID()
 	{
-		return 6;
+		return 5;
 	}
-	
 }

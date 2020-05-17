@@ -1,4 +1,4 @@
-package ddb.io.voxelnet.network;
+package ddb.io.voxelnet.network.packet;
 
 import ddb.io.voxelnet.world.Chunk;
 import ddb.io.voxelnet.world.ChunkColumn;
@@ -10,7 +10,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.zip.*;
 

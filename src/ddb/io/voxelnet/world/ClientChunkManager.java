@@ -1,6 +1,6 @@
 package ddb.io.voxelnet.world;
 
-import ddb.io.voxelnet.network.PSChunkData;
+import ddb.io.voxelnet.network.packet.PSChunkData;
 import ddb.io.voxelnet.util.Vec3i;
 
 public class ClientChunkManager extends ChunkManager

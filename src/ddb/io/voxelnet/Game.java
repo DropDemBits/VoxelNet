@@ -18,7 +18,7 @@ import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.event.input.KeyEvent;
 import ddb.io.voxelnet.event.input.MouseEvent;
 import ddb.io.voxelnet.fluid.Fluid;
-import ddb.io.voxelnet.network.*;
+import ddb.io.voxelnet.network.packet.*;
 import ddb.io.voxelnet.util.RaycastResult;
 import ddb.io.voxelnet.world.ClientChunkManager;
 import ddb.io.voxelnet.world.World;

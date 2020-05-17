@@ -1,4 +1,4 @@
-package ddb.io.voxelnet.network;
+package ddb.io.voxelnet.network.packet;
 
 import ddb.io.voxelnet.entity.EntityPlayer;
 import io.netty.buffer.ByteBuf;

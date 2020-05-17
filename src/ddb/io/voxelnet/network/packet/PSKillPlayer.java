@@ -1,14 +1,14 @@
-package ddb.io.voxelnet.network;
+package ddb.io.voxelnet.network.packet;
 
 import io.netty.buffer.ByteBuf;
 
-public class PSSpawnPlayer extends Packet
+public class PSKillPlayer extends Packet
 {
 	public int clientID;
 	
-	public PSSpawnPlayer() {}
+	public PSKillPlayer() {}
 	
-	public PSSpawnPlayer(int clientID)
+	public PSKillPlayer(int clientID)
 	{
 		this.clientID = clientID;
 	}
@@ -28,6 +28,7 @@ public class PSSpawnPlayer extends Packet
 	@Override
 	public int getPacketID()
 	{
-		return 2;
+		return 3;
 	}
+
 }

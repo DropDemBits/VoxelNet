@@ -1,6 +1,6 @@
 package ddb.io.voxelnet.server;
 
-import ddb.io.voxelnet.network.Packet;
+import ddb.io.voxelnet.network.packet.Packet;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
