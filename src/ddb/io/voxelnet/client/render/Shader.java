@@ -193,6 +193,9 @@ public class Shader
 	 */
 	public void setUniform1i(String name, int value)
 	{
+		if (!isValid)
+			return;
+		
 		int location = getUniform(name);
 		glUniform1i(location, value);
 	}
@@ -205,6 +208,9 @@ public class Shader
 	 */
 	public void setUniform1f(String name, float value)
 	{
+		if (!isValid)
+			return;
+		
 		int location = getUniform(name);
 		glUniform1f(location, value);
 	}
@@ -217,6 +223,9 @@ public class Shader
 	 */
 	public void setUniformMatrix4fv(String name, boolean transpose, float[] value)
 	{
+		if (!isValid)
+			return;
+		
 		int location = getUniform(name);
 		glUniformMatrix4fv(location, transpose, value);
 	}

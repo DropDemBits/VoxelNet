@@ -16,7 +16,7 @@ uniform float iTime;
 const float[6] faceIntensities = float[6]( 0.75f, 0.75f, 0.825f, 0.825f, 0.95f, 0.60f );
 
 // Light from the sky (percent, 0-1)
-float skyLight = 1.f;
+float sunBright = 1.f;
 const float interval = (2 * 3.14159265f);
 
 void main (void) {
@@ -25,12 +25,18 @@ void main (void) {
 
     // Compute light value
     // skyLight/shadow, blockLight, face & aoLight
-    // (blockLight + (skyLight - shadow)) * faceIntensities[aoLight]
-    //skyLight = (0.5f) * (sin((iTime / 45.f) * interval) + 1.f);
+    sunBright = (0.5f) * (sin((iTime / 45.f) * interval) + 1.f);
 
     int aoIndex = int(lightValues.z);
-    float finalLight = clamp(lightValues.y + lightValues.x * skyLight, 0.f, 15.f);
-    finalLight = exp2((1.f - (finalLight / 15.0f)) * log2(0.1f)) * faceIntensities[aoIndex];
+
+    float blockLight = lightValues.y;
+    float skyLight = lightValues.x;
+    float maxLight = max(skyLight, blockLight);
+    float effectiveLight = blockLight * (1 - sunBright) + maxLight * sunBright;
+
+    float finalLight;
+    finalLight = effectiveLight;
+    finalLight = exp2((1.f - (finalLight / 15.0f)) * log2(0.2f)) * faceIntensities[aoIndex];
 
     frag_lightIntensity = finalLight;
 
