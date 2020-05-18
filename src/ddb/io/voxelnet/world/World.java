@@ -333,8 +333,6 @@ public class World
 		boolean updateNeighbors = (flags & 4) != 0;
 		boolean updateColumns   = (flags & 8) == 0;
 		
-		// If a lighting update needs to occur
-		boolean lightingUpdate = false;
 		// If the light update was the result of the tallest block moving down
 		boolean tallestDown = false;
 		// Last block light
@@ -410,9 +408,7 @@ public class World
 				// Only do update for opaque blocks
 				if (!block.isTransparent())
 				{
-					System.out.println("above");
 					chunkColumn.opaqueColumns[columnIdx] = (byte) y;
-					lightingUpdate = true;
 					tallestDown = false;
 				}
 			}
@@ -433,7 +429,6 @@ public class World
 					height = 0;
 				
 				chunkColumn.opaqueColumns[columnIdx] = (byte) height;
-				lightingUpdate = true;
 				tallestDown = true;
 			}
 		}
@@ -444,8 +439,6 @@ public class World
 			boolean skyAvailable = canBlockDirectlySeeSky(x, y, z);
 			
 			// Was doing: Fixing issues with opacity propagation
-			// Also: Sometimes lighting isn't visually updated in adjacent chunks,
-			// enqueue force rebuild for afflicted chunks
 			
 			// Check needs to be done so that opacity is correctly applied
 			if (block == Blocks.AIR && skyAvailable)
@@ -514,9 +507,9 @@ public class World
 	/**
 	 * Updates the adjacent chunks from the given chunk block position
 	 * @param sourceChunk The chunk to check the sources from
-	 * @param blockX The block's x position in the chunk
-	 * @param blockY
-	 * @param blockZ
+	 * @param blockX The block's x position in the bounds of the chunk
+	 * @param blockY The block's y position in the bounds of the chunk
+	 * @param blockZ The block's z position in the bounds of the chunk
 	 */
 	private void updateNeighboringChunks(Vec3i sourceChunk, int blockX, int blockY, int blockZ)
 	{
@@ -928,8 +921,6 @@ public class World
 	
 	private void processLightUpdate()
 	{
-		int procn = 0;
-		
 		// Remove old sky light
 		while (!pendingShadowRemoves.isEmpty())
 		{
@@ -943,9 +934,6 @@ public class World
 					continue;
 				
 				byte adjacentLight = getSkyLight(newPos.getX(), newPos.getY(), newPos.getZ());
-				
-				//if (Game.showThings && newPos.getX() == 0 && newPos.getZ() == 0)
-				//	System.out.println("("+adjacentLight+","+lastLight+")"+dir.toString()+newPos.toString()+": CA.A " + (adjacentLight != 0) + " CA.B " + (adjacentLight < lastLight) + ", CB " + (lastLight == 15 && dir == Facing.DOWN) + ", CC " + (adjacentLight >= lastLight));
 				
 				if ((adjacentLight != 0 && adjacentLight < lastLight)
 					|| (lastLight == 15 && dir == Facing.DOWN))
@@ -965,12 +953,7 @@ public class World
 					pendingShadowUpdates.add(new LightUpdate(newPos, adjacentLight));
 				}
 			}
-			
-			/*if (Game.showThings && (--procn) < 0)
-				break;*/
 		}
-		
-		procn = 1;
 		
 		// Propagate sky light
 		while (pendingShadowRemoves.isEmpty() && !pendingShadowUpdates.isEmpty())
@@ -1011,17 +994,9 @@ public class World
 				{
 					// When propagating the maximum light down, only be affected by opacity
 					if (dir == Facing.DOWN && currentLight == 15)
-					{
-						/*if (Game.showThings)
-							setBlock(newPos.getX(), newPos.getY(), newPos.getZ(), Blocks.GLASS, (byte)0, (byte)0);*/
 						setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte) (currentLight - adjacentBlock.getOpacity()));
-					}
 					else
-					{
-						/*if (Game.showThings)
-							setBlock(newPos.getX(), newPos.getY(), newPos.getZ(), Blocks.GLASS, (byte)0, (byte)0);*/
 						setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), newLight);
-					}
 					
 					// Update the adjacent neighbor chunks
 					Vec3i blockPos = toBlockChunkCoord(newPos);
@@ -1029,16 +1004,6 @@ public class World
 					
 					pendingShadowUpdates.add(new LightUpdate(newPos, (byte)0));
 				}
-				/*else {
-					if (Game.showThings)
-						setBlock(newPos.getX(), newPos.getY(), newPos.getZ(), Blocks.DIRT, (byte)0, (byte)0);
-				}*/
-			}
-			
-			if (Game.showThings && (--procn) < 0)
-			{
-				System.out.println("size"+pendingShadowUpdates.size());
-				break;
 			}
 		}
 		

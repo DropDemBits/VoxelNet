@@ -1,5 +1,6 @@
 package ddb.io.voxelnet.client.render;
 
+import ddb.io.voxelnet.Game;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
 import ddb.io.voxelnet.util.Facing;
@@ -126,15 +127,14 @@ class ChunkModel
 		long currentGenerate = System.nanoTime() - start;
 		generateAccum += currentGenerate;
 		generateCount += 1;
-		/*
-		if ((generateCount % 8) == 0)
+		
+		if (Game.showDetailedDebug && (generateCount % 8) == 0)
 		{
 			System.out.print("\tAvg Generate Time: " + (((double) generateAccum / (double) generateCount) / 1000000.0d) + "ms");
 			System.out.println(", Current Generate Time: " + (currentGenerate) / 1000000.0d);
 			System.out.println(BlockRenderer.statNear + ", " + BlockRenderer.statSolid + ", " + BlockRenderer.statNoShow);
 			System.out.println("---------------------------------");
 		}
-		//*/
 		
 		--updateAttempts;
 		updateLock.unlock();

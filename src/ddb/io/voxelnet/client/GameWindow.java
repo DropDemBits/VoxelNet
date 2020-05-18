@@ -144,7 +144,7 @@ public class GameWindow
 			glfwSetWindowShouldClose(window, true);
 		
 		if (GameKeyBindings.TOGGLE_DEBUG.wasInputActivated())
-			Game.debugFluid = !Game.debugFluid;
+			Game.showDebugInfo = !Game.showDebugInfo;
 		if (GameKeyBindings.TOGGLE_WIREFRAME.wasInputActivated())
 			Game.showWireframe = !Game.showWireframe;
 		

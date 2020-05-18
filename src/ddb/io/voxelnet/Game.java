@@ -39,9 +39,9 @@ public class Game {
 	private static final float ZNEAR = 0.1f;
 	private static final float ZFAR  = 1000.0f;
 	
-	public static boolean showThings = false;
 	public static boolean showWireframe = false;
-	public static boolean debugFluid = false;
+	public static boolean showDebugInfo = false;
+	public static boolean showDetailedDebug = false;
 	
 	/** Current window associated with this game instance */
 	GameWindow window;
@@ -266,6 +266,7 @@ public class Game {
 		//worldSave = new WorldSave(world, "world.dat");
 		worldRenderer = new WorldRenderer(world, atlas);
 		
+		// TODO: Either make an "internal" server or separate this into a client instance
 		// Load / Generate the world
 		/*if (worldSave.canLoad())
 			worldSave.load();
@@ -564,7 +565,7 @@ public class Game {
 		int skyLight = world.getSkyLight(blockX, blockY, blockZ);
 		int effLight = Math.max(blkLight, skyLight);
 		
-		String nameVersion = "VoxelNet ?.?.?-net_test\n";
+		String nameVersion = "VoxelNet 0.0.0-lite_client\n";
 		String timeStr = String.format("FT %-5.2f (%d | %.3f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, currentUPD * 1000d);
 		String posStr = String.format("Pos %.2f / %.2f / %.2f\n", player.xPos, player.yPos, player.zPos);
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
@@ -573,7 +574,7 @@ public class Game {
 		String ligStr = String.format("B %2d S %2d E %2d\n", blkLight, skyLight, effLight);
 		String colStr = String.format("H %2d\n", world.getColumnHeight(blockX, blockY, blockZ));
 		
-		if (showThings || debugFluid)
+		if (showDebugInfo)
 			fontRenderer.putString(nameVersion+timeStr+posStr+lokStr+blkStr+ligStr+colStr, 0, 0);
 		else
 			fontRenderer.putString(nameVersion, 0, 0);

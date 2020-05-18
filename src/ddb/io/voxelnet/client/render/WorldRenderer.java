@@ -122,24 +122,8 @@ public class WorldRenderer
 	{
 		// List of chunks that have transparent blocks
 		List<ChunkModel> transparentChunks = new ArrayList<>();
-		boolean canUpdateChunks = false;
-		
-		//if (modelUpdates.get() == 0)
-		/*	--updates;
-		else
-			updates = 5;*/
-		
-		//if (updates == 0)
-		{
-			//updates = 5;
-			canUpdateChunks = true;
-		}
 		
 		renderer.getCurrentShader().setUniform1i("inWater", clientPlayer.isInWater() ? 1 : 0);
-		
-		long opaqueCount = 0;
-		long opaqueAccum = 0;
-		long updProgressCount = 0;
 		
 		glDisable(GL_BLEND);
 		
@@ -150,9 +134,10 @@ public class WorldRenderer
 				continue;
 			
 			// Render around a certain radius
-			/*if (((chunkModel.chunk.chunkX << 4) + 8.5f - player.xPos)*((chunkModel.chunk.chunkX << 4) + 8.5f - player.xPos)+
-					((chunkModel.chunk.chunkZ << 4) + 8.5f - player.zPos)*((chunkModel.chunk.chunkZ << 4) + 8.5f - player.zPos) > (8*8)*256)
-				continue;*/
+			// ???: How about only rendering the active chunks? (takes care of distancing problems)
+			if (((chunkModel.chunk.chunkX << 4) + 8.5f - clientPlayer.xPos)*((chunkModel.chunk.chunkX << 4) + 8.5f - clientPlayer.xPos) +
+					((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos)*((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos) > (8*8)*256)
+				continue;
 			
 			// Perform frustum culling
 			if (!renderer.getCamera().getViewFrustum().isSphereInside(
@@ -167,9 +152,6 @@ public class WorldRenderer
 			// Allow a chunk to be rendered between model updates
 			boolean isUpdating = chunkModel.isUpdateInProgress();
 			
-			if (isUpdating)
-				++updProgressCount;
-			
 			if (chunkModel.hasTransparency())
 				transparentChunks.add(chunkModel);
 			
@@ -178,28 +160,19 @@ public class WorldRenderer
 			model.bind();
 			
 			// Update the vertices if an update is not in progress
-			if (!chunkModel.isUpdateInProgress() && canUpdateChunks)
+			if (!chunkModel.isUpdateInProgress())
 				chunkModel.updateLayer(RenderLayer.OPAQUE);
 			
 			renderer.drawModel(model);
-			
-			++opaqueCount;
-			opaqueAccum += System.nanoTime() - opaqueStart;
 		}
-		
-		/*if (!transparentChunks.isEmpty())
-			transparentChunks.sort((a, b) -> -distanceSort(a, b));*/
 		
 		// Reverse iterate through the array & other layers
 		for (RenderLayer layer : transparentLayers)
 		{
-			long transparentAccum = 0;
-			long transparentCount = transparentChunks.size();
 			ListIterator<ChunkModel> itr = transparentChunks.listIterator(transparentChunks.size());
 			
 			if (layer == RenderLayer.FLUID)
 			{
-				//glDisable(GL11.GL_CULL_FACE);
 				glDepthMask(false);
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -216,26 +189,21 @@ public class WorldRenderer
 				ChunkModel chunkModel = itr.previous();
 				
 				long transparentStart = System.nanoTime();
-				boolean isUpdating = chunkModel.isUpdateInProgress();
 				Model model = chunkModel.getModelForLayer(layer);
 				
 				// Update the vertices if a model update is not in progress (have
 				// not been updated above)
 				model.bind();
-				if (!chunkModel.isUpdateInProgress() && canUpdateChunks)
+				if (!chunkModel.isUpdateInProgress())
 					chunkModel.updateLayer(layer);
 				
 				renderer.drawModel(model);
-				
-				transparentAccum += System.nanoTime() - transparentStart;
 			}
 			
 			if (layer == RenderLayer.FLUID)
 			{
-				//GL11.glEnable(GL11.GL_CULL_FACE);
 				glDepthMask(true);
 				glDisable(GL_BLEND);
-				//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			}
 			
 			if (layer == RenderLayer.TRANSPARENT)
@@ -243,21 +211,6 @@ public class WorldRenderer
 				glDisable(GL_BLEND);
 			}
 		}
-		
-		/*System.out.println("-----------------------------");
-		System.out.println(
-				"OpqC " + (float)opaqueAccum / ((float)opaqueCount * 1000f) + " us, " +
-				"TrnC " + (float)transparentAccum / ((float) transparentCount * 1000f) + " us"
-		);
-		System.out.println(
-				"OpqT " + (float)opaqueAccum / 1000f + " us, " +
-				"TrnT " + (float)transparentAccum / 1000f + " us"
-		);
-		System.out.println(
-				"OpqA " + opaqueCount + ", " +
-				"TrnA " + transparentCount + ", " +
-				"UpdA " + updProgressCount
-		);*/
 		
 		// Draw all the entities
 		for (Entity e : world.loadedEntities)
@@ -273,14 +226,9 @@ public class WorldRenderer
 		if (!generateQueue.isEmpty())
 		{
 			System.out.println("Model Upd (" + generateQueue.size() + ")");
-			//while (!generateQueue.isEmpty())
+			
 			for (int i = 0; i < 16 && !generateQueue.isEmpty(); i++)
-			{
-				ChunkModel model = generateQueue.peek();
-				//System.out.println("Model Upd (" + generateQueue.size() + ") (" + model.chunk.chunkX + ", " + model.chunk.chunkY + ", " + model.chunk.chunkZ + ")");
 				generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
-				//new ThreadedChunkGenerator(generateQueue.pop()).run();
-			}
 		}
 	}
 	
