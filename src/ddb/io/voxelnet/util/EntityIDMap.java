@@ -12,9 +12,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class EntityIDMap
 {
-	// Atomic operation to modify both maps
-	private Map<Integer, Entity> idToEntity = new ConcurrentHashMap<>();
-	private Map<Entity, Integer> entityToId = new ConcurrentHashMap<>();
+	// Both maps are modified as an atomic operation
+	private final Map<Integer, Entity> idToEntity = new ConcurrentHashMap<>();
+	private final Map<Entity, Integer> entityToId = new ConcurrentHashMap<>();
 	private int nextEntityID = 0;
 	
 	/**
@@ -30,24 +30,26 @@ public class EntityIDMap
 	}
 	
 	/**
-	 * Adds an entity with an existind id to the map
+	 * Adds an entity with an existing id to the map
 	 * @param entity The entity to add a mapping for
 	 * @param entityID The id for mapping the entity
 	 */
-	public void addExistingEntity(Entity entity, int entityID)
+	public synchronized void addExistingEntity(Entity entity, int entityID)
 	{
+		// Atomically add to both maps
 		idToEntity.put(entityID, entity);
 		entityToId.put(entity, entityID);
 	}
 	
-	public void removeEntity(int entityID)
+	/**
+	 * Removes an entity from the mapping
+	 * @param entityID The entity id to remove the mapping for
+	 */
+	public synchronized void removeEntity(int entityID)
 	{
-		// Remove the entity from the mappings
+		// Atomically remove the entity from the mappings
 		Entity oldEntity = idToEntity.remove(entityID);
 		entityToId.remove(oldEntity);
-		
-		// Remove the entity
-		oldEntity.setDead();
 	}
 	
 	/**
@@ -63,6 +65,16 @@ public class EntityIDMap
 			return null;
 		
 		return entity;
+	}
+	
+	/**
+	 * Gets an entity's associated id
+	 * @param entity The entity to get the associated id
+	 * @return The id of the entity, or -1 if none was found
+	 */
+	public int getIdFor(Entity entity)
+	{
+		return entityToId.getOrDefault(entity, -1);
 	}
 	
 	/**

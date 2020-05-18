@@ -290,6 +290,10 @@ public class ServerNetworkManager implements NetworkManager
 	{
 		System.out.println("Goodbye, client #" + clientID);
 		
+		// Kill the player
+		EntityPlayer player = (EntityPlayer) entityMap.getEntity(clientID, EntityPlayer.class);
+		player.setDead();
+		
 		clientChannels.remove(channel);
 		entityMap.removeEntity(clientID);
 		
