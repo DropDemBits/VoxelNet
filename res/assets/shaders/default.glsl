@@ -7,13 +7,20 @@ attribute vec3 lightValues;
 varying float frag_lightIntensity;
 varying vec2 frag_texCoord;
 varying float dbuff;
+varying float frag_faceIntensity;
 
 uniform mat4 PVMatrix;
 uniform mat4 ModelMatrix;
 
 uniform float iTime;
 
-const float[6] faceIntensities = float[6]( 0.75f, 0.75f, 0.825f, 0.825f, 0.95f, 0.60f );
+const float[8*4] faceIntensities = float[8*4](
+    //   S       N       E       W       U       D
+    0.750f, 0.750f, 0.825f, 0.825f, 0.950f, 0.600f, 0.0f, 0.0f,
+    0.825f, 0.825f, 0.950f, 0.950f, 1.000f, 0.750f, 0.0f, 0.0f,
+    0.825f, 0.825f, 0.950f, 0.950f, 1.000f, 0.750f, 0.0f, 0.0f,
+    0.825f, 0.825f, 0.950f, 0.950f, 1.000f, 0.750f, 0.0f, 0.0f
+);
 
 // Light from the sky (percent, 0-1)
 float sunBright = 1.f;
@@ -27,17 +34,16 @@ void main (void) {
     // skyLight/shadow, blockLight, face & aoLight
     sunBright = (0.5f) * (sin((iTime / 45.f) * interval) + 1.f);
 
-    int aoIndex = int(lightValues.z);
+    int faceIndex = int(lightValues.z);
 
-    float blockLight = lightValues.y;
-    float skyLight = lightValues.x;
+    float blockLight = lightValues.y / 4.0f;
+    float skyLight = lightValues.x / 4.0f;
     float maxLight = max(skyLight, blockLight);
     float effectiveLight = blockLight * (1 - sunBright) + maxLight * sunBright;
 
-    float finalLight;
-    finalLight = effectiveLight;
-    finalLight = exp2((1.f - (finalLight / 15.0f)) * log2(0.2f)) * faceIntensities[aoIndex];
+    float finalLight = effectiveLight / 15.0f;
 
+    frag_faceIntensity = faceIntensities[faceIndex];
     frag_lightIntensity = finalLight;
 
     dbuff = gl_Position.z;
@@ -49,6 +55,7 @@ void main (void) {
 varying float frag_lightIntensity;
 varying vec2 frag_texCoord;
 varying float dbuff;
+varying float frag_faceIntensity;
 
 uniform sampler2D texture0;
 uniform bool inWater;
@@ -68,7 +75,8 @@ void main (void) {
     if (inWater)
         clr *= WATER_COLOR;
 
-    float computedLight = frag_lightIntensity + AMBIENT;
+    float finalLight = exp2((1.f - (frag_lightIntensity)) * log2(0.2f));
+    float computedLight = finalLight * frag_faceIntensity + AMBIENT;
     clr.rgb = vec3(clr.rgb * clamp(computedLight, 0.f, 1.f));
 
     gl_FragColor = clr;

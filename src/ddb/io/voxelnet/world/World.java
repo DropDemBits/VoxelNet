@@ -234,7 +234,7 @@ public class World
 		if (y < 0)
 			return 0;
 		if (y >= 256)
-			return 15;
+			return 0;
 		
 		int chunkX = x >> 4;
 		int chunkY = y >> 4;
@@ -447,8 +447,8 @@ public class World
 				chunk.setSkyLight(blockX, blockY, blockZ, (byte) 15);
 				pendingShadowUpdates.add(new LightUpdate(new Vec3i(x, tallestDown ? oldestHeight : y, z), (byte) 0));
 				
-				if (Game.showDetailedDebug)
-					System.out.println("ho boi! " + tallestDown + ", " + oldestHeight + ", " + y);
+				//if (Game.showDetailedDebug)
+				//	System.out.println("ho boi! " + tallestDown + ", " + oldestHeight + ", " + y);
 			}
 			else
 			{

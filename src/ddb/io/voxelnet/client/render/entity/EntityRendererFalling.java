@@ -5,7 +5,8 @@ import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
 import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.entity.EntityFallingBlock;
 import ddb.io.voxelnet.util.Facing;
-import org.joml.Matrix4f;
+
+import java.util.Arrays;
 
 public class EntityRendererFalling extends EntityRenderer
 {
@@ -37,8 +38,12 @@ public class EntityRendererFalling extends EntityRenderer
 		int blockX = (int)Math.floor(e.xPos);
 		int blockY = Math.round(e.yPos);
 		int blockZ = (int)Math.floor(e.zPos);
-		byte skyLight = e.world.getSkyLight(blockX, blockY, blockZ);
-		byte blockLight = e.world.getBlockLight(blockX, blockY, blockZ);
+		final int[] skyLights = new int[4];
+		final int[] blockLights = new int[4];
+		final int[] aoLights = new int[4];
+		
+		Arrays.fill(skyLights, e.world.getSkyLight(blockX, blockY, blockZ) * BlockRenderer.MAX_SMOOTHING_WEIGHTING);
+		Arrays.fill(blockLights, e.world.getBlockLight(blockX, blockY, blockZ) * BlockRenderer.MAX_SMOOTHING_WEIGHTING);
 		
 		for (Facing face : Facing.directions())
 		{
@@ -46,7 +51,9 @@ public class EntityRendererFalling extends EntityRenderer
 				continue;
 			
 			int[] texCoords = renderer.tileAtlas.getPixelPositions(faceTextures[face.ordinal()]);
-			BlockRenderer.addCubeFace(builder, 0, 0, 0, face, texCoords, skyLight, blockLight, (byte)face.ordinal());
+			
+			Arrays.fill(aoLights, face.ordinal());
+			BlockRenderer.addCubeFace(builder, 0, 0, 0, face, texCoords, skyLights, blockLights, aoLights);
 		}
 		
 		model.bind();

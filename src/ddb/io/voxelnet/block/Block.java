@@ -149,7 +149,7 @@ public class Block
 	}
 	
 	/**
-	 * Gets if the block fills up the entire block
+	 * Gets if the block fills up the entire block or most of the block
 	 * @return True if the block does
 	 */
 	public boolean isFilledCube()
