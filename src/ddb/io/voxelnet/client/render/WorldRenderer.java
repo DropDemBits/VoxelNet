@@ -1,6 +1,5 @@
 package ddb.io.voxelnet.client.render;
 
-import ddb.io.voxelnet.client.render.entity.EntityRendererPlayer;
 import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.util.Vec3i;
@@ -29,7 +28,6 @@ public class WorldRenderer
 	private final Stack<ChunkModel> generateQueue = new Stack<>();
 	private final ExecutorService generatePool = Executors.newWorkStealingPool(); //Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
 	private final AtomicInteger modelUpdates = new AtomicInteger();
-	private int updates = 5;
 	
 	private final TextureAtlas atlas;
 	private final World world;
@@ -52,29 +50,14 @@ public class WorldRenderer
 	{
 		boolean newChunks = false;
 		
-		// Generate chunks in a 16x16 radius around the player
-		/*for (int cx = -8; cx <= 8; cx++)
-		{
-			for (int cz = -8; cz <= 8; cz++)
-			{
-				int cxOff = (int)(clientPlayer.xPos / 16f);
-				int czOff = (int)(clientPlayer.zPos / 16f);
-				
-				if (world.getChunk(cx + cxOff, 0, cz + czOff) == world.EMPTY_CHUNK)
-					world.generateChunk(cx + cxOff, cz + czOff);
-			}
-		}*/
-		
 		// Update existing chunks
 		for(Chunk chunk : world.chunkManager.loadedChunks.values())
 		{
-			Vec3i pos = new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ);
 			if (chunk.recentlyGenerated())
 			{
 				// New chunk generated
 				newChunks = true;
 				ChunkModel model = new ChunkModel(chunk);
-				//renderChunks.put(pos, model);
 				renderList.add(model);
 				chunk.setGenerated();
 			}
@@ -112,10 +95,6 @@ public class WorldRenderer
 			lastChunkY = (int) clientPlayer.yPos >> 4;
 			lastChunkZ = (int) clientPlayer.zPos >> 4;
 		}
-		
-		
-		/*if (!generateQueue.isEmpty())
-			new ThreadedChunkGenerator(generateQueue.pop()).run();*/
 	}
 	
 	public void render(GameRenderer renderer, double partialTicks)

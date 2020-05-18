@@ -1,7 +1,5 @@
 package ddb.io.voxelnet.util;
 
-import java.util.Objects;
-
 public class Vec3i
 {
 	// TODO: Add a pool of Vec3i's

@@ -5,10 +5,8 @@ import ddb.io.voxelnet.fluid.Fluid;
 
 public class BlockLava extends BlockFluid
 {
-	BlockLava(boolean isUpdating)
+	BlockLava()
 	{
-		super(isUpdating);
-		
 		setFaceTextures(new int[] {15, 15, 15, 15, 15, 15});
 		setTransparent(true);
 	}

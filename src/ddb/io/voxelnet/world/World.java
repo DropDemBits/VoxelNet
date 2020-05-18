@@ -1,6 +1,5 @@
 package ddb.io.voxelnet.world;
 
-import ddb.io.voxelnet.Game;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.entity.Entity;
@@ -37,9 +36,11 @@ public class World
 	public Queue<LightUpdate> pendingShadowUpdates;
 	
 	// Fluid instances
-	private Map<Fluid, FluidInstance> fluidInstances;
-	// TODO: Add tick schedules
-	private int[] fluidTickSchedules = new int[Fluid.ALL_FLUIDS.length];
+	private final Map<Fluid, FluidInstance> fluidInstances;
+	// TODO: Add tick scheduling
+	private final int[] fluidTickSchedules = new int[Fluid.ALL_FLUIDS.length];
+	
+	public final int worldHeight = 256;
 	
 	// WorldGen
 	private long worldSeed;
@@ -130,7 +131,7 @@ public class World
 	
 	public int getColumnHeight(int x, int y, int z)
 	{
-		if (y >= 256)
+		if (y >= worldHeight)
 			return y;
 		
 		int chunkX = x >> 4;
@@ -149,7 +150,7 @@ public class World
 	
 	public boolean canBlockSeeSky(int x, int y, int z)
 	{
-		if (y >= 256)
+		if (y >= worldHeight)
 			return true;
 		
 		int chunkX = x >> 4;
@@ -174,13 +175,13 @@ public class World
 	
 	public boolean canBlockDirectlySeeSky(int x, int y, int z)
 	{
-		if (y >= 256)
+		if (y >= worldHeight)
 			return true;
 		
 		if (!canBlockSeeSky(x, y, z))
 			return false;
 		
-		for (int checkY = y+1; checkY < 256; checkY++)
+		for (int checkY = y+1; checkY < worldHeight; checkY++)
 		{
 			if (getBlock(x, checkY, z) != Blocks.AIR)
 				return false;
@@ -207,7 +208,7 @@ public class World
 			// If the position can see the sky, full skylight
 			return canBlockSeeSky(x, y, z) ? (byte)15 : (byte)0;
 		}
-		if (y >= 256)
+		if (y >= worldHeight)
 			return 15;
 		
 		int chunkX = x >> 4;
@@ -218,7 +219,7 @@ public class World
 		int blockY = y & 0xF;
 		int blockZ = z & 0xF;
 		
-		// Technically a shadow map, but whatever
+		// Fetch the sky light at the block's chunk
 		return chunkManager.getChunk(chunkX, chunkY, chunkZ, false).getSkyLight(blockX, blockY, blockZ);
 	}
 	

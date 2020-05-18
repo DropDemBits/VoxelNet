@@ -4,7 +4,6 @@ import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.client.render.RenderLayer;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -272,11 +271,10 @@ public class Chunk
 		// 0000 | 0000 | 0000
 		//    8      4      0
 		
-		// Sky light will be in the range of 0(brightest) - 15(darkest)
-		// Technically a shadow map, but whatever
+		// Sky light will be in the range of 0(darkest) - 15(brightest)
 		byte skyLight = (byte)((lightData[(y << 8) | (z << 4) | (x << 0)] & 0xF0) >> 4);
 		
-		return skyLight /*== 0 ? (byte)5 : (byte)15*/;
+		return skyLight;
 	}
 	
 	/**

@@ -15,17 +15,8 @@ public abstract class BlockFluid extends Block
 	public static final int IS_FALLING = 0b1000;
 	public static final int DISTANCE = 0b0111;
 	
-	// XXX: BAD! Replace with something better
-	private static final Stack<FluidPlacement> availableBlocks = new Stack<>();
-	private static final Stack<FluidPlacement> makeStatic = new Stack<>();
-	private static final Stack<FluidPlacement> makeClear = new Stack<>();
-	
-	private final boolean isUpdating;
-	
-	BlockFluid(boolean isUpdating)
+	BlockFluid()
 	{
-		this.isUpdating = isUpdating;
-		
 		setSolid(false);
 		setHitBox(null);
 	}

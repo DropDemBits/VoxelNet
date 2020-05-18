@@ -1,7 +1,6 @@
 package ddb.io.voxelnet.world;
 
 import ddb.io.voxelnet.util.Vec3i;
-import org.lwjgl.system.MemoryUtil;
 
 import java.io.File;
 import java.io.FileInputStream;

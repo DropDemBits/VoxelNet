@@ -52,6 +52,7 @@ public class PSChunkData extends Packet
 	}
 	
 	@Override
+	@SuppressWarnings("ResultOfMethodCallIgnored")
 	public void decodePayload(ByteBuf data) throws IOException, DataFormatException
 	{
 		// Decode the chunk data

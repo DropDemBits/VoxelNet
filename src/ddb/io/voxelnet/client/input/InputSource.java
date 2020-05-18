@@ -1,7 +1,5 @@
 package ddb.io.voxelnet.client.input;
 
-import org.lwjgl.glfw.GLFW;
-
 import static org.lwjgl.glfw.GLFW.*;
 
 /**

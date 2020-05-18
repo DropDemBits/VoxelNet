@@ -4,14 +4,9 @@ import ddb.io.voxelnet.fluid.Fluid;
 
 public class BlockWater extends BlockFluid
 {
-	BlockWater(boolean isUpdating)
+	BlockWater()
 	{
-		super(isUpdating);
-		
-		if (isUpdating && false)
-			setFaceTextures(new int[] {3, 3, 3, 3, 3, 3});
-		else
-			setFaceTextures(new int[] {13, 13, 13, 13, 13, 13});
+		setFaceTextures(new int[] {13, 13, 13, 13, 13, 13});
 		setTransparent(true);
 	}
 	

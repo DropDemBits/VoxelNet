@@ -8,15 +8,14 @@ import org.joml.Matrix4f;
 public class EntityRendererPlayer extends EntityRenderer
 {
 	private final Model playerModel;
-	private final ModelBuilder playerBuilder;
 	private final Texture playerTexture;
 	
 	public EntityRendererPlayer()
 	{
 		// Use block layout since that's what "default" shader uses
 		// TODO: Move & rename layout to something else
+		ModelBuilder playerBuilder = new ModelBuilder(BlockRenderer.BLOCK_LAYOUT, EnumDrawMode.TRIANGLES);
 		playerModel = new Model(BlockRenderer.BLOCK_LAYOUT);
-		playerBuilder = new ModelBuilder(BlockRenderer.BLOCK_LAYOUT, EnumDrawMode.TRIANGLES);
 		
 		// Load texture that should really be loaded by somewhere else
 		playerTexture = new Texture("assets/textures/test-player.png");

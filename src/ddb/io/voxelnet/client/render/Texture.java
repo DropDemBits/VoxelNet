@@ -6,9 +6,6 @@ import sun.misc.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.Objects;
@@ -26,7 +23,7 @@ public class Texture
 	public Texture(String path)
 	{
 		try (MemoryStack stack = MemoryStack.stackPush();
-		     InputStream texStream = Texture.class.getClassLoader().getResourceAsStream(path);)
+		     InputStream texStream = Texture.class.getClassLoader().getResourceAsStream(path))
 		{
 			IntBuffer x = stack.callocInt(1);
 			IntBuffer y = stack.callocInt(1);

@@ -5,10 +5,7 @@ import ddb.io.voxelnet.client.render.gl.GLContext;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.lwjgl.opengl.GL11.GL_FALSE;
 import static org.lwjgl.opengl.GL20.*;
@@ -30,7 +27,7 @@ public class Shader
 		
 		// TODO: Separate out resource loading
 		try (InputStream stream = getClass().getClassLoader().getResourceAsStream(path);
-		     BufferedReader in = new BufferedReader(new InputStreamReader(stream)))
+		     BufferedReader in = new BufferedReader(new InputStreamReader(Objects.requireNonNull(stream))))
 		{
 			final int READING_VERTEX = 1;
 			final int READING_FRAGMENT = 2;
