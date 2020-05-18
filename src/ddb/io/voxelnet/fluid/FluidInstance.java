@@ -96,7 +96,7 @@ public class FluidInstance
 		boolean canFormSource = getFluid().canFormSources;
 		
 		// Compute the number of inflows & outflows
-		for (Facing dir : Facing.values())
+		for (Facing dir : Facing.directions())
 		{
 			Vec3i adjPos = pos.add(dir);
 			

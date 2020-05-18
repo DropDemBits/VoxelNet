@@ -35,7 +35,7 @@ public class PCSPlaceBlock extends Packet
 		hitResult.blockY = data.readInt();
 		hitResult.blockZ = data.readInt();
 		
-		hitResult.face = Facing.values()[data.readUnsignedByte()];
+		hitResult.face = Facing.directions()[data.readUnsignedByte()];
 		
 		placingBlock = Block.idToBlock((byte)data.readUnsignedShort());
 	}

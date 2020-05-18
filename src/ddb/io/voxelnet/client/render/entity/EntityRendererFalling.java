@@ -30,7 +30,7 @@ public class EntityRendererFalling extends EntityRenderer
 		// Build the cube model on the fly
 		// This is not the most optimal way of doing things, but... it
 		// works, okay?
-		// TODO: Make this more optimal
+		// TODO: Make this more optimal (e.g. use static model & update it on the fly)
 		
 		int[] faceTextures = entity.falling.getFaceTextures();
 		
@@ -40,7 +40,7 @@ public class EntityRendererFalling extends EntityRenderer
 		byte skyLight = e.world.getSkyLight(blockX, blockY, blockZ);
 		byte blockLight = e.world.getBlockLight(blockX, blockY, blockZ);
 		
-		for (Facing face : Facing.values())
+		for (Facing face : Facing.directions())
 		{
 			if (faceTextures[face.ordinal()] == -1)
 				continue;

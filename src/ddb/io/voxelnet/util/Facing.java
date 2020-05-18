@@ -1,5 +1,10 @@
 package ddb.io.voxelnet.util;
 
+/**
+ * An enum representing all directions
+ *
+ * Note: Facing.values() also contains "Facing.NONE". Facing.directions() contains every direction except "Facing.NONE"
+ */
 public enum Facing
 {
 	SOUTH   ( 0,  0,  1),
@@ -7,9 +12,15 @@ public enum Facing
 	EAST    ( 1,  0,  0),
 	WEST    (-1,  0,  0),
 	UP      ( 0,  1,  0),
-	DOWN    ( 0, -1,  0);
+	DOWN    ( 0, -1,  0),
+	NONE    ( 0,  0,  0);
 	
+	// Cardinal direction faces
 	public static final Facing[] CARDINAL_FACES = new Facing[] { SOUTH, NORTH, EAST, WEST };
+	// Facing.NONE is opposite to itself (keeps checks simple)
+	private static final Facing[] OPPOSITE_FACES = new Facing[] { NORTH, SOUTH, WEST, EAST, DOWN, UP, NONE };
+	// All outward directions
+	private static final Facing[] DIRECTIONS = new Facing[] { SOUTH, NORTH, EAST, WEST, UP, DOWN };
 	
 	final int xOff;
 	final int yOff;
@@ -42,11 +53,23 @@ public enum Facing
 		return zOff;
 	}
 	
+	/**
+	 * Gets all of the outward facing directions
+	 * This array excludes Facing.NONE
+	 * @return An array containing the outward facing directions
+	 */
+	public static Facing[] directions()
+	{
+		return DIRECTIONS;
+	}
+	
+	/**
+	 * Gets the opposite facing direction
+	 * @return The opposite facing direction
+	 */
 	public Facing getOpposite()
 	{
-		// Due to the arrangement of the enum values, finding the opposite
-		// direction is just a simple bitwise op
-		return values()[ordinal() ^ 1];
+		return OPPOSITE_FACES[ordinal()];
 	}
 	
 }

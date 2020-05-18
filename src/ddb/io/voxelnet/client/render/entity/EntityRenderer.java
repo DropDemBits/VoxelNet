@@ -5,6 +5,9 @@ import ddb.io.voxelnet.entity.Entity;
 
 /**
  * Entity renderer for a given entity
+ *
+ * Each entity type shares a common entity renderer, instead of having a separate entity renderer instance
+ * for each active entity in the game
  */
 public abstract class EntityRenderer
 {

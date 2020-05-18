@@ -447,7 +447,7 @@ public class World
 				chunk.setSkyLight(blockX, blockY, blockZ, (byte) 15);
 				pendingShadowUpdates.add(new LightUpdate(new Vec3i(x, tallestDown ? oldestHeight : y, z), (byte) 0));
 				
-				if (Game.showThings)
+				if (Game.showDetailedDebug)
 					System.out.println("ho boi! " + tallestDown + ", " + oldestHeight + ", " + y);
 			}
 			else
@@ -488,7 +488,7 @@ public class World
 		if (updateNeighbors)
 		{
 			// Update the neighboring blocks
-			for (Facing face : Facing.values())
+			for (Facing face : Facing.directions())
 			{
 				Block neighbor = getBlock(x + face.getOffsetX(), y + face.getOffsetY(), z + face.getOffsetZ());
 				
@@ -927,7 +927,7 @@ public class World
 			LightUpdate update = pendingShadowRemoves.poll();
 			byte lastLight = update.newLight;
 			
-			for (Facing dir : Facing.values())
+			for (Facing dir : Facing.directions())
 			{
 				Vec3i newPos = update.pos.add(dir);
 				if (newPos.getY() < 0)
@@ -974,7 +974,7 @@ public class World
 			if (currentLight == 0)
 				continue;
 			
-			for (Facing dir : Facing.values())
+			for (Facing dir : Facing.directions())
 			{
 				Vec3i newPos = update.pos.add(dir);
 				Block adjacentBlock = getBlock(newPos.getX(), newPos.getY(), newPos.getZ());
@@ -1013,7 +1013,7 @@ public class World
 			LightUpdate update = pendingLightRemoves.poll();
 			byte lastLight = update.newLight;
 			
-			for (Facing dir : Facing.values())
+			for (Facing dir : Facing.directions())
 			{
 				Vec3i newPos = update.pos.add(dir);
 				byte adjacentLight = getBlockLight(newPos.getX(), newPos.getY(), newPos.getZ());
@@ -1048,7 +1048,7 @@ public class World
 			// Fetch the light value
 			byte currentLight = getBlockLight(x, y, z);
 			
-			for (Facing dir : Facing.values())
+			for (Facing dir : Facing.directions())
 			{
 				Vec3i newPos = update.pos.add(dir);
 				Block adjacentBlock = getBlock(newPos.getX(), newPos.getY(), newPos.getZ());

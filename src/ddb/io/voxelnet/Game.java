@@ -438,6 +438,7 @@ public class Game {
 	{
 		worldRenderer.update();
 		
+		/// Begin World Layer ///
 		camera.asPlayer(player, partialTicks);
 		camera.updateView();
 		
@@ -487,7 +488,9 @@ public class Game {
 			renderer.drawModel(hitBox);
 			renderer.finishShader();
 		}
+		/// End World Layer ///
 		
+		/// Begin 2D Gui Layer ///
 		renderer.useCamera(guiCamera);
 		renderer.useShader(quadShader);
 		renderer.prepareShader();
@@ -496,8 +499,10 @@ public class Game {
 		drawGuiLayer(partialTicks);
 		
 		renderer.finishShader();
+		/// End 2D Gui Layer ///
 	}
 	
+	// TODO: Pull out into a separate base Gui Class
 	private void drawTexturedQuad(int x, int y,
 	                              int width, int height,
 	                              int u, int v,

@@ -238,9 +238,9 @@ public class ModelBuilder
 		return vec2s((short)u, (short)v);
 	}
 	
-	public ModelBuilder light3b(byte skyLight, byte blockLight, byte aoLight)
+	public ModelBuilder light3b(int skyLight, int blockLight, int aoLight)
 	{
-		return vec3b(skyLight, blockLight, aoLight);
+		return vec3b((byte)skyLight, (byte)blockLight, (byte)aoLight);
 	}
 	
 	public ModelBuilder colour4(float r, float g, float b, float a)

@@ -32,7 +32,9 @@ class ChunkModel
 	private final ReentrantLock updateLock;
 	// Layers that need updates
 	private final boolean[] layerNeedsUpdate = new boolean[RenderLayer.values().length];
-	private final Chunk[] adjacentChunks = new Chunk[3*3*3];
+	// Chunks surrounding the current one
+	// See "BlockRenderer" for a definition of an adjacency field
+	private final Chunk[] adjacentField = new Chunk[3*3*3];
 	
 	/**
 	 * Creates a chunk model
@@ -40,7 +42,6 @@ class ChunkModel
 	 */
 	public ChunkModel(Chunk chunk)
 	{
-		this.chunk = chunk;
 		this.modelMatrix = new Matrix4f();
 		this.modelMatrix.translate(chunk.chunkX * 16, chunk.chunkY * 16, chunk.chunkZ * 16);
 		
@@ -53,6 +54,9 @@ class ChunkModel
 		}
 		
 		this.updateLock = new ReentrantLock();
+		
+		// Associate chunk to this model
+		this.chunk = chunk;
 	}
 	
 	/**
@@ -93,16 +97,14 @@ class ChunkModel
 			rebuildSnapshot[layer.ordinal()] = chunk.layerNeedsRebuild(layer);
 		}
 		
-		//System.out.println("(" + chunk.chunkX + ", " + chunk.chunkY + ", " + chunk.chunkZ + ")");
-		
-		// Fetch the adjacent chunks only once
-		for(int i = 0; i < adjacentChunks.length; i++)
+		// Update the adjacency field
+		for(int i = 0; i < adjacentField.length; i++)
 		{
 			int xOff = (i % 3) - 1;
 			int zOff = ((i / 3) % 3) - 1;
 			int yOff = (i / 9) - 1;
 			
-			adjacentChunks[i] = chunk.world.getChunk(
+			adjacentField[i] = chunk.world.getChunk(
 					chunk.chunkX + xOff,
 					chunk.chunkY + yOff,
 					chunk.chunkZ + zOff
@@ -152,7 +154,6 @@ class ChunkModel
 		layerNeedsUpdate[layer.ordinal()] = true;
 		
 		// Chunk is not empty, update the things
-		// TODO: Rework so that the adjacent blocks & metas are fetched once per block
 		for (int y = 0; y < 16; y++)
 		{
 			boolean skipLayer = false;
@@ -162,12 +163,12 @@ class ChunkModel
 			// Check if a layer can be skipped
 			if (y < 15 && chunk.getLayerData()[y + 1] == 16 * 16)
 				layerAboveFilled = true; // Layer above is filled, in the current chunk
-			else if (y == 15 && adjacentChunks[BlockRenderer.toAdjacentIndex(0, 1, 0)].getLayerData()[0] == 16 * 16)
+			else if (y == 15 && adjacentField[BlockRenderer.toAdjacentIndex(0, 1, 0)].getLayerData()[0] == 16 * 16)
 				layerAboveFilled = true; // Layer above is filled, in the chunk up
 			
 			if (y > 0 && chunk.getLayerData()[y - 1] == 16 * 16)
 				layerBelowFilled = true; // Layer below is filled, in the current chunk
-			else if (y == 0 && adjacentChunks[BlockRenderer.toAdjacentIndex(0, -1, 0)].getLayerData()[15] == 16 * 16)
+			else if (y == 0 && adjacentField[BlockRenderer.toAdjacentIndex(0, -1, 0)].getLayerData()[15] == 16 * 16)
 				layerBelowFilled = true; // Layer below is filled, in the chunk down
 			
 			if (layerAboveFilled && layerBelowFilled)
@@ -180,7 +181,7 @@ class ChunkModel
 				for (Facing adjacentDir : Facing.CARDINAL_FACES)
 				{
 					int i = BlockRenderer.toAdjacentIndex(adjacentDir.getOffsetX(), 0, adjacentDir.getOffsetZ());
-					if (adjacentChunks[i].getLayerData()[y] < 16 * 16)
+					if (adjacentField[i].getLayerData()[y] < 16 * 16)
 					{
 						skipLayer = false;
 						break;
@@ -210,7 +211,7 @@ class ChunkModel
 					
 					int[] faceTextures = block.getFaceTextures();
 					
-					BlockRenderer.addModel(targetBuilder, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
+					BlockRenderer.addModel(targetBuilder, adjacentField, block, x, y, z, faceTextures, atlas);
 				}
 			}
 		}

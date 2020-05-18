@@ -25,7 +25,7 @@ public class BlockRenderer
 	// No instance can be made
 	private BlockRenderer() {}
 	
-	public static void addModel(ModelBuilder builder, Chunk[] adjacentChunks, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
+	public static void addModel(ModelBuilder builder, Chunk[] adjacentChunks, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
 	{
 		// TODO: Unify things together (have common ao-lighting)
 		// TODO: Do AO/smooth lighting per-vertex through averaging
@@ -33,10 +33,10 @@ public class BlockRenderer
 		{
 			case TORCH:
 			case CUBE:
-				BlockRenderer.addCube(builder, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
+				BlockRenderer.addCube(builder, adjacentChunks, block, x, y, z, faceTextures, atlas);
 				break;
 			case FLUID:
-				BlockRenderer.addFluid(builder, adjacentChunks, chunk, block, x, y, z, faceTextures, atlas);
+				BlockRenderer.addFluid(builder, adjacentChunks, block, x, y, z, faceTextures, atlas);
 				break;
 		}
 	}
@@ -45,44 +45,24 @@ public class BlockRenderer
 	 * Adds a cube to a model
 	 * Performs automatic face culling
 	 * @param builder The model builder to add the cube to
-	 * @param chunk The chunk the cube exists in
 	 * @param x The x position of the cube, relative to the chunk
 	 * @param y The y position of the cube, relative to the chunk
 	 * @param z The z position of the cube, relative to the chunk
 	 * @param faceTextures The face textures for each face
 	 * @param atlas The texture atlas to use
 	 */
-	public static void addCube(ModelBuilder builder, Chunk[] adjacentChunks, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
+	public static void addCube(ModelBuilder builder, Chunk[] adjacentField, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
 	{
 		builder.setIndexOffset(((x^y^z) >> 1) & 1);
-		for (Facing face : Facing.values())
+		for (Facing face : Facing.directions())
 		{
 			// If the specified face is -1, the face isn't supposed to be rendered
 			if(faceTextures[face.ordinal()] == -1)
 				continue;
 			
-			int adjacentX = chunk.chunkX * 16 + x + face.getOffsetX();
-			int adjacentY = chunk.chunkY * 16 + y + face.getOffsetY();
-			int adjacentZ = chunk.chunkZ * 16 + z + face.getOffsetZ();
+			Block adjacent = getBlock(x, y, z, face, adjacentField);
 			
-			byte blockLight;
-			byte skyLight;
-			
-			if (block.isTransparent())
-			{
-				// Is transparent, get the light values at the current position
-				blockLight = chunk.getBlockLight(x, y, z);
-				skyLight = chunk.getSkyLight(x, y, z);
-			}
-			else
-			{
-				blockLight = chunk.world.getBlockLight(adjacentX, adjacentY, adjacentZ);
-				skyLight = chunk.world.getSkyLight(adjacentX, adjacentY, adjacentZ);
-			}
-			
-			Block adjacent = getAdjacentBlock(x, y, z, face, adjacentChunks);
-			
-			// Don't show the face if it's the same block
+			// Don't show the face the given block doesn't allow it
 			if (!block.showFace(adjacent, face))
 			{
 				++statNoShow;
@@ -91,6 +71,23 @@ public class BlockRenderer
 			
 			int[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
 			
+			// Fetch the required skylight
+			int blockLight;
+			int skyLight;
+			
+			if (block.isTransparent())
+			{
+				// Is transparent, get the light values at the current position
+				blockLight = getBlockLight(x, y, z, Facing.NONE, adjacentField);
+				skyLight = getSkyLight(x, y, z, Facing.NONE, adjacentField);
+			}
+			else
+			{
+				// Not transparent, fetch the lighting for the adjacent face
+				blockLight = getBlockLight(x, y, z, face, adjacentField);
+				skyLight = getSkyLight(x, y, z, face, adjacentField);
+			}
+			
 			switch(block.getRenderModel())
 			{
 				case CUBE:
@@ -98,14 +95,14 @@ public class BlockRenderer
 							builder,
 							x, y, z,
 							face, texCoords,
-							skyLight, blockLight, (byte) face.ordinal());
+							skyLight, blockLight, face.ordinal());
 					break;
 				case TORCH:
 					BlockRenderer.addTorchFace(
 							builder,
 							x, y, z,
 							face, texCoords, atlas,
-							skyLight, blockLight, (byte) face.ordinal());
+							skyLight, blockLight, face.ordinal());
 			}
 		}
 		builder.setIndexOffset(0);
@@ -124,7 +121,7 @@ public class BlockRenderer
 			ModelBuilder builder,
 			float x, float y, float z,
 			Facing face, int[] texCoords,
-			byte skyLight, byte blockLight, byte aoLight)
+			int skyLight, int blockLight, int aoLight)
 	{
 		builder.addPoly(4);
 		switch (face)
@@ -178,8 +175,11 @@ public class BlockRenderer
 			ModelBuilder builder,
 			float x, float y, float z,
 			Facing face, int[] texCoords, TextureAtlas atlas,
-			byte skyLight, byte blockLight, byte aoLight)
+			int sky, int block, int aoLight)
 	{
+		byte skyLight = (byte)sky;
+		byte blockLight = (byte)block;
+		
 		builder.addPoly(4);
 		switch(face)
 		{
@@ -228,16 +228,16 @@ public class BlockRenderer
 		}
 	}
 	
-	public static void addFluid(ModelBuilder builder, Chunk[] adjacentChunks, Chunk chunk, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
+	public static void addFluid(ModelBuilder builder, Chunk[] adjacentField, Block block, int x, int y, int z, int[] faceTextures, TextureAtlas atlas)
 	{
-		byte meta = chunk.getBlockMeta(x, y, z);
+		int meta = getMeta(x, y, z, Facing.NONE, adjacentField);
 		// x = i % 3
 		// z = i / 3
 		
 		// NW(0) N(1)  NE(2)
 		//  W(3) -(4)  E (5)
 		// SW(6) S(7)  SE(8)
-		byte[] adjacentMetas = new byte[9];
+		final int[] adjacentMetas = new int[9];
 		
 		// Current level of the block
 		int level = 8 - (meta & BlockFluid.DISTANCE);
@@ -258,39 +258,20 @@ public class BlockRenderer
 			if (off == 4)
 			{
 				// Current block, no need to fetch
-				adjacentMetas[off] = (byte) (8 - (meta & BlockFluid.DISTANCE));
+				adjacentMetas[off] = (8 - (meta & BlockFluid.DISTANCE));
 				continue;
 			}
 			
 			int xOff = (off % 3) - 1;
 			int zOff = (off / 3) - 1;
 			
-			int adjacentX = chunk.chunkX * 16 + x + xOff;
-			int adjacentY = chunk.chunkY * 16 + y;
-			int adjacentZ = chunk.chunkZ * 16 + z + zOff;
-			
-			Block adjacentBlock = Block.idToBlock(chunk.getBlock(x + xOff, y, z + zOff));
-			Block adjacentAbove = Block.idToBlock(chunk.getBlock(x + xOff, y + 1, z + zOff));
-			byte adjacentMeta = chunk.getBlockMeta(x + xOff, y, z + zOff);
-			
-			if (adjacentBlock == Blocks.VOID)
-			{
-				// Check the nearby chunk for the appropriate block id & lighting
-				adjacentBlock = chunk.world.getBlock(adjacentX, adjacentY, adjacentZ);
-				adjacentMeta = chunk.world.getBlockMeta(adjacentX, adjacentY, adjacentZ);
-			}
-			
-			if (adjacentAbove == Blocks.VOID)
-			{
-				adjacentAbove = chunk.world.getBlock(adjacentX, adjacentY + 1, adjacentZ);
-			}
-			
-			Block adjacent = adjacentBlock;
-			Block adjacentUp = adjacentAbove;
+			Block adjacent   = getBlock(x + xOff, y, z + zOff, Facing.NONE, adjacentField);
+			Block adjacentUp = getBlock(x + xOff, y + 1, z + zOff, Facing.NONE, adjacentField);
+			int adjacentMeta = getMeta(x + xOff, y, z + zOff, Facing.NONE, adjacentField);
 			
 			if (!((BlockFluid)block).isSameFluid(adjacent))
 				// Neighbor block isn't water at all
-				adjacentMetas[off] = (byte)-1;
+				adjacentMetas[off] = -1;
 			else
 			{
 				if (((BlockFluid)block).isSameFluid(adjacentUp))
@@ -298,12 +279,12 @@ public class BlockRenderer
 					adjacentMetas[off] = 16;
 				else
 					// Not falling, get the regular distance
-					adjacentMetas[off] = (byte) (8 - (adjacentMeta & BlockFluid.DISTANCE));
+					adjacentMetas[off] = (8 - (adjacentMeta & BlockFluid.DISTANCE));
 			}
 		}
 		
 		// Check the above block
-		Block aboveBlock = getAdjacentBlock(x, y, z, Facing.UP, adjacentChunks);
+		Block aboveBlock = getBlock(x, y, z, Facing.UP, adjacentField);
 		if (!((BlockFluid)block).isSameFluid(aboveBlock))
 		{
 			// Fluid is not falling
@@ -320,40 +301,37 @@ public class BlockRenderer
 		}
 		
 		// Build the faces
-		for (Facing face : Facing.values())
+		for (Facing face : Facing.directions())
 		{
-			Block adjacent = getAdjacentBlock(x, y, z, face, adjacentChunks);
+			Block adjacent = getBlock(x, y, z, face, adjacentField);
 			
-			byte blockLight;
-			byte skyLight;
-			
-			if (block.isTransparent())
-			{
-				// Is transparent, get the light values at the current position
-				blockLight = chunk.getBlockLight(x, y, z);
-				skyLight = chunk.getSkyLight(x, y, z);
-			}
-			else
-			{
-				int adjacentX = chunk.chunkX * 16 + x;
-				int adjacentY = chunk.chunkY * 16 + y;
-				int adjacentZ = chunk.chunkZ * 16 + z;
-				
-				blockLight = chunk.world.getBlockLight(adjacentX, adjacentY, adjacentZ);
-				skyLight = chunk.world.getSkyLight(adjacentX, adjacentY, adjacentZ);
-			}
-			
-			// Don't show the face if it's the same block
+			// Don't show the face if the block doesn't allow
 			if (!block.showFace(adjacent, face))
 				continue;
 			
 			int[] texCoords = atlas.getPixelPositions(faceTextures[face.ordinal()]);
 			
+			int blockLight;
+			int skyLight;
+			
+			// Fetch the required skylight
+			if (block.isTransparent())
+			{
+				// Is transparent, get the light values at the current position
+				blockLight = getBlockLight(x, y, z, Facing.NONE, adjacentField);
+				skyLight = getSkyLight(x, y, z, Facing.NONE, adjacentField);
+			}
+			else
+			{
+				blockLight = getBlockLight(x, y, z, face, adjacentField);
+				skyLight = getSkyLight(x, y, z, face, adjacentField);
+			}
+			
 			addFluidFace(
 					builder,
 					x, y, z,
 					heightNW, heightSW, heightSE, heightNE, face, texCoords,
-					skyLight, blockLight, (byte)face.ordinal());
+					skyLight, blockLight, face.ordinal());
 		}
 	}
 	
@@ -400,7 +378,7 @@ public class BlockRenderer
 			float x, float y, float z,
 			float nw, float sw, float se, float ne,
 			Facing face, int[] texCoords,
-			byte skyLight, byte blockLight, byte aoLight)
+			int skyLight, int blockLight, int aoLight)
 	{
 		builder.addPoly(4);
 		switch (face)
@@ -450,6 +428,14 @@ public class BlockRenderer
 		}
 	}
 	
+	
+	/*--* Adjacency Field Helpers *--*/
+	/* An adjacency field is defined as the field containing all of the chunks in a 3x3x3 volume,
+	 * centered around a given reference chunk
+	 *
+	 * The adjacency field also contains the reference chunk to ease fetching of adjacent chunks
+	 */
+	
 	private static Chunk getChunk(int x, int y, int z, Facing face, Chunk[] adjacentChunks)
 	{
 		// Positions relative to the current chunk
@@ -482,6 +468,7 @@ public class BlockRenderer
 		return adjacentChunks[index];
 	}
 	
+	// Computes a selection offset used in getChunk
 	private static int getAdjacentOffset(int coordinate)
 	{
 		if (coordinate < 0)
@@ -492,12 +479,40 @@ public class BlockRenderer
 		return 1;       // Same column / row
 	}
 	
-	private static Block getAdjacentBlock(int x, int y, int z, Facing off, Chunk[] adjacentChunks)
+	// Gets the block within the given adjacency field
+	private static Block getBlock(int x, int y, int z, Facing off, Chunk[] adjacentChunks)
 	{
 		return Block.idToBlock(getChunk(x, y, z, off, adjacentChunks).getBlock(
 				(x + off.getOffsetX()) & 0xF,
 				(y + off.getOffsetY()) & 0xF,
 				(z + off.getOffsetZ()) & 0xF));
+	}
+	
+	// Gets the block meta within the given adjacency field
+	private static int getMeta(int x, int y, int z, Facing off, Chunk[] adjacentChunks)
+	{
+		return getChunk(x, y, z, off, adjacentChunks).getBlockMeta(
+				(x + off.getOffsetX()) & 0xF,
+				(y + off.getOffsetY()) & 0xF,
+				(z + off.getOffsetZ()) & 0xF);
+	}
+	
+	// Gets the block light within the given adjacency field
+	private static int getBlockLight(int x, int y, int z, Facing off, Chunk[] adjacentChunks)
+	{
+		return getChunk(x, y, z, off, adjacentChunks).getBlockLight(
+				(x + off.getOffsetX()) & 0xF,
+				(y + off.getOffsetY()) & 0xF,
+				(z + off.getOffsetZ()) & 0xF);
+	}
+	
+	// Gets the sky light within the given adjacency field
+	private static int getSkyLight(int x, int y, int z, Facing off, Chunk[] adjacentChunks)
+	{
+		return getChunk(x, y, z, off, adjacentChunks).getSkyLight(
+				(x + off.getOffsetX()) & 0xF,
+				(y + off.getOffsetY()) & 0xF,
+				(z + off.getOffsetZ()) & 0xF);
 	}
 	
 	/**

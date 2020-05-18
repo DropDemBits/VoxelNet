@@ -32,7 +32,7 @@ public class PCSBreakBlock extends Packet
 		hitResult.blockY = data.readInt();
 		hitResult.blockZ = data.readInt();
 		
-		hitResult.face = Facing.values()[data.readUnsignedByte()];
+		hitResult.face = Facing.directions()[data.readUnsignedByte()];
 	}
 	
 	@Override
