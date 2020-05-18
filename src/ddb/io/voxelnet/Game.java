@@ -565,7 +565,7 @@ public class Game {
 		int skyLight = world.getSkyLight(blockX, blockY, blockZ);
 		int effLight = Math.max(blkLight, skyLight);
 		
-		String nameVersion = "VoxelNet 0.0.0-lite_client\n";
+		String nameVersion = String.format("VoxelNet %s\n", GameVersion.asText());
 		String timeStr = String.format("FT %-5.2f (%d | %.3f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, currentUPD * 1000d);
 		String posStr = String.format("Pos %.2f / %.2f / %.2f\n", player.xPos, player.yPos, player.zPos);
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
