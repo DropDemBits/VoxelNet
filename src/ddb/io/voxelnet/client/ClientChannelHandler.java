@@ -15,14 +15,14 @@ public class ClientChannelHandler extends ChannelDuplexHandler
 	}
 	
 	@Override
-	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception
+	public void channelRead(ChannelHandlerContext ctx, Object msg)
 	{
 		Packet packet = (Packet)msg;
-		clientInstance.packetQueue.offer(packet);
+		clientInstance.getNetworkManager().handlePacket(packet);
 	}
 	
 	@Override
-	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
 	{
 		cause.printStackTrace();
 		ctx.close();

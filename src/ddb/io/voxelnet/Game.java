@@ -1,8 +1,7 @@
 package ddb.io.voxelnet;
 
 import ddb.io.voxelnet.block.Block;
-import ddb.io.voxelnet.block.Blocks;
-import ddb.io.voxelnet.client.ClientChannelHandler;
+import ddb.io.voxelnet.client.ClientNetworkManager;
 import ddb.io.voxelnet.client.GameWindow;
 import ddb.io.voxelnet.client.input.PlayerController;
 import ddb.io.voxelnet.client.render.*;
@@ -17,26 +16,14 @@ import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.event.EventBus;
 import ddb.io.voxelnet.event.input.KeyEvent;
 import ddb.io.voxelnet.event.input.MouseEvent;
+import ddb.io.voxelnet.event.network.ConnectionStateChangeEvent;
 import ddb.io.voxelnet.fluid.Fluid;
-import ddb.io.voxelnet.network.packet.*;
+import ddb.io.voxelnet.client.ConnectionState;
 import ddb.io.voxelnet.util.RaycastResult;
-import ddb.io.voxelnet.world.ClientChunkManager;
 import ddb.io.voxelnet.world.World;
 import ddb.io.voxelnet.world.WorldSave;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFWErrorCallback;
-
-import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -59,9 +46,9 @@ public class Game {
 	/** Current window associated with this game instance */
 	GameWindow window;
 	WorldSave worldSave;
-	World world;
+	public World world;
 	
-	EntityPlayer player;
+	public EntityPlayer player;
 	PlayerController controller;
 	
 	Model hitBox;
@@ -93,15 +80,10 @@ public class Game {
 	double currentUPD = 0;
 	
 	// Global Event Bus
+	// TODO: Migrate event bus to the EventBus class
 	public static final EventBus GLOBAL_BUS = new EventBus();
 	
-	// Networking Things //
-	EventLoopGroup bossGroup = new NioEventLoopGroup();
-	public Channel clientChannel;
-	boolean isConnected = false;
-	public Queue<Packet> packetQueue = new ConcurrentLinkedQueue<>();
-	public int clientID = -1;
-	Map<Integer, EntityPlayer> playerIDMappings = new ConcurrentHashMap<>();
+	ClientNetworkManager networkManager;
 	
 	// Server Address
 	private String serverAddress = "localhost";
@@ -131,7 +113,14 @@ public class Game {
 		try
 		{
 			// Network Init
-			networkInit();
+			if (!networkInit())
+			{
+				// Failed to make connection, close up shop
+				cleanup();
+				return;
+			}
+			
+			System.out.println("Connected to " + serverAddress + ":" + serverPort);
 			
 			/// Main Loop ///
 			loop();
@@ -287,6 +276,9 @@ public class Game {
 		player = new EntityPlayer();
 		worldRenderer.setClientPlayer(player);
 		
+		// Initially have the player in the main world
+		player.setWorld(world);
+		
 		// Setup the controller
 		controller = new PlayerController(window, player);
 		
@@ -296,27 +288,21 @@ public class Game {
 		camera.updateView();
 	}
 	
-	private void networkInit() throws InterruptedException
+	private boolean networkInit()
 	{
-		Bootstrap bootstrap = new Bootstrap();
-		bootstrap.group(bossGroup)
-				.channel(NioSocketChannel.class)
-				.handler(new ChannelInitializer<SocketChannel>()
-				{
-					@Override
-					protected void initChannel(SocketChannel ch) throws Exception
-					{
-						ch.pipeline().addLast(new LengthFieldPrepender(2));
-						ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(0xFFFF, 0, 2));
-						ch.pipeline().addLast(new PacketCodec());
-						ch.pipeline().addLast(new ClientChannelHandler(instance));
-					}
-				})
-				.option(ChannelOption.SO_KEEPALIVE, true);
+		// Listen to the connection state change event
+		GLOBAL_BUS.registerEvent(ConnectionStateChangeEvent.class);
+		GLOBAL_BUS.addHandler(ConnectionStateChangeEvent.class, (e) -> {
+			ConnectionStateChangeEvent event = (ConnectionStateChangeEvent)e;
+			
+			if (event.newState == ConnectionState.ESTABLISHED)
+				clientInit();
+		});
 		
-		ChannelFuture f = bootstrap.connect(serverAddress, serverPort).sync();
-		clientChannel = f.channel();
-		System.out.println("Connected to " + serverAddress + ":" + serverPort);
+		networkManager = new ClientNetworkManager(this);
+		networkManager.setConnectionAddress(serverAddress, serverPort);
+		
+		return networkManager.init();
 	}
 	
 	private void loop()
@@ -396,19 +382,7 @@ public class Game {
 	private void cleanup()
 	{
 		// Wait until the client socket is closed
-		try
-		{
-			if (clientChannel != null)
-				clientChannel.close().sync();
-		}
-		catch (InterruptedException e)
-		{
-			e.printStackTrace();
-		}
-		finally
-		{
-			bossGroup.shutdownGracefully();
-		}
+		networkManager.shutdown();
 		
 		// Free the context
 		GLContext.INSTANCE.free();
@@ -436,134 +410,11 @@ public class Game {
 	private void networkTick()
 	{
 		// Process packets in network update
-		for (int count = 0; count < 10 && !packetQueue.isEmpty(); count++)
-		{
-			Packet packet = packetQueue.poll();
-			
-			if (packet.getPacketID() == 0)
-			{
-				// PSEstablishConnection
-				clientID = ((PSEstablishConnection)packet).clientID;
-				System.out.println("NewID: " + clientID);
-				
-				// Init the world...
-				clientInit();
-				
-				isConnected = true;
-			}
-			else if (packet.getPacketID() == 1)
-			{
-				// CSPosRotUpdate
-				// Get the specific player to update
-				PCSPosRotUpdate posUpdate = (PCSPosRotUpdate)packet;
-				
-				// Skip movement updates for this local player
-				if (clientID == posUpdate.clientID)
-					continue;
-				
-				EntityPlayer player = playerIDMappings.getOrDefault(posUpdate.clientID, null);
-				
-				// If non-existant move on to the next packet
-				if (player == null)
-					continue;
-				
-				player.setPos(posUpdate.xPos, posUpdate.yPos, posUpdate.zPos);
-				player.setVelocity(posUpdate.xVel, posUpdate.yVel, posUpdate.zVel);
-				player.setOrientation(posUpdate.pitch, posUpdate.yaw);
-			}
-			else if (packet.getPacketID() == 2)
-			{
-				// SSpawnPlayer
-				// Spawn new player in the world
-				PSSpawnPlayer spawn = (PSSpawnPlayer)packet;
-				System.out.println("PSpawn (" + spawn.clientID + ")");
-				
-				// Add the player to the mapping
-				EntityPlayer player = new EntityPlayer();
-				world.addEntity(player);
-				playerIDMappings.put(spawn.clientID, player);
-			}
-			else if (packet.getPacketID() == 3)
-			{
-				// SKillPlayer
-				// Remove the player from the world
-				PSKillPlayer kill = (PSKillPlayer)packet;
-				System.out.println("PSpawn (" + kill.clientID + ")");
-				
-				EntityPlayer player = playerIDMappings.getOrDefault(kill.clientID, null);
-				
-				// If non-existant move on to the next packet
-				if (player == null)
-					continue;
-				
-				player.setDead();
-			}
-			else if (packet.getPacketID() == 4)
-			{
-				// SChunkData
-				// Process the chunk data
-				PSChunkData chunkData = (PSChunkData)packet;
-				((ClientChunkManager)world.chunkManager).processNetLoad(chunkData);
-			}
-			else if (packet.getPacketID() == 5)
-			{
-				// Block place, handle that
-				PCSPlaceBlock blockPlace = (PCSPlaceBlock)packet;
-				RaycastResult lastHit = blockPlace.hitResult;
-				Block block = blockPlace.placingBlock;
-				
-				if (clientID == blockPlace.clientID)
-					continue;
-				
-				// If the block can't be placed, don't place it
-				if(!block.canPlaceBlock(
-						world,
-						lastHit.blockX + lastHit.face.getOffsetX(),
-						lastHit.blockY + lastHit.face.getOffsetY(),
-						lastHit.blockZ + lastHit.face.getOffsetZ()))
-					continue;
-				
-				world.setBlock(
-						lastHit.blockX + lastHit.face.getOffsetX(),
-						lastHit.blockY + lastHit.face.getOffsetY(),
-						lastHit.blockZ + lastHit.face.getOffsetZ(),
-						block);
-				block.onBlockPlaced(
-						world,
-						lastHit.blockX + lastHit.face.getOffsetX(),
-						lastHit.blockY + lastHit.face.getOffsetY(),
-						lastHit.blockZ + lastHit.face.getOffsetZ());
-			}
-			else if (packet.getPacketID() == 6)
-			{
-				// Block break, handle that
-				PCSBreakBlock blockBreak = (PCSBreakBlock)packet;
-				RaycastResult lastHit = blockBreak.hitResult;
-				
-				if (clientID == blockBreak.clientID)
-					continue;
-				
-				// Break the block, with the appropriate block callbacks being called
-				Block block = world.getBlock(lastHit.blockX, lastHit.blockY, lastHit.blockZ);
-				block.onBlockBroken(world, lastHit.blockX, lastHit.blockY, lastHit.blockZ);
-				world.setBlock(lastHit.blockX, lastHit.blockY, lastHit.blockZ, Blocks.AIR);
-			}
-		}
-		
-		if (isConnected)
-		{
-			// Send position updates to the server
-			PCSPosRotUpdate posUpdate = new PCSPosRotUpdate(clientID, player);
-			clientChannel.write(posUpdate);
-			clientChannel.flush();
-		}
+		networkManager.update();
 	}
 	
 	private void clientInit()
 	{
-		// Add player to the world
-		world.addEntity(player);
-		
 		// Spawn the player at the surface
 		int spawnY = 256;
 		
@@ -574,10 +425,14 @@ public class Game {
 				break;
 		}
 		
+		// Add player to the world
+		world.addEntity(player);
 		player.setPos(0.5f, spawnY + 0.5F, 0.5f);
 		
 		// Add our player to the mappings
-		playerIDMappings.put(clientID, player);
+		// Done only if we are on a server connection
+		if (networkManager.getConnectionState() == ConnectionState.ESTABLISHED)
+			networkManager.getNetworkIDMap().addExistingEntity(player, networkManager.getClientID());
 	}
 	
 	private void render(double partialTicks)
@@ -592,7 +447,7 @@ public class Game {
 		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	
-		if (isConnected)
+		if (networkManager.getConnectionState() == ConnectionState.ESTABLISHED)
 		{
 			// Draw the world
 			texture.bind(0);
@@ -768,5 +623,10 @@ public class Game {
 		
 		game.parseArgs(args);
 		new Thread(game::run, "Client").start();
+	}
+	
+	public ClientNetworkManager getNetworkManager()
+	{
+		return networkManager;
 	}
 }

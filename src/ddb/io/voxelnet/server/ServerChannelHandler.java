@@ -18,24 +18,24 @@ public class ServerChannelHandler extends ChannelDuplexHandler
 	}
 	
 	@Override
-	public void channelActive(ChannelHandlerContext ctx) throws Exception
+	public void channelActive(ChannelHandlerContext ctx)
 	{
 		Channel channel = ctx.channel();
-		clientID = serverInstance.addClient(channel);
+		clientID = serverInstance.getNetworkManager().addClient(channel);
 	}
 	
 	@Override
-	public void channelInactive(ChannelHandlerContext ctx) throws Exception
+	public void channelInactive(ChannelHandlerContext ctx)
 	{
-		serverInstance.removeClient(ctx.channel(), clientID);
+		serverInstance.getNetworkManager().removeClient(ctx.channel(), clientID);
 	}
 	
 	@Override
-	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception
+	public void channelRead(ChannelHandlerContext ctx, Object msg)
 	{
 		try
 		{
-			serverInstance.handlePacket((Packet)msg);
+			serverInstance.getNetworkManager().handlePacket((Packet)msg);
 		}
 		finally
 		{

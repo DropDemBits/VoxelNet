@@ -3,6 +3,7 @@ package ddb.io.voxelnet.entity;
 import ddb.io.voxelnet.Game;
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
+import ddb.io.voxelnet.client.ClientNetworkManager;
 import ddb.io.voxelnet.network.packet.PCSBreakBlock;
 import ddb.io.voxelnet.network.packet.PCSPlaceBlock;
 import ddb.io.voxelnet.util.AABBCollider;
@@ -184,8 +185,10 @@ public class EntityPlayer extends Entity
 			{
 				if (world.isClient)
 				{
-					// TODO: Replace with NetworkManager packet sending
-					Game.getInstance().clientChannel.write(new PCSBreakBlock(Game.getInstance().clientID, lastHit));
+					// TODO: Broadcast place event on appropriate event bus
+					// TODO: Remove necessity for sending over the client id
+					ClientNetworkManager networkManager = Game.getInstance().getNetworkManager();
+					networkManager.sendPacket(new PCSBreakBlock(networkManager.getClientID(), lastHit));
 				}
 				
 				// Break the block, with the appropriate block callbacks being called
@@ -215,8 +218,9 @@ public class EntityPlayer extends Entity
 				if (world.isClient)
 				{
 					// TODO: Broadcast place event on appropriate event bus
-					// TODO: Replace with NetworkManager packet sending
-					Game.getInstance().clientChannel.write(new PCSPlaceBlock(Game.getInstance().clientID, lastHit, placeBlock));
+					// TODO: Remove necessity for sending over the client id
+					ClientNetworkManager networkManager = Game.getInstance().getNetworkManager();
+					networkManager.sendPacket(new PCSPlaceBlock(networkManager.getClientID(), lastHit, placeBlock));
 				}
 				
 				// If the block can't be placed, don't place it
