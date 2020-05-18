@@ -2,7 +2,13 @@ package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.client.render.gl.GLContext;
 import org.lwjgl.system.MemoryStack;
+import sun.misc.IOUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.Objects;
@@ -19,18 +25,19 @@ public class Texture
 	
 	public Texture(String path)
 	{
-		try (MemoryStack stack = MemoryStack.stackPush())
+		try (MemoryStack stack = MemoryStack.stackPush();
+		     InputStream texStream = Texture.class.getClassLoader().getResourceAsStream(path);)
 		{
 			IntBuffer x = stack.callocInt(1);
 			IntBuffer y = stack.callocInt(1);
-			IntBuffer bpp = stack.callocInt(1);
+			IntBuffer file_channels = stack.callocInt(1);
 			
-			// Fetch the real path
-			String realPath = Objects.requireNonNull(Texture.class.getClassLoader().getResource(path)).getPath();
+			// Load the image data into a bytebuf
+			ByteBuffer imgBuf = stack.bytes(IOUtils.readAllBytes(Objects.requireNonNull(texStream)));
 			
-			// Load the image
+			// Load the image from memory
 			stbi_set_flip_vertically_on_load(true);
-			ByteBuffer localBuffer = stbi_load(realPath, x, y, bpp, 4);
+			ByteBuffer localBuffer = stbi_load_from_memory(imgBuf, x, y, file_channels, 4);
 			if (localBuffer == null)
 			{
 				System.out.println(stbi_failure_reason());
@@ -54,6 +61,9 @@ public class Texture
 			
 			// Done with the buffer, do things with it
 			stbi_image_free(localBuffer);
+		} catch (IOException e)
+		{
+			e.printStackTrace();
 		}
 	}
 	
