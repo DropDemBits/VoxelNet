@@ -403,8 +403,6 @@ public class Game {
 	{
 		controller.update(delta);
 		world.update(delta);
-		
-		worldRenderer.update();
 	}
 	
 	private void networkTick()
@@ -437,6 +435,8 @@ public class Game {
 	
 	private void render(double partialTicks)
 	{
+		worldRenderer.update();
+		
 		camera.asPlayer(player, partialTicks);
 		camera.updateView();
 		
@@ -560,6 +560,9 @@ public class Game {
 		int blockX = (int)Math.floor(player.xPos);
 		int blockY = (int)Math.floor(player.yPos);
 		int blockZ = (int)Math.floor(player.zPos);
+		int blkLight = world.getBlockLight(blockX, blockY, blockZ);
+		int skyLight = world.getSkyLight(blockX, blockY, blockZ);
+		int effLight = Math.max(blkLight, skyLight);
 		
 		String nameVersion = "VoxelNet ?.?.?-net_test\n";
 		String timeStr = String.format("FT %-5.2f (%d | %.3f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, currentUPD * 1000d);
@@ -567,7 +570,7 @@ public class Game {
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
 		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ).getId(), Integer.toBinaryString(Byte.toUnsignedInt(world.getBlockMeta(blockX, blockY, blockZ))));
 		String lyrStr = String.format("L %04d\n", world.getChunk(blockX >> 4, blockY >> 4, blockZ >> 4).getLayerData()[blockY & 0xF]);
-		String ligStr = String.format("B %2d S %2d\n", world.getBlockLight(blockX, blockY, blockZ), world.getSkyLight(blockX, blockY, blockZ));
+		String ligStr = String.format("B %2d S %2d E %2d\n", blkLight, skyLight, effLight);
 		String colStr = String.format("H %2d\n", world.getColumnHeight(blockX, blockY, blockZ));
 		
 		if (showThings || debugFluid)

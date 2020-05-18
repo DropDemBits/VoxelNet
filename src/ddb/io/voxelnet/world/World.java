@@ -488,36 +488,8 @@ public class World
 		
 		if (updateNeighborChunks)
 		{
-			// Update the adjacent in the column chunks if the block is at one of the chunk edges
-			if (blockY == 15)
-				chunkManager.getChunk(chunkPos.add(0, 1, 0), false).forceLayerRebuild();
-			
-			int limit = y - oldestHeight;
-			
-			for (int yPos = chunkPos.getY(); yPos >= 0; yPos--)
-			{
-				int yOff = yPos - chunkPos.getY();
-				
-				if (yOff != 0)
-					chunkManager.getChunk(chunkPos.add(0, yOff, 0), false).forceLayerRebuild();
-				
-				// If there was no lighting update, only update the directly
-				// adjacent chunks
-				if (!lightingUpdate && yOff <= -1)
-					break;
-				
-				// TODO update corner chunks
-				
-				if (blockX == 0)
-					chunkManager.getChunk(chunkPos.add(-1, yOff, 0), false).forceLayerRebuild();
-				else if (blockX == 15)
-					chunkManager.getChunk(chunkPos.add(1, yOff, 0), false).forceLayerRebuild();
-				
-				if (blockZ == 0)
-					chunkManager.getChunk(chunkPos.add(0, yOff, -1), false).forceLayerRebuild();
-				else if (blockZ == 15)
-					chunkManager.getChunk(chunkPos.add(0, yOff, 1), false).forceLayerRebuild();
-			}
+			// Update the directly adjacent chunks
+			updateNeighboringChunks(chunkPos, blockX, blockY, blockZ);
 		}
 		
 		if (updateNeighbors)
@@ -537,6 +509,23 @@ public class World
 							face.getOpposite());
 			}
 		}
+	}
+	
+	/**
+	 * Updates the adjacent chunks from the given chunk block position
+	 * @param sourceChunk The chunk to check the sources from
+	 * @param blockX The block's x position in the chunk
+	 * @param blockY
+	 * @param blockZ
+	 */
+	private void updateNeighboringChunks(Vec3i sourceChunk, int blockX, int blockY, int blockZ)
+	{
+		if (blockX ==  0) chunkManager.getChunk(sourceChunk.add(-1,  0,  0), false).forceLayerRebuild();
+		if (blockZ == 15) chunkManager.getChunk(sourceChunk.add( 0,  0,  1), false).forceLayerRebuild();
+		if (blockY ==  0) chunkManager.getChunk(sourceChunk.add( 0, -1,  0), false).forceLayerRebuild();
+		if (blockY == 15) chunkManager.getChunk(sourceChunk.add( 0,  1,  0), false).forceLayerRebuild();
+		if (blockX == 15) chunkManager.getChunk(sourceChunk.add( 1,  0,  0), false).forceLayerRebuild();
+		if (blockZ ==  0) chunkManager.getChunk(sourceChunk.add( 0,  0, -1), false).forceLayerRebuild();
 	}
 	
 	/**
@@ -766,6 +755,23 @@ public class World
 		return (dp > 0? Math.ceil(p)-p: p-Math.floor(p)) / Math.abs(dp);
 	}
 	
+	// Coord utility //
+	
+	/**
+	 * Converts a world coordinate to a chunk coordinate
+	 * @param pos The world coordinates to convert
+	 * @return The chunk position from the pos
+	 */
+	public Vec3i toChunkCoord(Vec3i pos)
+	{
+		return new Vec3i(pos.getX() >> 4, pos.getY() >> 4, pos.getZ() >> 4);
+	}
+	
+	public Vec3i toBlockChunkCoord(Vec3i pos)
+	{
+		return new Vec3i(pos.getX() & 0xF, pos.getY() & 0xF, pos.getZ() & 0xF);
+	}
+	
 	// Chunk management //
 	/**
 	 * Gets the chunk for the requested position
@@ -933,6 +939,9 @@ public class World
 			for (Facing dir : Facing.values())
 			{
 				Vec3i newPos = update.pos.add(dir);
+				if (newPos.getY() < 0)
+					continue;
+				
 				byte adjacentLight = getSkyLight(newPos.getX(), newPos.getY(), newPos.getZ());
 				
 				//if (Game.showThings && newPos.getX() == 0 && newPos.getZ() == 0)
@@ -943,6 +952,11 @@ public class World
 				{
 					// Propagate the emptiness...
 					setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte)0);
+					
+					// Update the adjacent neighbor chunks
+					Vec3i blockPos = toBlockChunkCoord(newPos);
+					updateNeighboringChunks(toChunkCoord(newPos), blockPos.getX(), blockPos.getY(), blockPos.getZ());
+					
 					pendingShadowRemoves.add(new LightUpdate(newPos, adjacentLight));
 				}
 				else if (adjacentLight >= lastLight && adjacentLight > 0)
@@ -962,6 +976,10 @@ public class World
 		while (pendingShadowRemoves.isEmpty() && !pendingShadowUpdates.isEmpty())
 		{
 			LightUpdate update = pendingShadowUpdates.poll();
+			
+			if (update.pos.getY() < 0)
+				continue;
+			
 			int x = update.pos.getX();
 			int y = update.pos.getY();
 			int z = update.pos.getZ();
@@ -1005,6 +1023,10 @@ public class World
 						setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), newLight);
 					}
 					
+					// Update the adjacent neighbor chunks
+					Vec3i blockPos = toBlockChunkCoord(newPos);
+					updateNeighboringChunks(toChunkCoord(newPos), blockPos.getX(), blockPos.getY(), blockPos.getZ());
+					
 					pendingShadowUpdates.add(new LightUpdate(newPos, (byte)0));
 				}
 				/*else {
@@ -1035,6 +1057,11 @@ public class World
 				{
 					// Propagate the emptiness...
 					setBlockLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte)0);
+					
+					// Update the adjacent neighbor chunks
+					Vec3i blockPos = toBlockChunkCoord(newPos);
+					updateNeighboringChunks(toChunkCoord(newPos), blockPos.getX(), blockPos.getY(), blockPos.getZ());
+					
 					pendingLightRemoves.add(new LightUpdate(newPos, adjacentLight));
 				}
 				else if (adjacentLight >= lastLight)
@@ -1068,6 +1095,11 @@ public class World
 						&& getBlockLight(newPos.getX(), newPos.getY(), newPos.getZ()) + 1 <= newLight)
 				{
 					setBlockLight(newPos.getX(), newPos.getY(), newPos.getZ(), newLight);
+					
+					// Update the adjacent neighbor chunks
+					Vec3i blockPos = toBlockChunkCoord(newPos);
+					updateNeighboringChunks(toChunkCoord(newPos), blockPos.getX(), blockPos.getY(), blockPos.getZ());
+					
 					pendingLightUpdates.add(new LightUpdate(newPos, (byte)0));
 				}
 			}
