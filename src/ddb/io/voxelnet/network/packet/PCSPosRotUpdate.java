@@ -12,8 +12,15 @@ public class PCSPosRotUpdate extends Packet
 	public float xVel;
 	public float yVel;
 	public float zVel;
+	public float xAccel;
+	public float zAccel;
 	public float pitch;
 	public float yaw;
+	
+	// Player status
+	public boolean isFlying;
+	public boolean isSprinting;
+	public boolean isSneaking;
 	
 	public PCSPosRotUpdate() {}
 	
@@ -22,13 +29,17 @@ public class PCSPosRotUpdate extends Packet
 		this(clientID,
 				entity.xPos, entity.yPos, entity.zPos,
 				entity.xVel, entity.yVel, entity.zVel,
-				entity.pitch, entity.yaw);
+				entity.xAccel, entity.zAccel,
+				entity.pitch, entity.yaw,
+				entity.isFlying, entity.isSprinting, entity.isSneaking);
 	}
 	
 	public PCSPosRotUpdate(int clientID,
 	                       float xPos, float yPos, float zPos,
 	                       float xVel, float yVel, float zVel,
-	                       float pitch, float yaw)
+	                       float xAccel, float zAccel,
+	                       float pitch, float yaw,
+	                       boolean isFlying, boolean isSprinting, boolean isSneaking)
 	{
 		this.clientID = clientID;
 		
@@ -42,9 +53,18 @@ public class PCSPosRotUpdate extends Packet
 		this.yVel = yVel;
 		this.zVel = zVel;
 		
+		// Horizontal Acceleration
+		this.xAccel = xAccel;
+		this.zAccel = zAccel;
+		
 		// Rotation
 		this.pitch = pitch;
 		this.yaw = yaw;
+		
+		// Player status
+		this.isFlying = isFlying;
+		this.isSneaking = isSneaking;
+		this.isSprinting = isSprinting;
 	}
 	
 	@Override
@@ -62,9 +82,17 @@ public class PCSPosRotUpdate extends Packet
 		this.yVel     = data.readFloat();
 		this.zVel     = data.readFloat();
 		
+		// Acceleration
+		this.xAccel   = data.readFloat();
+		this.zAccel   = data.readFloat();
+		
 		// Rotation
 		this.pitch    = data.readFloat();
 		this.yaw      = data.readFloat();
+		
+		this.isFlying = data.readBoolean();
+		this.isSneaking = data.readBoolean();
+		this.isSprinting = data.readBoolean();
 	}
 	
 	@Override
@@ -82,9 +110,17 @@ public class PCSPosRotUpdate extends Packet
 		data.writeFloat(yVel);
 		data.writeFloat(zVel);
 		
+		// Acceleration
+		data.writeFloat(xAccel);
+		data.writeFloat(zAccel);
+		
 		// Rotation
 		data.writeFloat(pitch);
 		data.writeFloat(yaw);
+		
+		data.writeBoolean(isFlying);
+		data.writeBoolean(isSneaking);
+		data.writeBoolean(isSprinting);
 	}
 	
 	@Override

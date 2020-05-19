@@ -140,6 +140,12 @@ public class ServerNetworkManager implements NetworkManager
 			player.setPos(posUpdate.xPos, posUpdate.yPos, posUpdate.zPos);
 			player.setVelocity(posUpdate.xVel, posUpdate.yVel, posUpdate.zVel);
 			player.setOrientation(posUpdate.pitch, posUpdate.yaw);
+			player.xAccel = posUpdate.xAccel;
+			player.zAccel = posUpdate.zAccel;
+			
+			player.isFlying = posUpdate.isFlying;
+			player.isSneaking = posUpdate.isSneaking;
+			player.isSprinting = posUpdate.isSprinting;
 			
 			clientChannels.write(posUpdate);
 		}
