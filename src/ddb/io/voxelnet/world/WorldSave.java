@@ -319,7 +319,7 @@ public class WorldSave
 		// Serialize the chunk in the specified format
 		buf.putInt(column.columnX);
 		buf.putInt(column.columnZ);
-		buf.put(column.opaqueColumns);
+		buf.put(column.getOpaqueColumnData());
 		buf.flip();
 		
 		buf.get(data);

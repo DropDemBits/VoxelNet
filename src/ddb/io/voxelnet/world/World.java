@@ -33,7 +33,7 @@ public class World
 	private Queue<LightUpdate> pendingLightRemoves;
 	private Queue<LightUpdate> pendingLightUpdates;
 	private Queue<LightUpdate> pendingShadowRemoves;
-	public Queue<LightUpdate> pendingShadowUpdates;
+	private Queue<LightUpdate> pendingShadowUpdates;
 	
 	// Fluid instances
 	private final Map<Fluid, FluidInstance> fluidInstances;
@@ -129,11 +129,8 @@ public class World
 		return worldSeed;
 	}
 	
-	public int getColumnHeight(int x, int y, int z)
+	public int getColumnHeight(int x, int z)
 	{
-		if (y >= worldHeight)
-			return y;
-		
 		int chunkX = x >> 4;
 		int chunkZ = z >> 4;
 		
@@ -145,7 +142,7 @@ public class World
 		if (column == null)
 			return 0;
 		
-		return column.opaqueColumns[blockX + blockZ * 16];
+		return column.getTallestOpaque(blockX, blockZ);
 	}
 	
 	public boolean canBlockSeeSky(int x, int y, int z)
@@ -164,11 +161,14 @@ public class World
 		boolean canSeeSky;
 		
 		if (column == null)
-			canSeeSky = true; // If a column is missing, the blocks can definitely see the sky
-		else if(y >= 0)
-			canSeeSky = y > Byte.toUnsignedInt(column.opaqueColumns[blockX + blockZ * 16]); // Can't see at the opaque
+			// If a column is missing, the blocks can definitely see the sky
+			canSeeSky = true;
+		else if (y >= 0)
+			// If greater than the height of the opaque block, the block can see the sky
+			canSeeSky = y > column.getTallestOpaque(blockX, blockZ);
 		else
-			canSeeSky = Byte.toUnsignedInt(column.opaqueColumns[blockX + blockZ * 16]) == 0; // If 0 (column empty), can see the sky
+			// For below the world (y < 0), a block can see the sky if the column is empty
+			canSeeSky = column.getTallestOpaque(blockX, blockZ) == 0; // If 0 (column empty), can see the sky
 		
 		return canSeeSky;
 	}
@@ -201,12 +201,12 @@ public class World
 	 * @param z The z position to fetch
 	 * @return The sky light value
 	 */
-	public byte getSkyLight(int x, int y, int z)
+	public int getSkyLight(int x, int y, int z)
 	{
 		if (y < 0)
 		{
 			// If the position can see the sky, full skylight
-			return canBlockSeeSky(x, y, z) ? (byte)15 : (byte)0;
+			return canBlockSeeSky(x, y, z) ? 15 : 0;
 		}
 		if (y >= worldHeight)
 			return 15;
@@ -230,11 +230,11 @@ public class World
 	 * @param z The z position to fetch
 	 * @return The block light value
 	 */
-	public byte getBlockLight(int x, int y, int z)
+	public int getBlockLight(int x, int y, int z)
 	{
 		if (y < 0)
 			return 0;
-		if (y >= 256)
+		if (y >= worldHeight)
 			return 0;
 		
 		int chunkX = x >> 4;
@@ -248,20 +248,22 @@ public class World
 		return chunkManager.getChunk(chunkX, chunkY, chunkZ, false).getBlockLight(blockX, blockY, blockZ);
 	}
 	
-	private void setBlockLight(int x, int y, int z, byte newLight)
-	{
-		if (newLight < 0)
-			return;
-		
-		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, newLight > 0);
-		chunk.setBlockLight(x & 0xF, y & 0xF, z & 0xF, newLight);
-	}
-	
-	private void setSkyLight(int x, int y, int z, byte newLight)
+	private void setBlockLight(int x, int y, int z, int newLight)
 	{
 		if (newLight > 15 || newLight < 0)
 			return;
 		
+		// Load new chunks only if new light is not zero
+		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, newLight > 0);
+		chunk.setBlockLight(x & 0xF, y & 0xF, z & 0xF, newLight);
+	}
+	
+	private void setSkyLight(int x, int y, int z, int newLight)
+	{
+		if (newLight > 15 || newLight < 0)
+			return;
+		
+		// Load new chunks only if new light is not zero
 		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, newLight != 0);
 		chunk.setSkyLight(x & 0xF, y & 0xF, z & 0xF, newLight);
 	}
@@ -295,18 +297,22 @@ public class World
 	 */
 	public void setBlock (int x, int y, int z, Block block)
 	{
-		setBlock(x, y, z, block, (byte)0, 7);
+		setBlock(x, y, z, block, 0, 7);
 	}
 	
 	/**
 	 * Sets the block id at the given position, with some metadata
+	 *
+	 * Note: Metadata is currently stored as a nibble (4-bits), so
+	 * encoding more than 16 block states is currently impossible
+	 *
 	 * @param x The x position of the block
 	 * @param y The y position of the block
 	 * @param z The z position of the block
 	 * @param block The block to place
 	 * @param meta The metadata of the block
 	 */
-	public void setBlock (int x, int y, int z, Block block, byte meta)
+	public void setBlock (int x, int y, int z, Block block, int meta)
 	{
 		setBlock(x, y, z, block, meta, 7);
 	}
@@ -319,6 +325,9 @@ public class World
 	 * Bit 2: When set, updates the adjacent neighbors
 	 * Bit 3: When set, doesn't update the opaque chunk column
 	 *
+	 * Note: Metadata is currently stored as a nibble (4-bits), so
+	 * encoding more than 16 block states is currently impossible
+	 *
 	 * @param x The x position of the block
 	 * @param y The y position of the block
 	 * @param z The z position of the block
@@ -326,7 +335,7 @@ public class World
 	 * @param meta The metadata of the block
 	 * @param flags The bitmap of the flags to use
 	 */
-	public void setBlock (int x, int y, int z, Block block, byte meta, int flags)
+	public void setBlock (int x, int y, int z, Block block, int meta, int flags)
 	{
 		// Decode the flags
 		boolean updateLighting  = (flags & 1) != 0;
@@ -341,7 +350,7 @@ public class World
 		int lastSkyLight;
 		
 		// Don't set block below or above the world
-		if (y < 0 || y > 255)
+		if (y < 0 || y >= worldHeight)
 			return;
 		
 		// Do nothing for void
@@ -355,9 +364,6 @@ public class World
 		int blockX = x & 0xF;
 		int blockY = y & 0xF;
 		int blockZ = z & 0xF;
-		
-		// Chunk column index
-		int columnIdx = blockX + blockZ * 16;
 		
 		// Set the block, block light & meta
 		lastBlockLight = chunk.getBlockLight(blockX, blockY, blockZ);
@@ -385,12 +391,12 @@ public class World
 			chunkColumn = chunkManager.loadColumn(x >> 4, z >> 4);
 		}
 		
-		int oldestHeight = Byte.toUnsignedInt(chunkColumn.opaqueColumns[columnIdx]);
+		int oldestHeight = chunkColumn.getTallestOpaque(blockX, blockZ);
 		
 		if (updateLighting && updateColumns)
 		{
 			// Update the appropriate column
-			int tallestOpaque = Byte.toUnsignedInt(chunkColumn.opaqueColumns[columnIdx]);
+			int tallestOpaque = chunkColumn.getTallestOpaque(blockX, blockZ);
 			
 			// 3 Main Groups for Column placement
 			// - Below tallest opaque block
@@ -409,7 +415,7 @@ public class World
 				// Only do update for opaque blocks
 				if (!block.isTransparent())
 				{
-					chunkColumn.opaqueColumns[columnIdx] = (byte) y;
+					chunkColumn.setTallestOpaque(blockX, blockZ, y);
 					tallestDown = false;
 				}
 			}
@@ -429,7 +435,7 @@ public class World
 				if (height == y)
 					height = 0;
 				
-				chunkColumn.opaqueColumns[columnIdx] = (byte) height;
+				chunkColumn.setTallestOpaque(blockX, blockZ, height);
 				tallestDown = true;
 			}
 		}
@@ -445,11 +451,8 @@ public class World
 			if (block == Blocks.AIR && skyAvailable)
 			{
 				// If the block can see the sky, and the tallest block has moved down, set it to the maximum light value
-				chunk.setSkyLight(blockX, blockY, blockZ, (byte) 15);
-				pendingShadowUpdates.add(new LightUpdate(new Vec3i(x, tallestDown ? oldestHeight : y, z), (byte) 0));
-				
-				//if (Game.showDetailedDebug)
-				//	System.out.println("ho boi! " + tallestDown + ", " + oldestHeight + ", " + y);
+				chunk.setSkyLight(blockX, blockY, blockZ, 15);
+				pendingShadowUpdates.add(new LightUpdate(new Vec3i(x, tallestDown ? oldestHeight : y, z), 0));
 			}
 			else
 			{
@@ -458,14 +461,14 @@ public class World
 					if (lastSkyLight != 0)
 					{
 						// Remove light
-						chunk.setSkyLight(blockX, blockY, blockZ, (byte) 0);
-						pendingShadowRemoves.add(new LightUpdate(new Vec3i(x, y, z), (byte) lastSkyLight));
+						chunk.setSkyLight(blockX, blockY, blockZ, 0);
+						pendingShadowRemoves.add(new LightUpdate(new Vec3i(x, y, z), lastSkyLight));
 					}
 				}
 				else //if (!skyAvailable)
 				{
 					// "Remove" the light to find the closest one
-					pendingShadowRemoves.add(new LightUpdate(new Vec3i(x, y, z), (byte) 0));
+					pendingShadowRemoves.add(new LightUpdate(new Vec3i(x, y, z), 0));
 				}
 			}
 			
@@ -475,9 +478,9 @@ public class World
 			// - Has a smaller block light
 			// set it up for removal
 			if (block == Blocks.AIR || !block.isTransparent() || block.getBlockLight() < lastBlockLight)
-				pendingLightRemoves.add(new LightUpdate(new Vec3i(x, y, z), (byte)lastBlockLight));
+				pendingLightRemoves.add(new LightUpdate(new Vec3i(x, y, z), lastBlockLight));
 			else
-				pendingLightUpdates.add(new LightUpdate(new Vec3i(x, y, z), (byte)0));
+				pendingLightUpdates.add(new LightUpdate(new Vec3i(x, y, z), 0));
 		}
 		
 		if (updateNeighborChunks)
@@ -524,15 +527,18 @@ public class World
 	
 	/**
 	 * Sets the block metadata for the given position
+	 * Note: Metadata is currently stored as a nibble (4-bits), so
+	 * encoding more than 16 block states is currently impossible
+	 *
 	 * @param x The x position of the target block
 	 * @param y The y position of the target block
 	 * @param z The z position of the target block
 	 * @param meta The new metadata for the block
 	 */
-	public void setBlockMeta (int x, int y, int z, byte meta)
+	public void setBlockMeta (int x, int y, int z, int meta)
 	{
 		// Don't set block below or above the world
-		if (y < 0 || y > 255)
+		if (y < 0 || y > worldHeight)
 			return;
 		
 		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);
@@ -551,15 +557,19 @@ public class World
 	
 	/**
 	 * Gets the block metadata for the given position
+	 *
+	 * Note: Metadata is currently stored as a nibble (4-bits), so
+	 * encoding more than 16 block states is currently impossible
+	 *
 	 * @param x The x position of the target block
 	 * @param y The y position of the target block
 	 * @param z The z position of the target block
 	 * @return  The metadata for the block position
 	 */
-	public byte getBlockMeta (int x, int y, int z)
+	public int getBlockMeta (int x, int y, int z)
 	{
 		// Don't fetch data below or above the world
-		if (y < 0 || y > 255)
+		if (y < 0 || y > worldHeight)
 			return 0;
 		
 		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);
@@ -823,7 +833,7 @@ public class World
 					int dist = x*x + y*y + z*z;
 					if (dist > radius*radius)
 						continue;
-					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR, (byte)0, 1);
+					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR, 0, 1);
 				}
 			}
 		}
@@ -840,7 +850,7 @@ public class World
 					if (dist < (radius*radius) - 2*radius + 1 || dist > (radius*radius))
 						continue;
 					
-					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR, (byte)0, 7);
+					setBlock(centreX + x, centreY + y, centreZ + z, Blocks.AIR, 0, 7);
 				}
 			}
 		}
@@ -874,6 +884,16 @@ public class World
 		
 		// Process the lighting updates
 		processLightUpdate();
+	}
+	
+	/**
+	 * Adds a skylight update
+	 * @param pos The position of the skylight update
+	 * @param newLight The new skylight light
+	 */
+	public void addSkyLightUpdate(Vec3i pos, int newLight)
+	{
+		pendingShadowUpdates.add(new LightUpdate(pos, newLight));
 	}
 	
 	private void doBlockTick()
@@ -926,7 +946,7 @@ public class World
 		while (!pendingShadowRemoves.isEmpty())
 		{
 			LightUpdate update = pendingShadowRemoves.poll();
-			byte lastLight = update.newLight;
+			int lastLight = update.newLight;
 			
 			for (Facing dir : Facing.directions())
 			{
@@ -934,13 +954,13 @@ public class World
 				if (newPos.getY() < 0)
 					continue;
 				
-				byte adjacentLight = getSkyLight(newPos.getX(), newPos.getY(), newPos.getZ());
+				int adjacentLight = getSkyLight(newPos.getX(), newPos.getY(), newPos.getZ());
 				
 				if ((adjacentLight != 0 && adjacentLight < lastLight)
 					|| (lastLight == 15 && dir == Facing.DOWN))
 				{
 					// Propagate the emptiness...
-					setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte)0);
+					setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), 0);
 					
 					// Update the adjacent neighbor chunks
 					Vec3i blockPos = toBlockChunkCoord(newPos);
@@ -969,7 +989,7 @@ public class World
 			int z = update.pos.getZ();
 			
 			// Fetch the light value
-			byte currentLight = getSkyLight(x, y, z);
+			int currentLight = getSkyLight(x, y, z);
 			
 			// Don't propagate emptiness
 			if (currentLight == 0)
@@ -979,9 +999,9 @@ public class World
 			{
 				Vec3i newPos = update.pos.add(dir);
 				Block adjacentBlock = getBlock(newPos.getX(), newPos.getY(), newPos.getZ());
-				byte adjacentSkylight = getSkyLight(newPos.getX(), newPos.getY(), newPos.getZ());
+				int adjacentSkylight = getSkyLight(newPos.getX(), newPos.getY(), newPos.getZ());
 				
-				byte newLight = (byte)(currentLight - Math.max(1, adjacentBlock.getOpacity()));
+				int newLight = (currentLight - Math.max(1, adjacentBlock.getOpacity()));
 				
 				// For horizontal spreading : spread as normal
 				// For vertical spreading :
@@ -995,7 +1015,7 @@ public class World
 				{
 					// When propagating the maximum light down, only be affected by opacity
 					if (dir == Facing.DOWN && currentLight == 15)
-						setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte) (currentLight - adjacentBlock.getOpacity()));
+						setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), (currentLight - adjacentBlock.getOpacity()));
 					else
 						setSkyLight(newPos.getX(), newPos.getY(), newPos.getZ(), newLight);
 					
@@ -1003,7 +1023,7 @@ public class World
 					Vec3i blockPos = toBlockChunkCoord(newPos);
 					updateNeighboringChunks(toChunkCoord(newPos), blockPos.getX(), blockPos.getY(), blockPos.getZ());
 					
-					pendingShadowUpdates.add(new LightUpdate(newPos, (byte)0));
+					pendingShadowUpdates.add(new LightUpdate(newPos, 0));
 				}
 			}
 		}
@@ -1012,17 +1032,17 @@ public class World
 		while (!pendingLightRemoves.isEmpty())
 		{
 			LightUpdate update = pendingLightRemoves.poll();
-			byte lastLight = update.newLight;
+			int lastLight = update.newLight;
 			
 			for (Facing dir : Facing.directions())
 			{
 				Vec3i newPos = update.pos.add(dir);
-				byte adjacentLight = getBlockLight(newPos.getX(), newPos.getY(), newPos.getZ());
+				int adjacentLight = getBlockLight(newPos.getX(), newPos.getY(), newPos.getZ());
 				
 				if (adjacentLight != 0 && adjacentLight < lastLight)
 				{
 					// Propagate the emptiness...
-					setBlockLight(newPos.getX(), newPos.getY(), newPos.getZ(), (byte)0);
+					setBlockLight(newPos.getX(), newPos.getY(), newPos.getZ(), 0);
 					
 					// Update the adjacent neighbor chunks
 					Vec3i blockPos = toBlockChunkCoord(newPos);
@@ -1033,7 +1053,7 @@ public class World
 				else if (adjacentLight >= lastLight)
 				{
 					// Change to propagate, adjacent light is bigger
-					pendingLightUpdates.add(new LightUpdate(newPos, (byte)0));
+					pendingLightUpdates.add(new LightUpdate(newPos, 0));
 				}
 			}
 		}
@@ -1047,14 +1067,14 @@ public class World
 			int z = update.pos.getZ();
 			
 			// Fetch the light value
-			byte currentLight = getBlockLight(x, y, z);
+			int currentLight = getBlockLight(x, y, z);
 			
 			for (Facing dir : Facing.directions())
 			{
 				Vec3i newPos = update.pos.add(dir);
 				Block adjacentBlock = getBlock(newPos.getX(), newPos.getY(), newPos.getZ());
 				// Allow block light to be affected by opacity
-				byte newLight = (byte)(currentLight - 1);
+				int newLight = currentLight - 1;
 				
 				// Check if the adjacent block can propagate light
 				if (adjacentBlock.isTransparent()
@@ -1066,7 +1086,7 @@ public class World
 					Vec3i blockPos = toBlockChunkCoord(newPos);
 					updateNeighboringChunks(toChunkCoord(newPos), blockPos.getX(), blockPos.getY(), blockPos.getZ());
 					
-					pendingLightUpdates.add(new LightUpdate(newPos, (byte)0));
+					pendingLightUpdates.add(new LightUpdate(newPos, 0));
 				}
 			}
 		}
@@ -1075,12 +1095,18 @@ public class World
 	static class LightUpdate
 	{
 		final Vec3i pos;
-		final byte newLight;
+		final int newLight;
 		
-		public LightUpdate(Vec3i pos, byte newLight)
+		public LightUpdate(Vec3i pos, int newLight)
 		{
 			this.pos = pos;
 			this.newLight = newLight;
+		}
+		
+		@Override
+		public int hashCode()
+		{
+			return Objects.hash(pos, newLight);
 		}
 		
 		@Override

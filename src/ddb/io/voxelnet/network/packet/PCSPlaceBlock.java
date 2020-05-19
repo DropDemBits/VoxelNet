@@ -37,7 +37,7 @@ public class PCSPlaceBlock extends Packet
 		
 		hitResult.face = Facing.directions()[data.readUnsignedByte()];
 		
-		placingBlock = Block.idToBlock((byte)data.readUnsignedShort());
+		placingBlock = Block.idToBlock(data.readUnsignedShort());
 	}
 	
 	@Override

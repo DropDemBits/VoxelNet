@@ -7,6 +7,7 @@ import org.joml.Matrix4f;
 
 public class EntityRendererPlayer extends EntityRenderer
 {
+	// TODO: Use an entity shader
 	private final Model playerModel;
 	private final Texture playerTexture;
 	
@@ -64,9 +65,9 @@ public class EntityRendererPlayer extends EntityRenderer
 		// Scales for the uv coordinates
 		float uScale = 65535.0f / texture.getWidth();
 		float vScale = 65535.0f / texture.getHeight();
-		byte skyLight = (byte)255;
-		byte blockLight = (byte)255;
-		byte aoLight = 0;
+		int skyLight = 15 * BlockRenderer.MAX_SMOOTHING_WEIGHTING;
+		int blockLight = 15 * BlockRenderer.MAX_SMOOTHING_WEIGHTING;
+		int aoLight = 0;
 		
 		// Positions & offsets for the uv coordinates
 		float uOff, vOff;

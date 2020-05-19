@@ -22,7 +22,7 @@ public abstract class BlockFluid extends Block
 	}
 	
 	@Override
-	public byte getOpacity()
+	public int getOpacity()
 	{
 		return 1;
 	}
@@ -50,7 +50,7 @@ public abstract class BlockFluid extends Block
 	}
 	
 	@Override
-	public boolean canBeReplacedBy(World world, Block block, byte newMeta, int x, int y, int z)
+	public boolean canBeReplacedBy(World world, Block block, int newMeta, int x, int y, int z)
 	{
 		// A fluid can be replaced by anything but itself, unless the distance is smaller (handled above)
 		return !isSameFluid(block);

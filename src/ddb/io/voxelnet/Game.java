@@ -574,10 +574,10 @@ public class Game {
 		String timeStr = String.format("FT %-5.2f (%d | %.3f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, currentUPD * 1000d);
 		String posStr = String.format("Pos %.2f / %.2f / %.2f\n", player.xPos, player.yPos, player.zPos);
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
-		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ).getId(), Integer.toBinaryString(Byte.toUnsignedInt(world.getBlockMeta(blockX, blockY, blockZ))));
+		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ).getId(), Integer.toBinaryString(world.getBlockMeta(blockX, blockY, blockZ)));
 		String lyrStr = String.format("L %04d\n", world.getChunk(blockX >> 4, blockY >> 4, blockZ >> 4).getLayerData()[blockY & 0xF]);
 		String ligStr = String.format("B %2d S %2d E %2d\n", blkLight, skyLight, effLight);
-		String colStr = String.format("H %2d\n", world.getColumnHeight(blockX, blockY, blockZ));
+		String colStr = String.format("H %2d\n", world.getColumnHeight(blockX, blockZ));
 		
 		if (showDebugInfo)
 			fontRenderer.putString(nameVersion+timeStr+posStr+lokStr+blkStr+ligStr+colStr, 0, 0);

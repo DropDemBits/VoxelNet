@@ -12,7 +12,7 @@ public class BlockLava extends BlockFluid
 	}
 	
 	@Override
-	public byte getBlockLight()
+	public int getBlockLight()
 	{
 		return 14;
 	}

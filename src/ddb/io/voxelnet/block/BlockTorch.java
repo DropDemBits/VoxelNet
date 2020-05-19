@@ -40,7 +40,7 @@ public class BlockTorch extends Block
 	}
 	
 	@Override
-	public byte getBlockLight()
+	public int getBlockLight()
 	{
 		return 14;
 	}

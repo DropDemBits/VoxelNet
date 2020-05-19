@@ -35,6 +35,7 @@ public class ChunkManager
 	
 	/**
 	 * Gets the chunk for the requested position
+	 * By default, does not load in new chunks
 	 * @param chunkX The x position of the target chunk (in chunks)
 	 * @param chunkY The y position of the target chunk (in chunks)
 	 * @param chunkZ The z position of the target chunk (in chunks)
@@ -47,6 +48,7 @@ public class ChunkManager
 	
 	/**
 	 * Gets the chunk for the requested position
+	 * By default, does not load in new chunks
 	 * @param pos The position of the target chunk (in chunks)
 	 * @return The requested chunk
 	 */
@@ -79,10 +81,9 @@ public class ChunkManager
 	{
 		Chunk chunk = loadedChunks.getOrDefault(pos, EMPTY_CHUNK);
 		
-		// If there's a loaded cache miss, go to the chunk manager
 		if (chunk == EMPTY_CHUNK && loadNewChunks)
 		{
-			// Add a new chunk if the new light value is not zero
+			// If we are to load new chunks, do so
 			chunk = loadChunk(pos);
 		}
 		
@@ -168,21 +169,25 @@ public class ChunkManager
 			}
 		}
 		
+		// Distance below the heightmap sample point
 		int depth = 0;
 		int waterLevel = 64;
 		
+		// Fill in the heightmap, starting from the heightmap or the water level, whichever is taller
 		for (int z = 0; z < 16; z++)
 			for (int x = 0; x < 16; x++)
 			{
 				boolean foundTallest = false;
 				int colIdx = x + (z << 4);
 				
+				// Height sampled from the heightmap
 				int height = 55 + (int)Math.floor(heights[colIdx] * 28.0d);
+				// Filling in height
 				int y = height;
 				
 				if (y < waterLevel)
 				{
-					// Generate water
+					// Generate water below the water level
 					y = waterLevel;
 				}
 				
@@ -196,28 +201,34 @@ public class ChunkManager
 					// Setup the top layers
 					if (depth == 0)
 					{
+						// Setup the blocks to place
 						if (y >= waterLevel + 1)
 						{
+							// Above the water level, generate grass & dirt
 							block = Blocks.GRASS;
 							blockBelow = Blocks.DIRT;
 						}
 						else if (y >= (waterLevel - 3))
 						{
+							// At and 3 block below water level, generate sand
 							block = Blocks.SAND;
 							blockBelow = Blocks.SAND;
 						}
 						else
 						{
+							// Below water level, generate gravel
 							block = Blocks.GRAVEL;
 							blockBelow = Blocks.GRAVEL;
 						}
 					}
 					else if (depth < 3)
 					{
+						// Start placing the below block
 						block = blockBelow;
 					}
 					else if ((y <= 4 && world.worldRandom.nextInt(8) == 0) || y == 0)
 					{
+						// Start filling in random places with planks
 						block = Blocks.PLANKS;
 					}
 					
@@ -229,27 +240,27 @@ public class ChunkManager
 					
 					byte flags = 0b1000;
 					
-					world.setBlock((cx << 4) + x, y, (cz << 4) + z, block, (byte)0, flags);
+					world.setBlock((cx << 4) + x, y, (cz << 4) + z, block, 0, flags);
 					
 					if ((block == Blocks.WATER && y < waterLevel) || !block.isTransparent())
 					{
 						// Remove skylight if the height is 1 below the water level, or the block is not transparent
-						getChunk(cx, y >> 4, cz, false).setSkyLight(x & 0xF, y & 0xF, z & 0xF, (byte) 0);
+						getChunk(cx, y >> 4, cz, false).setSkyLight(x & 0xF, y & 0xF, z & 0xF, 0);
 					}
 					else if ((block == Blocks.WATER && y == waterLevel))
 					{
 						// Set the light level to the attenuated light
-						getChunk(cx, y >> 4, cz, false).setSkyLight(x & 0xF, y & 0xF, z & 0xF, (byte) (15-block.getOpacity()));
+						getChunk(cx, y >> 4, cz, false).setSkyLight(x & 0xF, y & 0xF, z & 0xF, (15-block.getOpacity()));
 						// Add pending sky light updates
-						world.pendingShadowUpdates.add(new World.LightUpdate(new Vec3i((cx << 4) + x, y, (cz << 4) + z), (byte) 0));
+						world.addSkyLightUpdate(new Vec3i((cx << 4) + x, y, (cz << 4) + z), 0);
 					}
 					
 					if (!foundTallest)
 					{
 						// Update the respective column so that the lighting is correct
-						if (!block.isTransparent() && column.opaqueColumns[colIdx] < y)
+						if (!block.isTransparent() && column.getTallestOpaque(x, z) < y)
 						{
-							column.opaqueColumns[colIdx] = (byte) y;
+							column.setTallestOpaque(x, z, y);
 							foundTallest = true;
 						}
 					}

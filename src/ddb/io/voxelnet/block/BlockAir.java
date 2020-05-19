@@ -32,7 +32,7 @@ public class BlockAir extends Block
 	}
 	
 	@Override
-	public byte getOpacity()
+	public int getOpacity()
 	{
 		return 0;
 	}

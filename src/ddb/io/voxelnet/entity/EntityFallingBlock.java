@@ -68,7 +68,7 @@ public class EntityFallingBlock extends Entity
 			int yOff = 0;
 			Block block = world.getBlock(blockX, blockY, blockZ);
 			
-			if (block != Blocks.AIR && !block.canBeReplacedBy(world, falling, (byte) 0, blockX, blockY, blockZ))
+			if (block != Blocks.AIR && !block.canBeReplacedBy(world, falling, 0, blockX, blockY, blockZ))
 			{
 				// Search for the next air block position if the current one is
 				// occupied

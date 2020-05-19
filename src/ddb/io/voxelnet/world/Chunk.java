@@ -143,17 +143,23 @@ public class Chunk
 	 * @param z The z position of the block, in blocks
 	 * @param id The id of the new block
 	 */
-	public void setBlock(int x, int y, int z, byte id)
+	public void setBlock(int x, int y, int z, int id)
 	{
 		// Check for out of bounds access or the out of bounds id
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16 || id == -1)
+			return;
+		
+		// Can't store id's larger than 255
+		if (id > 0xFF)
 			return;
 		
 		int blockIndex = (y << 8) | (z << 4) | (x << 0);
 		
 		Block block = Block.idToBlock(id);
 		Block lastBlock = Block.idToBlock(blockData[x + z * 16 + y * 256]);
-		blockData[blockIndex] = id;
+		
+		// Lossy/truncate down convert into an int
+		blockData[blockIndex] = (byte)id;
 		
 		// Update the dirty & rebuild states
 		isDirty = true;
@@ -217,12 +223,12 @@ public class Chunk
 	 * @param z The x position of the block, in blocks
 	 * @return The id of the block, or -1 if the position is out of bounds
 	 */
-	public byte getBlock(int x, int y, int z)
+	public int getBlock(int x, int y, int z)
 	{
 		// Check for out of bounds access
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
 			return -1;
-		return blockData[x + z * 16 + y * 256];
+		return Byte.toUnsignedInt(blockData[x + z * 16 + y * 256]);
 	}
 	
 	/**
@@ -234,7 +240,7 @@ public class Chunk
 	 * @return The light level of the block, as specified above, or -1 if the
 	 *         block position is out of bounds
 	 */
-	public byte getBlockLight(int x, int y, int z)
+	public int getBlockLight(int x, int y, int z)
 	{
 		// Check for out of bounds access
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
@@ -246,9 +252,7 @@ public class Chunk
 		//    8      4      0
 		
 		// Block light will be in the range of 0(darkest) - 15(brightest)
-		byte blockLight = (byte)(lightData[(y << 8) | (z << 4) | (x << 0)] & 0x0F);
-		
-		return blockLight;
+		return (lightData[(y << 8) | (z << 4) | (x << 0)] & 0x0F);
 	}
 	
 	/**
@@ -260,7 +264,7 @@ public class Chunk
 	 * @return The light level of the sky at the block's position,
 	 *         or -1 if the block position is out of bounds
 	 */
-	public byte getSkyLight(int x, int y, int z)
+	public int getSkyLight(int x, int y, int z)
 	{
 		// Check for out of bounds access
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
@@ -272,9 +276,7 @@ public class Chunk
 		//    8      4      0
 		
 		// Sky light will be in the range of 0(darkest) - 15(brightest)
-		byte skyLight = (byte)((lightData[(y << 8) | (z << 4) | (x << 0)] & 0xF0) >> 4);
-		
-		return skyLight;
+		return ((lightData[(y << 8) | (z << 4) | (x << 0)] & 0xF0) >> 4);
 	}
 	
 	/**
@@ -282,24 +284,27 @@ public class Chunk
 	 * @param x The x position of the new block light
 	 * @param y The y position of the new block light
 	 * @param z The z position of the new block light
-	 * @param amount The new block light value, between 15(brightest) - 0(darkest)
+	 * @param newBlockLight The new block light value, between 15(brightest) - 0(darkest)
 	 */
-	public void setBlockLight(int x, int y, int z, byte amount)
+	public void setBlockLight(int x, int y, int z, int newBlockLight)
 	{
 		// Check for out of bounds access
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
 			return;
 		
-		int lightIndex = (y << 8) | (z << 4) | (x << 0);
-		byte light = (byte)(lightData[lightIndex] & 0xF0);
-		byte lastLight = (byte)(lightData[lightIndex] & 0x0F);
+		byte realLight = (byte)(Math.min(newBlockLight, 15));
 		
-		if (lastLight == amount)
+		int lightIndex = (y << 8) | (z << 4) | (x << 0);
+		byte oldLight = (byte)(lightData[lightIndex] & 0xF0);
+		int lastBlockLight = (lightData[lightIndex] & 0x0F);
+		
+		if (lastBlockLight == realLight)
 			return;
 		
-		light |= (amount & 0xF);
-		lightData[lightIndex] = light;
+		oldLight |= (realLight & 0xF);
+		lightData[lightIndex] = oldLight;
 		
+		// Trigger layer rebuild
 		forceLayerRebuild();
 	}
 	
@@ -308,24 +313,27 @@ public class Chunk
 	 * @param x The x position of the new sky light
 	 * @param y The y position of the new sky light
 	 * @param z The z position of the new sky light
-	 * @param amount The new sky light value, between 15(brightest) - 0(darkest)
+	 * @param newSkylight The new sky light value, between 15(brightest) - 0(darkest)
 	 */
-	public void setSkyLight(int x, int y, int z, byte amount)
+	public void setSkyLight(int x, int y, int z, int newSkylight)
 	{
 		// Check for out of bounds access
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
 			return;
 		
-		int lightIndex = (y << 8) | (z << 4) | (x << 0);
-		byte light = (byte)(lightData[lightIndex] & 0x0F);
-		byte lastLight = (byte)((lightData[lightIndex] >> 4) & 0xF);
+		byte realLight = (byte)(Math.min(newSkylight, 15));
 		
-		if (lastLight == amount)
+		int lightIndex = (y << 8) | (z << 4) | (x << 0);
+		byte oldLight = (byte)(lightData[lightIndex] & 0x0F);
+		int lastSkyLight = (lightData[lightIndex] >> 4) & 0xF;
+		
+		if (lastSkyLight == realLight)
 			return;
 		
-		light |= (amount & 0xF) << 4;
-		lightData[lightIndex] = light;
+		oldLight |= (realLight & 0xF) << 4;
+		lightData[lightIndex] = oldLight;
 		
+		// Trigger layer rebuild
 		forceLayerRebuild();
 	}
 	
@@ -337,14 +345,14 @@ public class Chunk
 	 * @param z The z position to change
 	 * @return The block metadata for the position
 	 */
-	public byte getBlockMeta(int x, int y, int z)
+	public int getBlockMeta(int x, int y, int z)
 	{
 		// Check for out of bounds access
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
 			return 0;
 		
 		int packed = Byte.toUnsignedInt(blockMeta[(x >> 1) + z * 8 + y * 8 * 16]);
-		return (byte)((packed >> ((x & 1) * 4)) & 0x0F);
+		return ((packed >> ((x & 1) * 4)) & 0x0F);
 	}
 	
 	/**
@@ -354,7 +362,7 @@ public class Chunk
 	 * @param z The z position to change
 	 * @param meta The new metadata value
 	 */
-	public void setBlockMeta(int x, int y, int z, byte meta)
+	public void setBlockMeta(int x, int y, int z, int meta)
 	{
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
 			return;
@@ -365,6 +373,7 @@ public class Chunk
 		byte mask = 0x0F;
 		int shift = 0x00;
 		
+		// Change mask to access the right metadata value
 		if ((x & 1) != 0)
 		{
 			mask = (byte)0xF0;
@@ -372,7 +381,7 @@ public class Chunk
 		}
 		
 		blockMeta[index] &= ~mask;
-		blockMeta[index] |= meta << shift;
+		blockMeta[index] |= (byte)(meta << shift);
 	}
 	
 	/**

@@ -38,21 +38,21 @@ public class Block
 	
 	private static Block addBlock(int id, Block instance)
 	{
-		instance.setId((byte) id);
+		instance.setId(id);
 		
 		if (id == -1)
 			return instance;
 		
-		idToBlockMap.add((byte)id, instance);
+		idToBlockMap.add(id, instance);
 		return instance;
 	}
 	
-	public static Block idToBlock(byte id)
+	public static Block idToBlock(int id)
 	{
 		if (id == -1)
 			return Blocks.VOID;
 		
-		return idToBlockMap.get(Byte.toUnsignedInt(id));
+		return idToBlockMap.get(id);
 	}
 	
 	/// Per-Block variables ///
@@ -64,12 +64,12 @@ public class Block
 	private boolean isTransparent = false;
 	
 	private AABBCollider hitBox = DEFAULT_COLLIDER;
-	private byte id;
+	private int id;
 	
 	protected Block() {}
 	
 	/// Local setters
-	private void setId(byte id)
+	private void setId(int id)
 	{
 		this.id = id;
 	}
@@ -207,7 +207,7 @@ public class Block
 	 * Gets the amount of light emitted by the block
 	 * @return The amount of light emitted by the block
 	 */
-	public byte getBlockLight()
+	public int getBlockLight()
 	{
 		return 0;
 	}
@@ -215,18 +215,20 @@ public class Block
 	/**
 	 * Gets the opacity of the block
 	 * Opacity is defined as how much light decreases by when attenuated
+	 * 0 is the least opaque, 15 is the most opaque
+	 *
 	 * @return The opacity of the block
 	 */
-	public byte getOpacity()
+	public int getOpacity()
 	{
-		return (byte)(!isTransparent() ? 15 : 0);
+		return isTransparent() ? 0 : 15;
 	}
 	
 	/**
 	 * Gets the ID of the block
 	 * @return The block id
 	 */
-	public byte getId()
+	public int getId()
 	{
 		return id;
 	}
@@ -279,7 +281,7 @@ public class Block
 		if (block == Blocks.AIR)
 			return true;
 		
-		return block.canBeReplacedBy(world, this, (byte)0, x, y, z);
+		return block.canBeReplacedBy(world, this, 0, x, y, z);
 	}
 	
 	/**
@@ -291,7 +293,7 @@ public class Block
 	 * @param z The z coordinate of the block to replace (the current block)
 	 * @return True if the block can be replaced by the specified block
 	 */
-	public boolean canBeReplacedBy(World world, Block block, byte newMeta, int x, int y, int z)
+	public boolean canBeReplacedBy(World world, Block block, int newMeta, int x, int y, int z)
 	{
 		return false;
 	}

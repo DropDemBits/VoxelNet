@@ -210,7 +210,7 @@ public class PSChunkData extends Packet
 		// May throw IOExceptions
 		ByteArrayOutputStream aggregator = new ByteArrayOutputStream(UNCOMPRESSED_CHUNK_SIZE);
 		GZIPOutputStream columnCompressor = new GZIPOutputStream(aggregator);
-		columnCompressor.write(column.opaqueColumns);
+		columnCompressor.write(column.getOpaqueColumnData());
 		columnCompressor.flush();
 		columnCompressor.close();
 		

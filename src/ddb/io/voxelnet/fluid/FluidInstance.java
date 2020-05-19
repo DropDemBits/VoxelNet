@@ -86,7 +86,7 @@ public class FluidInstance
 	
 	private void doFluidSpread(World world, Vec3i pos)
 	{
-		byte currentMeta = world.getBlockMeta(pos.getX(), pos.getY(), pos.getZ());
+		int currentMeta = world.getBlockMeta(pos.getX(), pos.getY(), pos.getZ());
 		boolean isFalling = (currentMeta & BlockFluid.IS_FALLING) != 0;
 		int currentDistance = currentMeta & BlockFluid.DISTANCE;
 		int newDistance;
@@ -101,7 +101,7 @@ public class FluidInstance
 			Vec3i adjPos = pos.add(dir);
 			
 			Block adjacentBlock = world.getBlock(adjPos.getX(), adjPos.getY(), adjPos.getZ());
-			byte adjacentMeta = world.getBlockMeta(adjPos.getX(), adjPos.getY(), adjPos.getZ());
+			int adjacentMeta = world.getBlockMeta(adjPos.getX(), adjPos.getY(), adjPos.getZ());
 			int adjacentDistance = adjacentMeta & BlockFluid.DISTANCE;
 			
 			// Skip fluids that aren't the same
@@ -146,7 +146,7 @@ public class FluidInstance
 			// If there is at least one nearby source, the current fluid
 			// isn't falling, and a conversion to a source can be done,
 			// Convert into source fluid
-			world.setBlock(pos.getX(), pos.getY(), pos.getZ(), getFluid().staticFluid, (byte)0);
+			world.setBlock(pos.getX(), pos.getY(), pos.getZ(), getFluid().staticFluid, 0);
 			
 			// Update the current distance & new distance
 			currentDistance = 0;
@@ -163,7 +163,7 @@ public class FluidInstance
 			if (outFlows > 2)
 				drainRate = 2;
 			
-			byte newMeta = (byte) (currentDistance + drainRate);
+			int newMeta = (currentDistance + drainRate);
 			
 			// Apply drain to get effective current distance
 			currentDistance += drainRate;
@@ -172,8 +172,7 @@ public class FluidInstance
 			{
 				// Dry up if the new distance is larger than the max spread,
 				// or is falling
-				//pendingClears.add(new FluidPlacement(pos, (byte)0));
-				world.setBlock(pos.getX(), pos.getY(), pos.getZ(), Blocks.AIR, (byte)0, 7);
+				world.setBlock(pos.getX(), pos.getY(), pos.getZ(), Blocks.AIR, 0, 7);
 				
 				// If not falling, don't spread out
 				if (!isFalling)
@@ -203,12 +202,12 @@ public class FluidInstance
 				if (getFluid().isSameFluid(above))
 				{
 					// Spread! (Stopped falling)
-					world.setBlockMeta(pos.getX(), pos.getY(), pos.getZ(), (byte) 1);
+					world.setBlockMeta(pos.getX(), pos.getY(), pos.getZ(), 1);
 				}
 				else
 				{
 					// Restore old water level, not falling
-					world.setBlockMeta(pos.getX(), pos.getY(), pos.getZ(), (byte) currentDistance);
+					world.setBlockMeta(pos.getX(), pos.getY(), pos.getZ(), currentDistance);
 				}
 			}
 		}
@@ -231,7 +230,7 @@ public class FluidInstance
 			
 			Vec3i newPos = pos.add(dir);
 			Block adjacentBlock = world.getBlock(newPos.getX(), newPos.getY(), newPos.getZ());
-			byte adjacentMeta = world.getBlockMeta(newPos.getX(), newPos.getY(), newPos.getZ());
+			int adjacentMeta = world.getBlockMeta(newPos.getX(), newPos.getY(), newPos.getZ());
 			int adjacentDistance = adjacentMeta & BlockFluid.DISTANCE;
 			
 			// Fluid spreading rules:
@@ -251,20 +250,20 @@ public class FluidInstance
 					isPlacementFalling = true;
 				
 				// Spread to that position, and schedule an update
-				byte newMeta = (byte)newDistance;
+				int newMeta = newDistance;
 				
 				// If the placement is falling and is flowing down,
 				// preserve the distance
 				// Otherwise, just indicate that it is falling
 				if (isPlacementFalling && dir == Facing.DOWN)
-					newMeta = (byte)(BlockFluid.IS_FALLING | currentDistance);
+					newMeta = BlockFluid.IS_FALLING | currentDistance;
 				else if(isPlacementFalling)
-					newMeta = (byte)(BlockFluid.IS_FALLING | newDistance);
+					newMeta = BlockFluid.IS_FALLING | newDistance;
 				
 				// If the placement isn't falling, but the current fluid is,
 				// stop falling, and spread outwards
 				if (!isPlacementFalling && isFalling)
-					newMeta = (byte) 1;
+					newMeta = 1;
 				
 				world.setBlock(newPos.getX(), newPos.getY(), newPos.getZ(), getFluid().staticFluid, newMeta, 7);
 				addFluidUpdate(newPos);
