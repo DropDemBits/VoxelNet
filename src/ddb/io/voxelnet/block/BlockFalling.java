@@ -28,7 +28,7 @@ public class BlockFalling extends Block
 			return;
 		
 		// Add a new falling entity
-		EntityFallingBlock falling = new EntityFallingBlock(this);
+		EntityFallingBlock falling = new EntityFallingBlock(this, world.getBlockMeta(x, y, z));
 		falling.setPos(x + 0.5f, y, z + 0.5f);
 		
 		world.addEntity(falling);

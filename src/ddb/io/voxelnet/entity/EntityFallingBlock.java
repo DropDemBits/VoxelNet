@@ -9,12 +9,20 @@ public class EntityFallingBlock extends Entity
 	// TODO: Preserve meta
 	// The block that this entity represents
 	public final Block falling;
+	// The block's associated metadata
+	public final int meta;
 	
 	private int lifetime = 0;
 	
 	public EntityFallingBlock(Block block)
 	{
+		this(block, 0);
+	}
+	
+	public EntityFallingBlock(Block block, int meta)
+	{
 		this.falling = block;
+		this.meta = meta;
 		// Shrink to prevent clipping onto an edge
 		this.collisionBox = new AABBCollider(block.getCollisionBox()).grow(-0.25f/16f, -0.25f/16f, -0.25f/16f);
 	}
@@ -33,6 +41,7 @@ public class EntityFallingBlock extends Entity
 			// Check if the current block is the same as the falling block
 			if (world.getBlock(blockX, blockY, blockZ) != falling)
 			{
+				// ???: Do we need this? (may cause it to disappear if another block was moved into its position)
 				// Not the same, kill it
 				setDead();
 				return;
@@ -72,13 +81,13 @@ public class EntityFallingBlock extends Entity
 			{
 				// Search for the next air block position if the current one is
 				// occupied
-				for (; yOff + blockY < 256; yOff++)
+				for (; yOff + blockY < world.worldHeight; yOff++)
 				{
 					if (world.getBlock(blockX, blockY + yOff, blockZ) == Blocks.AIR)
 						break;
 				}
 				
-				if (yOff + blockX >= 256)
+				if (yOff + blockY >= world.worldHeight)
 				{
 					// Shouldn't be here, but still die
 					System.out.println("SHOULDN'T BE HERE!");
@@ -87,7 +96,7 @@ public class EntityFallingBlock extends Entity
 				}
 			}
 			
-			world.setBlock(blockX, blockY + yOff, blockZ, falling);
+			world.setBlock(blockX, blockY + yOff, blockZ, falling, meta);
 			
 			// No longer needed
 			setDead();

@@ -26,8 +26,7 @@ public class BlockAir extends Block
 	@Override
 	public RenderLayer getRenderLayer()
 	{
-		// Because of the weird rendering implementation, air is "opaque"
-		// TODO: Make render layers make more sense
+		// Keep air on the opaque layer (blocks changing to air force a rebuild of all layers)
 		return RenderLayer.OPAQUE;
 	}
 	
