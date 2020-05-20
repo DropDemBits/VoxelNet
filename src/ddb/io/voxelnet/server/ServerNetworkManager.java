@@ -21,6 +21,11 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 /**
  * Manages the server's network state
  */
@@ -35,9 +40,14 @@ public class ServerNetworkManager implements NetworkManager
 	ChannelGroup clientChannels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 	Channel serverChannel;
 	private final int hostPort;
+
+	// Packets to process
+	public Queue<ProcessEntry> processQueue = new ConcurrentLinkedQueue<>();
 	
 	// Entity - ClientID Mapping
 	EntityIDMap entityMap;
+	// ClientID - ChannelID Mapping
+	private final Map<Integer, ChannelId> clientToChannelId = new LinkedHashMap<>();
 	
 	public ServerNetworkManager(ServerGame instance, int hostPort)
 	{
@@ -115,12 +125,26 @@ public class ServerNetworkManager implements NetworkManager
 	@Override
 	public void update()
 	{
+		// Process 16 of the packets at a time
+		// TODO: SLOW, delegate to dedicated worker threads (keeping concurrency in mind)
+		for (int i = 0; i < 16 && !processQueue.isEmpty(); i++)
+		{
+			ProcessEntry entry = processQueue.remove();
+			processPacket(entry.packet, entry.sourceClient);
+		}
+		
 		// Flush pending packets
 		clientChannels.flush();
 	}
 	
 	@Override
-	public void handlePacket(Packet msg)
+	public void handlePacket(Packet msg, int sourceClientID)
+	{
+		// Add to process queue
+		processQueue.add(new ProcessEntry(msg, sourceClientID));
+	}
+	
+	private void processPacket(Packet msg, int sourceClientID)
 	{
 		// Execute Server vs Execute Client
 		if (msg.getPacketID() == 1)
@@ -194,6 +218,32 @@ public class ServerNetworkManager implements NetworkManager
 			// TODO: Correct for mis-breaks
 			clientChannels.write(blockBreak);
 		}
+		else if (msg.getPacketID() == 7)
+		{
+			// Load the requested chunk column
+			PCLoadChunkColumn loadRequest = (PCLoadChunkColumn)msg;
+			// Get the channel id
+			ChannelId channelId = clientToChannelId.get(sourceClientID);
+			
+			// No id found means stale id
+			if (channelId == null)
+				return;
+			
+			Channel clientChannel = clientChannels.find(channelId);
+			
+			// Null channel means stale id
+			if (clientChannel == null)
+				return;
+			
+			// Send back the chunk column
+			if (sendChunkColumnTo(loadRequest.columnX, loadRequest.columnZ, clientChannel))
+			{
+				// TODO: Queue up requests
+				System.out.println("Fulfilled rq for " + loadRequest.columnX + ", " + loadRequest.columnZ + " to Ply" + sourceClientID);
+				// Flush pending requests
+				clientChannel.flush();
+			}
+		}
 	}
 	
 	@Override
@@ -231,13 +281,14 @@ public class ServerNetworkManager implements NetworkManager
 	
 	public int addClient(Channel channel)
 	{
-		clientChannels.add(channel);
-		
 		// Spawn the client's player
 		EntityPlayer player = spawnPlayer();
 		
 		// Add to the mappings
 		int clientID = entityMap.addEntity(player);
+		
+		clientChannels.add(channel);
+		clientToChannelId.put(clientID, channel.id());
 		
 		// Spawn the client on the other channels
 		PSSpawnPlayer packet = new PSSpawnPlayer(clientID);
@@ -245,34 +296,12 @@ public class ServerNetworkManager implements NetworkManager
 		clientChannels.write(packet, (otherChannel) -> otherChannel != channel);
 		
 		// Send the surrounding chunks over
-		ChunkManager chunkManager = instance.world.chunkManager;
-		
 		int radius = 3;
 		for (int z = -radius; z <= radius; z++)
 		{
 			for (int x = -radius; x <= radius; x++)
 			{
-				ChunkColumn column = chunkManager.getColumn(x, z);
-				
-				// Skip column if null (No chunks there)
-				if (column == null)
-					continue;
-				
-				// Construct a new chunk data packet
-				PSChunkData chunkData = new PSChunkData(x, z, chunkManager.getColumn(x, z));
-				
-				for (int y = 0; y < 256 / 16; y++)
-				{
-					Chunk chunk = chunkManager.getChunk(x, y, z, false);
-					
-					if (chunk == chunkManager.EMPTY_CHUNK)
-						continue;
-					
-					chunkData.addChunk(chunk);
-				}
-				
-				// Send out the chunk
-				channel.write(chunkData);
+				sendChunkColumnTo(x, z, channel);
 			}
 		}
 		
@@ -301,11 +330,54 @@ public class ServerNetworkManager implements NetworkManager
 		player.setDead();
 		
 		clientChannels.remove(channel);
+		clientToChannelId.remove(clientID);
 		entityMap.removeEntity(clientID);
 		
 		// Kill the client on the other channels
 		PSKillPlayer packet = new PSKillPlayer(clientID);
 		clientChannels.write(packet);
+	}
+	
+	private boolean sendChunkColumnTo(int x, int z, Channel channel)
+	{
+		ChunkManager chunkManager = instance.world.chunkManager;
+		ChunkColumn column = chunkManager.getColumn(x, z);
+		
+		// Generate chunk if null
+		if (column == null)
+		{
+			// TODO: Only allow one thread to generate at a time
+			chunkManager.loadColumn(x, z);
+		}
+		
+		// Construct a new chunk data packet
+		PSChunkData chunkData = new PSChunkData(x, z, chunkManager.getColumn(x, z));
+		
+		for (int y = 0; y < 256 / 16; y++)
+		{
+			Chunk chunk = chunkManager.getChunk(x, y, z, false);
+			
+			if (chunk == chunkManager.EMPTY_CHUNK)
+				continue;
+			
+			chunkData.addChunk(chunk);
+		}
+		
+		// Send out the chunk
+		channel.write(chunkData);
+		return true;
+	}
+	
+	private static class ProcessEntry
+	{
+		public int sourceClient;
+		public Packet packet;
+		
+		public ProcessEntry(Packet packet, int sourceClient)
+		{
+			this.sourceClient = sourceClient;
+			this.packet = packet;
+		}
 	}
 	
 }

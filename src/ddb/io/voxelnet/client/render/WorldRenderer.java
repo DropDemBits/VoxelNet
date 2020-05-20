@@ -16,12 +16,11 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class WorldRenderer
 {
+	// Layers that have transparent blocks on them
 	private static final RenderLayer[] transparentLayers = new RenderLayer[] { RenderLayer.TRANSPARENT, RenderLayer.FLUID };
 	
 	// Player that the world is rendered around
 	private EntityPlayer clientPlayer;
-	// List of all chunk models
-	private final Map<Vec3i, ChunkModel> renderChunks = new LinkedHashMap<>();
 	// List of chunk models to render
 	private final List<ChunkModel> renderList = new ArrayList<>();
 	// List of chunks that need model updates
@@ -53,14 +52,17 @@ public class WorldRenderer
 		// Update existing chunks
 		for(Chunk chunk : world.chunkManager.loadedChunks.values())
 		{
-			if (chunk.recentlyGenerated())
+			if (chunk.recentlyGenerated() && !chunk.isPlaceholder())
 			{
 				// New chunk generated
 				newChunks = true;
 				ChunkModel model = new ChunkModel(chunk);
 				renderList.add(model);
 				chunk.setGenerated();
+				model.forceNeighborRebuild();
 			}
+			
+			// TODO: Check for unloaded chunks, and reassociate models if found
 		}
 		
 		for (ChunkModel model : renderList)
@@ -83,13 +85,15 @@ public class WorldRenderer
 			newChunks)
 		{
 			// Sort for every new chunk added or change in the player's chunk
-			System.out.println("sort!");
 			
 			if (!generateQueue.isEmpty())
 			{
 				// Sort generate queue by distance to player
 				generateQueue.sort(this::distanceSort);
 			}
+			
+			// Sort the render list as well
+			renderList.sort(this::distanceSort);
 			
 			lastChunkX = (int) clientPlayer.xPos >> 4;
 			lastChunkY = (int) clientPlayer.yPos >> 4;
@@ -112,10 +116,12 @@ public class WorldRenderer
 			if (chunkModel.chunk.isEmpty())
 				continue;
 			
+			// TODO: Check if the model's associated chunk is unloaded
+			
 			// Render around a certain radius
 			// ???: How about only rendering the active chunks? (takes care of distancing problems)
 			if (((chunkModel.chunk.chunkX << 4) + 8.5f - clientPlayer.xPos)*((chunkModel.chunk.chunkX << 4) + 8.5f - clientPlayer.xPos) +
-					((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos)*((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos) > (8*8)*256)
+					((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos)*((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos) > (5*5)*(16*16))
 				continue;
 			
 			// Perform frustum culling
@@ -127,7 +133,6 @@ public class WorldRenderer
 				continue;
 				
 			
-			long opaqueStart = System.nanoTime();
 			// Allow a chunk to be rendered between model updates
 			boolean isUpdating = chunkModel.isUpdateInProgress();
 			
@@ -166,8 +171,6 @@ public class WorldRenderer
 			while (itr.hasPrevious())
 			{
 				ChunkModel chunkModel = itr.previous();
-				
-				long transparentStart = System.nanoTime();
 				Model model = chunkModel.getModelForLayer(layer);
 				
 				// Update the vertices if a model update is not in progress (have

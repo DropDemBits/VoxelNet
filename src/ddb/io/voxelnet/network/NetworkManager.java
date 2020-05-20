@@ -41,7 +41,8 @@ public interface NetworkManager
 	/**
 	 * Handles the given packet
 	 * @param packet The packet to handle
+	 * @param sourceClient The client id of the source channel (-1 if the source wasn't a client)
 	 */
-	void handlePacket(Packet packet);
+	void handlePacket(Packet packet, int sourceClient);
 	
 }

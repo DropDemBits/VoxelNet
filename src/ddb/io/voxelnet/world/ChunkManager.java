@@ -90,7 +90,18 @@ public class ChunkManager
 		return chunk;
 	}
 	
+	/**
+	 * Loads the requested chunk
+	 * A chunk may be loaded from disk, or requested from the network
+	 * @param pos The chunk coordinate of the chunk to load
+	 * @return The requested chunk
+	 */
 	public Chunk loadChunk(Vec3i pos)
+	{
+		return doLoadChunk(pos);
+	}
+	
+	protected Chunk doLoadChunk(Vec3i pos)
 	{
 		Chunk chunk = new Chunk(world, pos.getX(), pos.getY(), pos.getZ());
 		loadedChunks.put(pos, chunk);
@@ -121,26 +132,46 @@ public class ChunkManager
 	
 	/**
 	 * Loads a chunk column at the specified chunk position
+	 * The chunk column may either be loaded from disk or requested over the network
 	 * @param columnX The x position of the chunk column (in chunks)
 	 * @param columnZ The z position of the chunk column (in chunks)
-	 * @return The requested column
 	 */
-	public ChunkColumn loadColumn(int columnX, int columnZ)
+	public void loadColumn(int columnX, int columnZ)
 	{
 		Vec3i pos = new Vec3i(columnX, 0, columnZ);
-		return loadColumn(pos);
+		doColumnLoad(pos);
 	}
 	
 	/**
 	 * Loads a chunk column at the specified chunk position
+	 * The chunk column may either be loaded from disk or requested over the network
 	 * @param pos The position of the chunk column (in chunks)
-	 * @return The requested column
 	 */
-	public ChunkColumn loadColumn(Vec3i pos)
+	public void loadColumn(Vec3i pos)
 	{
-		ChunkColumn column = new ChunkColumn(pos.getX(), pos.getZ());
-		chunkColumns.put(pos, column);
-		return column;
+		doColumnLoad(pos);
+	}
+	
+	/**
+	 * Implementation of "loadColumn"
+	 * @param pos The position of the chunk column (in chunks)
+	 */
+	protected void doColumnLoad(Vec3i pos)
+	{
+		// TODO: Check if the column is in the unloaded column cache
+		// Default: Generate new chunks
+		generateChunk(pos.getX(), pos.getZ());
+	}
+	
+	/**
+	 * Checks if the column at the given coordinates is loaded
+	 * @param chunkX The chunk column's x position
+	 * @param chunkZ The chunk column's z position
+	 * @return True if the column is loaded into the chunk manager's cache
+	 */
+	public boolean isColumnLoaded(int chunkX, int chunkZ)
+	{
+		return getColumn(chunkX, chunkZ) != null;
 	}
 	
 	/**
@@ -150,6 +181,7 @@ public class ChunkManager
 	 */
 	public void generateChunk(int cx, int cz)
 	{
+		// ???: The server sends out the chunk column before a light update is performed, should the server send out a light update packet/notification?
 		// Make the chunk columns
 		ChunkColumn column = new ChunkColumn(cx, cz);
 		chunkColumns.put(new Vec3i(cx, 0, cz), column);
@@ -175,6 +207,7 @@ public class ChunkManager
 		
 		// Fill in the heightmap, starting from the heightmap or the water level, whichever is taller
 		for (int z = 0; z < 16; z++)
+		{
 			for (int x = 0; x < 16; x++)
 			{
 				boolean foundTallest = false;
@@ -207,26 +240,22 @@ public class ChunkManager
 							// Above the water level, generate grass & dirt
 							block = Blocks.GRASS;
 							blockBelow = Blocks.DIRT;
-						}
-						else if (y >= (waterLevel - 3))
+						} else if (y >= (waterLevel - 3))
 						{
 							// At and 3 block below water level, generate sand
 							block = Blocks.SAND;
 							blockBelow = Blocks.SAND;
-						}
-						else
+						} else
 						{
 							// Below water level, generate gravel
 							block = Blocks.GRAVEL;
 							blockBelow = Blocks.GRAVEL;
 						}
-					}
-					else if (depth < 3)
+					} else if (depth < 3)
 					{
 						// Start placing the below block
 						block = blockBelow;
-					}
-					else if ((y <= 4 && world.worldRandom.nextInt(8) == 0) || y == 0)
+					} else if ((y <= 4 && world.worldRandom.nextInt(8) == 0) || y == 0)
 					{
 						// Start filling in random places with planks
 						block = Blocks.PLANKS;
@@ -246,11 +275,10 @@ public class ChunkManager
 					{
 						// Remove skylight if the height is 1 below the water level, or the block is not transparent
 						getChunk(cx, y >> 4, cz, false).setSkyLight(x & 0xF, y & 0xF, z & 0xF, 0);
-					}
-					else if ((block == Blocks.WATER && y == waterLevel))
+					} else if ((block == Blocks.WATER && y == waterLevel))
 					{
 						// Set the light level to the attenuated light
-						getChunk(cx, y >> 4, cz, false).setSkyLight(x & 0xF, y & 0xF, z & 0xF, (15-block.getOpacity()));
+						getChunk(cx, y >> 4, cz, false).setSkyLight(x & 0xF, y & 0xF, z & 0xF, (15 - block.getOpacity()));
 						// Add pending sky light updates
 						world.addSkyLightUpdate(new Vec3i((cx << 4) + x, y, (cz << 4) + z), 0);
 					}
@@ -272,6 +300,6 @@ public class ChunkManager
 				
 				depth = 0;
 			}
+		}
 	}
-	
 }

@@ -56,8 +56,6 @@ public class PSChunkData extends Packet
 	public void decodePayload(ByteBuf data) throws IOException, DataFormatException
 	{
 		// Decode the chunk data
-		//ByteArrayInputStream input;
-		//GZIPInputStream inflator;
 		
 		// ub = unsigned byte
 		// us = unsigned short

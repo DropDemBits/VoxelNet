@@ -35,7 +35,7 @@ public class ServerChannelHandler extends ChannelDuplexHandler
 	{
 		try
 		{
-			serverInstance.getNetworkManager().handlePacket((Packet)msg);
+			serverInstance.getNetworkManager().handlePacket((Packet)msg, clientID);
 		}
 		finally
 		{
@@ -44,7 +44,7 @@ public class ServerChannelHandler extends ChannelDuplexHandler
 	}
 	
 	@Override
-	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
 	{
 		cause.printStackTrace();
 		ctx.close();

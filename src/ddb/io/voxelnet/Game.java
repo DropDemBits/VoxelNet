@@ -2,6 +2,7 @@ package ddb.io.voxelnet;
 
 import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.client.ClientNetworkManager;
+import ddb.io.voxelnet.client.ClientWorld;
 import ddb.io.voxelnet.client.GameWindow;
 import ddb.io.voxelnet.client.input.PlayerController;
 import ddb.io.voxelnet.client.render.*;
@@ -46,7 +47,7 @@ public class Game {
 	/** Current window associated with this game instance */
 	GameWindow window;
 	WorldSave worldSave;
-	public World world;
+	public ClientWorld world;
 	
 	public EntityPlayer player;
 	PlayerController controller;
@@ -260,9 +261,14 @@ public class Game {
 		quadShader.unbind();
 		
 		///////////////////////////////////////////////
+		// Setup the network manager, and packet registries
+		GLOBAL_BUS.registerEvent(ConnectionStateChangeEvent.class);
+		networkManager = new ClientNetworkManager(this);
+		
+		///////////////////////////////////////////////
 		// Setup the world, world save/loader, and world renderer
 		// "world-allthings" is main world
-		world = new World(true);
+		world = new ClientWorld();
 		//worldSave = new WorldSave(world, "world.dat");
 		worldRenderer = new WorldRenderer(world, atlas);
 		
@@ -276,6 +282,7 @@ public class Game {
 		// Setup the player
 		player = new EntityPlayer();
 		worldRenderer.setClientPlayer(player);
+		world.associateWith(player);
 		
 		// Initially have the player in the main world
 		player.setWorld(world);
@@ -292,7 +299,6 @@ public class Game {
 	private boolean networkInit()
 	{
 		// Listen to the connection state change event
-		GLOBAL_BUS.registerEvent(ConnectionStateChangeEvent.class);
 		GLOBAL_BUS.addHandler(ConnectionStateChangeEvent.class, (e) -> {
 			ConnectionStateChangeEvent event = (ConnectionStateChangeEvent)e;
 			
@@ -300,7 +306,6 @@ public class Game {
 				clientInit();
 		});
 		
-		networkManager = new ClientNetworkManager(this);
 		networkManager.setConnectionAddress(serverAddress, serverPort);
 		
 		return networkManager.init();

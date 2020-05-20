@@ -22,6 +22,7 @@ public class PacketCodec extends ByteToMessageCodec<Packet>
 		idToPacket.put(4, PSChunkData.class);
 		idToPacket.put(5, PCSPlaceBlock.class);
 		idToPacket.put(6, PCSBreakBlock.class);
+		idToPacket.put(7, PCLoadChunkColumn.class);
 	}
 	
 	@Override

@@ -18,7 +18,7 @@ public class ClientChannelHandler extends ChannelDuplexHandler
 	public void channelRead(ChannelHandlerContext ctx, Object msg)
 	{
 		Packet packet = (Packet)msg;
-		clientInstance.getNetworkManager().handlePacket(packet);
+		clientInstance.getNetworkManager().handlePacket(packet, -1);
 	}
 	
 	@Override

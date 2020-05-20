@@ -150,7 +150,7 @@ public class ClientNetworkManager implements NetworkManager
 	}
 	
 	@Override
-	public void handlePacket(Packet packet)
+	public void handlePacket(Packet packet, int sourceClientID)
 	{
 		// Add the packet to the process queue
 		packetQueue.offer(packet);

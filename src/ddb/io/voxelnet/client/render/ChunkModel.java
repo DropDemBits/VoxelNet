@@ -97,19 +97,7 @@ class ChunkModel
 			rebuildSnapshot[layer.ordinal()] = chunk.layerNeedsRebuild(layer);
 		}
 		
-		// Update the adjacency field
-		for(int i = 0; i < adjacentField.length; i++)
-		{
-			int xOff = (i % 3) - 1;
-			int zOff = ((i / 3) % 3) - 1;
-			int yOff = (i / 9) - 1;
-			
-			adjacentField[i] = chunk.world.getChunk(
-					chunk.chunkX + xOff,
-					chunk.chunkY + yOff,
-					chunk.chunkZ + zOff
-			);
-		}
+		updateAdjacencyField();
 		
 		// Rebuild each layer individually
 		long start = System.nanoTime();
@@ -141,6 +129,23 @@ class ChunkModel
 		--updateAttempts;
 		updateLock.unlock();
 		return true;
+	}
+	
+	private void updateAdjacencyField()
+	{
+		// Update the adjacency field
+		for(int i = 0; i < adjacentField.length; i++)
+		{
+			int xOff = (i % 3) - 1;
+			int zOff = ((i / 3) % 3) - 1;
+			int yOff = (i / 9) - 1;
+			
+			adjacentField[i] = chunk.world.getChunk(
+					chunk.chunkX + xOff,
+					chunk.chunkY + yOff,
+					chunk.chunkZ + zOff
+			);
+		}
 	}
 	
 	private void rebuildLayer(RenderLayer layer, TextureAtlas atlas)
@@ -320,4 +325,12 @@ class ChunkModel
 		}
 	}
 	
+	// Forces a rebuild of the adjacent neighbors
+	public void forceNeighborRebuild()
+	{
+		updateAdjacencyField();
+		
+		for (Facing sides : Facing.directions())
+			adjacentField[BlockRenderer.toAdjacentIndex(sides.getOffsetX(), sides.getOffsetY(), sides.getOffsetZ())].forceLayerRebuild();
+	}
 }

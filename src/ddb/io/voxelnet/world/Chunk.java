@@ -31,7 +31,9 @@ public class Chunk
 			Short.BYTES; // for tickables count
 	public static final int TICKPOS_BYTES = 3;
 	
+	// Position of the chunk (in chunk coordinates)
 	public final int chunkX, chunkY, chunkZ;
+	// The chunk's associated world
 	public World world;
 	
 	// Number of solid blocks on each layer
@@ -44,6 +46,7 @@ public class Chunk
 	private final byte[] blockData = new byte[BLOCK_DATA_SIZE];
 	// Block metadata (2 block clusters)
 	private final byte[] blockMeta = new byte[META_DATA_SIZE];
+	
 	// If the chunk holds data (by default, they are empty)
 	private boolean isEmpty = true;
 	// If the chunk needs to be re-rendered (per-layer)
@@ -52,7 +55,10 @@ public class Chunk
 	private boolean isDirty = false;
 	// If the chunk was recently generated
 	private boolean recentlyGenerated = true;
+	// If the chunk is a placeholder until the real data arrives
+	private boolean isPlaceholder = false;
 	
+	// List of tickables (i.e blocks that have "isTickable" return true) contained within the chunk
 	public List<Integer> tickables = new ArrayList<>();
 	
 	/**
@@ -384,6 +390,8 @@ public class Chunk
 		blockMeta[index] |= (byte)(meta << shift);
 	}
 	
+	//////// Flags Galore! ////////
+	
 	/**
 	 * Checks if the chunk is dirty and needs to be saved to disk
 	 * @return True if the chunk needs to be saved
@@ -472,6 +480,41 @@ public class Chunk
 	public void setGenerated()
 	{
 		recentlyGenerated = false;
+	}
+	
+	/**
+	 * Marks the chunk as a placeholder
+	 *
+	 * A chunk is only marked a placeholder if a "getChunk" is made and a request
+	 * for a chunk from the chunk source (e.g. the server, chunk cache, disk)
+	 * has been requested, but has not been fulfilled yet.
+	 */
+	public void markPlaceholder()
+	{
+		isPlaceholder = true;
+	}
+	
+	/**
+	 * Marks the chunk as not a placeholder
+	 *
+	 * This action is only performed if a request for the chunk has been
+	 * fulfilled but the chunk data is empty. As it is assumed, that no
+	 * modifications to the chunk data have been performed, removing
+	 * the status as a placeholder chunk is the same action as creating a
+	 * new empty chunk.
+	 */
+	public void markNotPlaceholder()
+	{
+		isPlaceholder = false;
+	}
+	
+	/**
+	 * Checks if the current chunk is marked as a placeholder
+	 * @return True if the chunk has been marked as a placeholder
+	 */
+	public boolean isPlaceholder()
+	{
+		return isPlaceholder;
 	}
 	
 	public void dbgPrint()

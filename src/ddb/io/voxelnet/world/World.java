@@ -14,6 +14,9 @@ import org.joml.Vector3d;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+/**
+ * Common World class between the client world and server world
+ */
 public class World
 {
 	// Sidedness
@@ -387,8 +390,10 @@ public class World
 			if (block == Blocks.AIR)
 				return; // Don't need to add a column if air is being placed
 			
-			// Force load the column (should have been loaded with the chunks)
-			chunkColumn = chunkManager.loadColumn(x >> 4, z >> 4);
+			// Force load the column (should have been loaded with the chunks!)
+			System.out.println("Warning: Missing column load at " + (x >> 4) + ", " + (z >> 4));
+			chunkManager.loadColumn(x >> 4, z >> 4);
+			chunkColumn = chunkManager.getColumn(x >> 4, z >> 4);
 		}
 		
 		int oldestHeight = chunkColumn.getTallestOpaque(blockX, blockZ);
