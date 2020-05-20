@@ -2,8 +2,8 @@ package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.client.render.gl.GLContext;
 import org.lwjgl.system.MemoryStack;
-import sun.misc.IOUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -23,14 +23,21 @@ public class Texture
 	public Texture(String path)
 	{
 		try (MemoryStack stack = MemoryStack.stackPush();
-		     InputStream texStream = Texture.class.getClassLoader().getResourceAsStream(path))
+		     InputStream texStream = Objects.requireNonNull(Texture.class.getClassLoader().getResourceAsStream(path)))
 		{
 			IntBuffer x = stack.callocInt(1);
 			IntBuffer y = stack.callocInt(1);
 			IntBuffer file_channels = stack.callocInt(1);
 			
-			// Load the image data into a bytebuf
-			ByteBuffer imgBuf = stack.bytes(IOUtils.readAllBytes(Objects.requireNonNull(texStream)));
+			// Load the image data into a bytebuffer
+			ByteArrayOutputStream bos = new ByteArrayOutputStream(4096);
+			byte[] buffer = new byte[4096];
+			int readLen;
+			
+			while ((readLen = texStream.read(buffer)) != -1)
+				bos.write(buffer, 0, readLen);
+			
+			ByteBuffer imgBuf = stack.bytes(bos.toByteArray());
 			
 			// Load the image from memory
 			stbi_set_flip_vertically_on_load(true);
