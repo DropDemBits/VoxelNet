@@ -403,9 +403,9 @@ public class BlockRenderer
 				// East Face
 				vLeft = (int)MathUtil.lerp(texCoords[1], texCoords[3], ne);
 				vRight = (int)MathUtil.lerp(texCoords[1], texCoords[3], se);
-				builder.pos3f(x + 1.0f, y + ne,   z + 0.0f).tex2i(texCoords[2], texCoords[3]).light3b(skyLight[3], blockLight[3], aoLight[3]).endVertex();
-				builder.pos3f(x + 1.0f, y + se,   z + 1.0f).tex2i(texCoords[0],        vLeft).light3b(skyLight[2], blockLight[2], aoLight[2]).endVertex();
-				builder.pos3f(x + 1.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[0],       vRight).light3b(skyLight[1], blockLight[1], aoLight[1]).endVertex();
+				builder.pos3f(x + 1.0f, y + ne,   z + 0.0f).tex2i(texCoords[2],        vLeft).light3b(skyLight[3], blockLight[3], aoLight[3]).endVertex();
+				builder.pos3f(x + 1.0f, y + se,   z + 1.0f).tex2i(texCoords[0],       vRight).light3b(skyLight[2], blockLight[2], aoLight[2]).endVertex();
+				builder.pos3f(x + 1.0f, y + 0.0f, z + 1.0f).tex2i(texCoords[0], texCoords[1]).light3b(skyLight[1], blockLight[1], aoLight[1]).endVertex();
 				builder.pos3f(x + 1.0f, y + 0.0f, z + 0.0f).tex2i(texCoords[2], texCoords[1]).light3b(skyLight[0], blockLight[0], aoLight[0]).endVertex();
 				break;
 			case WEST:
@@ -476,9 +476,10 @@ public class BlockRenderer
 			return false;
 		}
 		
-		if (!block.isFilledCube() && !forceSmoothing)
+		if ((!block.isFilledCube() && !forceSmoothing) || face == Facing.NONE)
 		{
 			// Non-filled cubes get the current block as lighting
+			// "NONE" faces also get the current block as lighting
 			Arrays.fill(destBlockLights, getBlockLight(x, y, z, Facing.NONE, adjacentField) * BlockRenderer.MAX_SMOOTHING_WEIGHTING);
 			Arrays.fill(destSkyLights,   getSkyLight(x, y, z, Facing.NONE, adjacentField) * BlockRenderer.MAX_SMOOTHING_WEIGHTING);
 			Arrays.fill(destAOLights, (0 << 3) | face.ordinal());
@@ -491,63 +492,84 @@ public class BlockRenderer
 		//  0 3 +h
 		//  1 2
 		// +v   +vh
+		
+		// Vertex Horizontal Offset
 		final int[] vho = new int[] {0, 0, 1, 1};
+		// Vertex Vertical Offset
 		final int[] vvo = new int[] {0, 1, 1, 0};
 		
-		final boolean[] transparents = new boolean[4];
+		// Opaque blocks existing on the face's plane
+		final boolean[] opaqueBlocks = new boolean[4];
 		
-		Arrays.fill(transparents, false);
-		
+		// Get light at the current position
 		int currBlockLight = getBlockLight(x, y, z, Facing.NONE, adjacentField);
 		int currSkyLight   = getSkyLight  (x, y, z, Facing.NONE, adjacentField);
 		
+		// Accumulate the average light for each vertex
 		for (int v = 0; v < 4; v++)
 		{
 			for (int off = 0; off < 4; off++)
 			{
-				int offH = (vho[off] - 1) + vho[v];
-				int offV = (vvo[off] - 1) + vvo[v];
+				int horizontalOff = (vho[off] - 1) + vho[v];
+				int verticalOff = (vvo[off] - 1) + vvo[v];
 				
 				int lastBlockLight = destBlockLights[v];
 				int lastSkyLight   = destSkyLights[v];
 				final int weighting = 1;
 				
+				// Search position
+				int xOff = 0, yOff = 0, zOff = 0;
+				
 				switch (face)
 				{
 					case WEST:
 					case EAST:
-						destBlockLights[v] += getBlockLight(x, y + offH, z + offV, face, adjacentField) * weighting;
-						destSkyLights[v]   += getSkyLight  (x, y + offH, z + offV, face, adjacentField) * weighting;
-						transparents[off]   = getBlock     (x, y + offH, z + offV, face, adjacentField).isTransparent();
+						// Axis is y as horizontal, z as vertical
+						yOff = horizontalOff;
+						zOff = verticalOff;
 						break;
 					case NORTH:
 					case SOUTH:
-						destBlockLights[v] += getBlockLight(x + offH, y + offV, z, face, adjacentField) * weighting;
-						destSkyLights[v]   += getSkyLight  (x + offH, y + offV, z, face, adjacentField) * weighting;
-						transparents[off]   = getBlock     (x + offH, y + offV, z, face, adjacentField).isTransparent();
+						// Axis is x as horizontal, y as vertical
+						xOff = horizontalOff;
+						yOff = verticalOff;
 						break;
 					case UP:
 					case DOWN:
-						destBlockLights[v] += getBlockLight(x + offH, y, z + offV, face, adjacentField) * weighting;
-						destSkyLights[v]   += getSkyLight  (x + offH, y, z + offV, face, adjacentField) * weighting;
-						transparents[off]   = getBlock     (x + offH, y, z + offV, face, adjacentField).isTransparent();
+						// Axis is x as horizontal, z as vertical
+						xOff = horizontalOff;
+						zOff = verticalOff;
 						break;
 					default:
-						Arrays.fill(destBlockLights, getBlockLight(x, y, z, face, adjacentField) * BlockRenderer.MAX_SMOOTHING_WEIGHTING);
-						Arrays.fill(destSkyLights,   getSkyLight(x, y, z, face, adjacentField) * BlockRenderer.MAX_SMOOTHING_WEIGHTING);
+						// Do nothing, but should not be here
 				}
 				
+				// Update the lighting
+				destBlockLights[v] += getBlockLight(x + xOff, y + yOff, z + zOff, face, adjacentField) * weighting;
+				destSkyLights[v]   += getSkyLight  (x + xOff, y + yOff, z + zOff, face, adjacentField) * weighting;
+				
+				// Get the transparent state of the block
+				opaqueBlocks[off]   = !getBlock(x + xOff, y + yOff, z + zOff, face, adjacentField).isTransparent();
+				
 				// If no change & smoothing is forced, apply the light at the block's position
-				if ((forceSmoothing || block.isTransparent() || !block.isFilledCube()) && destBlockLights[v] - lastBlockLight == 0) destBlockLights[v] += currBlockLight * weighting;
-				if ((forceSmoothing || block.isTransparent() || !block.isFilledCube()) && destSkyLights[v] - lastSkyLight == 0) destSkyLights[v] += currSkyLight * weighting;
+				boolean canUseSelfLight = forceSmoothing || block.isTransparent() || !block.isFilledCube();
+				
+				if (canUseSelfLight)
+				{
+					if (destBlockLights[v] - lastBlockLight == 0)
+						destBlockLights[v] += currBlockLight * weighting;
+					if (destSkyLights[v] - lastSkyLight == 0)
+						destSkyLights[v] += currSkyLight * weighting;
+				}
 			}
 			
 			// Compute ao index
 			int side0, side1, corner;
 			
-			side0  = transparents[(v + 3) % 4] ? 0 : 1;
-			corner = transparents[(v + 0) % 4] ? 0 : 1;
-			side1  = transparents[(v + 1) % 4] ? 0 : 1;
+			// Convert booleans to int
+			side0  = opaqueBlocks[(v + 3) % 4] ? 1 : 0;
+			corner = opaqueBlocks[(v + 0) % 4] ? 1 : 0;
+			side1  = opaqueBlocks[(v + 1) % 4] ? 1 : 0;
 			
 			if (side0 + side1 == 2)
 				destAOLights[v] = 3;
@@ -557,15 +579,12 @@ public class BlockRenderer
 			// Merge the face index
 			destAOLights[v] <<= 3;
 			destAOLights[v] |= face.ordinal() & 0x7;
-			
-			// Prepare for next pass
-			Arrays.fill(transparents, false);
 		}
 		
 		// Flip depending on the ao index
 		boolean flipFace = (destAOLights[0] + destAOLights[2]) < (destAOLights[1] + destAOLights[3]);
 		
-		// Flip the flip condition for the extrusion axis
+		// If it's the negative face for the given axis, flip the condition
 		if (face == Facing.WEST || face == Facing.NORTH || face == Facing.UP)
 			flipFace = !flipFace;
 		
@@ -591,6 +610,8 @@ public class BlockRenderer
 		int chunkY = getAdjacentOffset(relY) * 9;
 		int chunkZ = getAdjacentOffset(relZ) * 3;
 		
+		// Chunks are ordered (from the most to least significant coordinate) as YZX
+		
 		// -  -  0  +
 		// -  0  1  2
 		// 0  3  4  5
@@ -611,12 +632,16 @@ public class BlockRenderer
 		return adjacentChunks[index];
 	}
 	
-	// Computes a selection offset used in getChunk
+	// Computes a selection offset used in getChunk, using a chunk relative block coordinate
 	private static int getAdjacentOffset(int coordinate)
 	{
-		if (coordinate < 0)
+		// Use bitshifts as division doesn't work with values between -15 to 15
+		// as integer division rounds towards zero
+		int chunkCoord = coordinate >> 4;
+		
+		if (chunkCoord < 0)
 			return 0;   // Towards negative, -1
-		if (coordinate > 0xF)
+		if (chunkCoord > 0)
 			return 2;   // Towards positive, +1
 		
 		return 1;       // Same column / row
