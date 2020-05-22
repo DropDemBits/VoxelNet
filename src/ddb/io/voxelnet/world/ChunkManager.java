@@ -164,7 +164,23 @@ public class ChunkManager
 	}
 	
 	/**
-	 * Checks if the column at the given coordinates is loaded
+	 * Checks if the column at the given coordinates is loaded.
+	 * A column is loaded if it exists either in the chunk manager's cache, or
+	 * is in the active column set.
+	 *
+	 * @param pos The chunk column to check
+	 * @return True if the column is loaded
+	 */
+	public boolean isColumnLoaded(Vec3i pos)
+	{
+		return getColumn(pos) != null;
+	}
+	
+	/**
+	 * Checks if the column at the given coordinates is loaded.
+	 * A column is loaded if it exists either in the chunk manager's cache, or
+	 * is in the active column set.
+	 *
 	 * @param chunkX The chunk column's x position
 	 * @param chunkZ The chunk column's z position
 	 * @return True if the column is loaded into the chunk manager's cache

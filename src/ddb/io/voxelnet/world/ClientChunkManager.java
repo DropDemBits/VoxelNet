@@ -53,12 +53,29 @@ public class ClientChunkManager extends ChunkManager
 	protected Chunk doLoadChunk(Vec3i pos)
 	{
 		// TODO: If in unloaded cache, check for unloaded chunks
-		// Give back a placeholder chunks
-		Chunk chunk = super.doLoadChunk(pos);
-		chunk.markPlaceholder();
+		// Chunk doesn't exist yet, create an empty one
+		Chunk chunk = new Chunk(world, pos.getX(), pos.getY(), pos.getZ());
+		loadedChunks.put(pos, chunk);
 		
-		// Add to the placeholder chunks
+		Vec3i columnPos = new Vec3i(pos.getX(), 0, pos.getZ());
+		
+		// If the column is already loaded, pass the empty chunk
+		// This is either an empty column, or a new chunk is created in the column
+		if (isColumnLoaded(columnPos))
+			return chunk;
+		
+		// Chunk's column has not been loaded yet
+		// Check if a request for the column has been made yet
+		if (!pendingColumnLoads.contains(columnPos))
+		{
+			// Initiate a column load
+			loadColumn(columnPos);
+		}
+		
+		// Mark current chunk as a placeholder and add to the placeholder chunks
+		chunk.markPlaceholder();
 		placeholderChunks.add(pos);
+		
 		return chunk;
 	}
 	

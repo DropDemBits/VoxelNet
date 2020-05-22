@@ -9,7 +9,7 @@ import ddb.io.voxelnet.world.World;
 public class ClientWorld extends World
 {
 	// The radius of chunks to load into the chunk manager's cache
-	int loadRadius = 5;
+	public static int loadRadius = 5;
 	
 	// The client player
 	EntityPlayer clientPlayer;
@@ -31,7 +31,7 @@ public class ClientWorld extends World
 	@Override
 	public void update(float delta)
 	{
-		// TODO: Check if chunks are still within the loaded radius
+		// TODO: Check if chunks are still within the loaded radius & unload if not
 		// Check if any of the chunk columns in the loaded radius are loaded
 		for (int cx = -loadRadius; cx <= loadRadius; cx++)
 		{

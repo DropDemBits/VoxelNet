@@ -1,5 +1,6 @@
 package ddb.io.voxelnet.client.render;
 
+import ddb.io.voxelnet.client.ClientWorld;
 import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.util.Vec3i;
@@ -117,11 +118,13 @@ public class WorldRenderer
 				continue;
 			
 			// TODO: Check if the model's associated chunk is unloaded
+			// Cancel model update if chunk is unloaded
 			
 			// Render around a certain radius
 			// ???: How about only rendering the active chunks? (takes care of distancing problems)
 			if (((chunkModel.chunk.chunkX << 4) + 8.5f - clientPlayer.xPos)*((chunkModel.chunk.chunkX << 4) + 8.5f - clientPlayer.xPos) +
-					((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos)*((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos) > (5*5)*(16*16))
+					((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos)*((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos) >
+					(ClientWorld.loadRadius*ClientWorld.loadRadius)*(16*16))
 				continue;
 			
 			// Perform frustum culling
