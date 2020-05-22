@@ -340,6 +340,7 @@ public class ServerNetworkManager implements NetworkManager
 	
 	private boolean sendChunkColumnTo(int x, int z, Channel channel)
 	{
+		System.out.format("Sending (%d, %d)\n", x, z);
 		ChunkManager chunkManager = instance.world.chunkManager;
 		ChunkColumn column = chunkManager.getColumn(x, z);
 		

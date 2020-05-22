@@ -70,7 +70,7 @@ class ChunkModel
 		++updateAttempts;
 		
 		// Check if the chunk has been made empty
-		if (chunk.isEmpty())
+		if (chunk.hasNoBlocks())
 		{
 			// Defer the vertex buffer update to the render stage
 			isDirty = true;

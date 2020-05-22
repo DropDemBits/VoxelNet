@@ -114,7 +114,7 @@ public class WorldRenderer
 		for (ChunkModel chunkModel : renderList)
 		{
 			// Perform empty check
-			if (chunkModel.chunk.isEmpty())
+			if (chunkModel.chunk.hasNoBlocks())
 				continue;
 			
 			// TODO: Check if the model's associated chunk is unloaded

@@ -124,9 +124,11 @@ public class WorldSave
 				// Need to save
 				// Position (Cx, Cy, Cz)
 				// Block Lighting (blockLights)
-				// Block count (blockCount)
 				// Block Data (blockData)
-				// blockLayers (blockLayers)
+				
+				// Don't need to save but still save
+				// Block count (blockCount, saved for compatibility)
+				// blockLayers (blockLayers, saved for compatibility)
 				
 				// Don't need to save
 				// isEmpty (implied in block count)
@@ -416,7 +418,7 @@ public class WorldSave
 		
 		Chunk chunk = new Chunk(world, cx, cy, cz);
 		// Workaround to stop errors
-		chunk.deserialize(blockData, blockLighting, new byte[0], new short[0], new int[0], blockCount);
+		chunk.deserialize(blockData, blockLighting, new byte[0], new int[0]);
 		return chunk;
 	}
 	
@@ -434,7 +436,7 @@ public class WorldSave
 		int cy = buf.getInt();
 		int cz = buf.getInt();
 		
-		// Fetch the block count
+		// Fetch the block count (never used, always recalculated)
 		short blockCount = buf.getShort();
 		
 		short[] blockLayers = new short[Chunk.LAYER_DATA_SIZE];
@@ -462,7 +464,7 @@ public class WorldSave
 		}
 		
 		Chunk chunk = new Chunk(world, cx, cy, cz);
-		chunk.deserialize(blockData, blockLighting, blockMeta, blockLayers, tickables, blockCount);
+		chunk.deserialize(blockData, blockLighting, blockMeta, tickables);
 		return chunk;
 	}
 	

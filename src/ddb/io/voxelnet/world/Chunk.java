@@ -4,9 +4,9 @@ import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.client.render.RenderLayer;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.function.IntPredicate;
+import java.util.stream.IntStream;
 
 /**
  * Representation of a game chunk (16*16*16 chunk of tiles)
@@ -36,19 +36,22 @@ public class Chunk
 	// The chunk's associated world
 	public World world;
 	
-	// Number of solid blocks on each layer
-	private final short[] blockLayers = new short[LAYER_DATA_SIZE];
 	// Block light & sky light data for each block
 	private final byte[] lightData = new byte[LIGHT_DATA_SIZE];
-	// The number of blocks in the chunk
-	private short blockCount = 0;
 	// Actual chunk data
 	private final byte[] blockData = new byte[BLOCK_DATA_SIZE];
 	// Block metadata (2 block clusters)
 	private final byte[] blockMeta = new byte[META_DATA_SIZE];
 	
-	// If the chunk holds data (by default, they are empty)
-	private boolean isEmpty = true;
+	// The number of blocks in the chunk
+	private short blockCount = 0;
+	// The number of active block lights in the chunk
+	private short blockLightCount = 0;
+	// The number of active sky lights in the chunk
+	private short skyLightCount = 0;
+	// Number of solid, opaque blocks on each layer
+	private final short[] blockLayers = new short[LAYER_DATA_SIZE];
+	
 	// If the chunk needs to be re-rendered (per-layer)
 	private final boolean[] layerNeedsRebuild = new boolean[RenderLayer.values().length];
 	// If the chunk needs to be saved to disk
@@ -81,21 +84,31 @@ public class Chunk
 	
 	/**
 	 * Deserialize a chunk from existing data
+	 * Block count, light count, and block layer count is derived from their respective arrays
+	 *
 	 * @param blockData The chunk block data
-	 * @param blockLights The chunk block light data
+	 * @param lightData The chunk light data
 	 * @param blockMetas The chunk block meta data
-	 * @param layerData The chunk layer data
 	 * @param tickables The tickable blocks in the chunk
-	 * @param blockCount The chunk's block count
 	 */
-	public void deserialize(byte[] blockData, byte[] blockLights, byte[] blockMetas,
-	                        short[] layerData, int[] tickables, int blockCount)
+	public void deserialize(byte[] blockData, byte[] lightData, byte[] blockMetas, int[] tickables)
 	{
-		this.blockCount = (short)blockCount;
 		System.arraycopy(blockData, 0, this.blockData, 0, this.blockData.length);
-		System.arraycopy(blockLights, 0, this.lightData, 0, this.lightData.length);
+		System.arraycopy(lightData, 0, this.lightData, 0, this.lightData.length);
 		System.arraycopy(blockMetas, 0, this.blockMeta, 0, this.blockMeta.length);
-		System.arraycopy(layerData, 0, this.blockLayers, 0, this.blockLayers.length);
+		
+		// Information can be acquired at runtime
+		this.blockCount      = (short)countAll (id -> id > 0, this.blockData);
+		this.blockLightCount = (short)countAll(light -> ((light >> 0) & 0xF) > 0, this.lightData);
+		this.skyLightCount   = (short)countAll(light -> ((light >> 4) & 0xF) < 15, this.lightData);
+		
+		// Fill the layer data
+		for (int layer = 0; layer < 16; layer++)
+			blockLayers[layer] = (short)countAll(
+					id -> !Block.idToBlock(id).isTransparent(),
+					this.blockData,
+					layer * (16*16),
+					(layer+1) * (16*16));
 		
 		// Add all the tickables
 		for (int tickable : tickables)
@@ -103,9 +116,21 @@ public class Chunk
 		
 		// Update the rebuild state
 		forceLayerRebuild();
-		
-		// Most likely not empty
-		isEmpty = false;
+	}
+	
+	// Count all elements matching "matchAll" in the array
+	private long countAll(IntPredicate matchAll, byte[] source)
+	{
+		return countAll(matchAll, source, 0, source.length);
+	}
+	
+	// Count all elements matching "matchAll" in the given range
+	private long countAll(IntPredicate matchAll, byte[] source, int startIndex, int endIndex)
+	{
+		return IntStream.range(startIndex, endIndex)
+				.map(i -> Byte.toUnsignedInt(source[i]))
+				.filter(matchAll)
+				.count();
 	}
 	
 	/**
@@ -167,11 +192,12 @@ public class Chunk
 		// Lossy/truncate down convert into an int
 		blockData[blockIndex] = (byte)id;
 		
-		// Update the dirty & rebuild states
-		isDirty = true;
+		// Mark that the chunk now has been modified
+		makeDirty();
 		
 		if (block == Blocks.AIR)
 		{
+			// Block changes to air always force an update of the model
 			forceLayerRebuild();
 		}
 		else
@@ -180,22 +206,13 @@ public class Chunk
 			layerNeedsRebuild[RenderLayer.OPAQUE.ordinal()] = true;
 		}
 		
-		// Update the block count & isEmpty
+		// Update the block count
 		if (lastBlock == Blocks.AIR && block != Blocks.AIR)
-		{
 			++blockCount;
-			isEmpty = false;
-		}
 		else if (lastBlock != Blocks.AIR && block == Blocks.AIR)
-		{
 			--blockCount;
-			
-			if (blockCount < 0)
-				blockCount = 0;
-			
-			if (blockCount == 0)
-				isEmpty = true;
-		}
+		
+		assert blockCount >= 0 : "Bad block count!";
 		
 		// Handle opaque block layer count
 		if (lastBlock.isTransparent() && !block.isTransparent())
@@ -256,9 +273,10 @@ public class Chunk
 		// Y    | Z    | X
 		// 0000 | 0000 | 0000
 		//    8      4      0
+		int blockIdx = (y << 8) | (z << 4) | (x << 0);
 		
 		// Block light will be in the range of 0(darkest) - 15(brightest)
-		return (lightData[(y << 8) | (z << 4) | (x << 0)] & 0x0F);
+		return (lightData[blockIdx] & 0x0F);
 	}
 	
 	/**
@@ -280,9 +298,10 @@ public class Chunk
 		// Y    | Z    | X
 		// 0000 | 0000 | 0000
 		//    8      4      0
+		int blockIdx = (y << 8) | (z << 4) | (x << 0);
 		
 		// Sky light will be in the range of 0(darkest) - 15(brightest)
-		return ((lightData[(y << 8) | (z << 4) | (x << 0)] & 0xF0) >> 4);
+		return ((lightData[blockIdx] & 0xF0) >> 4);
 	}
 	
 	/**
@@ -298,17 +317,24 @@ public class Chunk
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
 			return;
 		
-		byte realLight = (byte)(Math.min(newBlockLight, 15));
+		byte newLight = (byte)(Math.min(newBlockLight, 15));
 		
-		int lightIndex = (y << 8) | (z << 4) | (x << 0);
-		byte oldLight = (byte)(lightData[lightIndex] & 0xF0);
-		int lastBlockLight = (lightData[lightIndex] & 0x0F);
+		int blockIndex = (y << 8) | (z << 4) | (x << 0);
+		int lastLight = (lightData[blockIndex] & 0x0F);
 		
-		if (lastBlockLight == realLight)
+		if (lastLight == newLight)
 			return;
 		
-		oldLight |= (realLight & 0xF);
-		lightData[lightIndex] = oldLight;
+		lightData[blockIndex] &= ~0x0F;
+		lightData[blockIndex] |= (newLight & 0xF);
+		
+		// Update the sky light count on transitions to & from no block light
+		if (lastLight == 0 && newLight > 0)
+			++blockLightCount;
+		else if (lastLight > 0 && newLight == 0)
+			--blockLightCount;
+		
+		assert blockLightCount >= 0 : "Bad block light count!";
 		
 		// Trigger layer rebuild
 		forceLayerRebuild();
@@ -327,17 +353,24 @@ public class Chunk
 		if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= 16 || z >= 16)
 			return;
 		
-		byte realLight = (byte)(Math.min(newSkylight, 15));
+		byte newLight = (byte)(Math.min(newSkylight, 15));
 		
-		int lightIndex = (y << 8) | (z << 4) | (x << 0);
-		byte oldLight = (byte)(lightData[lightIndex] & 0x0F);
-		int lastSkyLight = (lightData[lightIndex] >> 4) & 0xF;
+		int blockIndex = (y << 8) | (z << 4) | (x << 0);
+		int lastLight = (lightData[blockIndex] >> 4) & 0xF;
 		
-		if (lastSkyLight == realLight)
+		if (lastLight == newLight)
 			return;
 		
-		oldLight |= (realLight & 0xF) << 4;
-		lightData[lightIndex] = oldLight;
+		lightData[blockIndex] &= ~0xF0;
+		lightData[blockIndex] |= (newLight & 0xF) << 4;
+		
+		// Update the sky light count on transitions to & from max sky light
+		if (lastLight == 15 && newLight < 15)
+			++skyLightCount;
+		else if (lastLight < 15 && newLight == 15)
+			--skyLightCount;
+		
+		assert skyLightCount >= 0 : "Bad skylight count!";
 		
 		// Trigger layer rebuild
 		forceLayerRebuild();
@@ -393,7 +426,7 @@ public class Chunk
 	//////// Flags Galore! ////////
 	
 	/**
-	 * Checks if the chunk is dirty and needs to be saved to disk
+	 * Checks if the chunk is dirty and needs to be saved to disk after purging from the chunk cache
 	 * @return True if the chunk needs to be saved
 	 */
 	public boolean isDirty()
@@ -410,7 +443,7 @@ public class Chunk
 	}
 	
 	/**
-	 * Makes the chunk dirty
+	 * Makes the chunk dirty, indicating that it needs to be saved if purged from the chunk cache
 	 */
 	public void makeDirty()
 	{
@@ -457,12 +490,21 @@ public class Chunk
 	}
 	
 	/**
-	 * Checks if the chunk is empty
-	 * @return True if the chunk is empty
+	 * Checks if the chunk has no blocks
+	 * @return True if the chunk does not have any blocks
+	 */
+	public boolean hasNoBlocks()
+	{
+		return blockCount <= 0;
+	}
+	
+	/**
+	 * Checks if the chunk is completely empty
+	 * @return True if the chunk has no datais
 	 */
 	public boolean isEmpty()
 	{
-		return isEmpty;
+		return blockCount <= 0 && blockLightCount <= 0 && skyLightCount <= 0;
 	}
 	
 	/**
@@ -521,7 +563,7 @@ public class Chunk
 	{
 		System.out.println("ChunkDump (" + chunkX + ", " + chunkY + ", " + chunkZ + ")");
 		System.out.println("Bcnt " + blockCount);
-		System.out.println("Empt " + isEmpty + " | Rbld " + Arrays.toString(layerNeedsRebuild) + " | Drty " + isDirty + " | Rgen " + recentlyGenerated);
+		System.out.println("Rbld " + Arrays.toString(layerNeedsRebuild) + " | Drty " + isDirty + " | Rgen " + recentlyGenerated);
 	}
 	
 }

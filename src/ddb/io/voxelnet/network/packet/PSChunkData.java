@@ -15,7 +15,7 @@ import java.util.zip.*;
 
 public class PSChunkData extends Packet
 {
-	private static final int UNCOMPRESSED_CHUNK_SIZE = Chunk.BLOCK_DATA_SIZE + Chunk.LIGHT_DATA_SIZE + Chunk.META_DATA_SIZE + Chunk.LAYER_DATA_SIZE * 2;
+	private static final int UNCOMPRESSED_CHUNK_SIZE = Chunk.BLOCK_DATA_SIZE + Chunk.LIGHT_DATA_SIZE + Chunk.META_DATA_SIZE;
 	
 	public int chunkX;
 	public int chunkZ;
@@ -96,22 +96,19 @@ public class PSChunkData extends Packet
 		
 		// Variable Block:
 		// 1 Chunk segment:
-		// ChunkY     (4, i)       | BlockCount  (2, us)      | Tick-able Count (2, us)   |
-		// Tick-ables (4*size, i)  | CompressedLength (2, us) | CompressedData (1*size,b) |
+		// ChunkY     (4, i)        | Tick-able Count (2, us)   | Tick-ables (4*size, i) |
+		// CompressedLength (2, us) | CompressedData (1*size,b) |
 		
 		// Compressed Chunk Data:
 		// BlockData[] (1*size, b) | Lighting[] (1*size, b)  | BlockMeta[] (1*size, b) |
-		// LayerData[] (2*size, s) |
 		
 		// Decompressed chunk data
 		final byte[] decompressedData = new byte[UNCOMPRESSED_CHUNK_SIZE];
 		
 		// "Chunk.deserialize" clones the data, so buffers can be shared
 		final byte[] blockData = new byte[Chunk.BLOCK_DATA_SIZE];
-		final byte[] lightData  = new byte[Chunk.LIGHT_DATA_SIZE];
-		final byte[] metaData= new byte[Chunk.META_DATA_SIZE];
-		final byte[] layerIntermediate = new byte[Chunk.LAYER_DATA_SIZE * 2];
-		final short[] layerData = new short[Chunk.LAYER_DATA_SIZE];
+		final byte[] lightData = new byte[Chunk.LIGHT_DATA_SIZE];
+		final byte[] metaData  = new byte[Chunk.META_DATA_SIZE];
 		
 		Inflater chunkInflater = new Inflater();
 		ByteArrayInputStream chunkData = new ByteArrayInputStream(decompressedData);
@@ -120,7 +117,6 @@ public class PSChunkData extends Packet
 		{
 			// Decode chunk data
 			int chunkY;
-			int blockCount;
 			int tickableCount;
 			int compressedLen;
 			int[] tickables;
@@ -130,7 +126,6 @@ public class PSChunkData extends Packet
 			
 			// Read in chunk position & info
 			chunkY = data.readInt();
-			blockCount = data.readUnsignedShort();
 			
 			// Setup tickables
 			tickableCount = data.readUnsignedShort();
@@ -154,18 +149,14 @@ public class PSChunkData extends Packet
 			chunkData.read(blockData);
 			chunkData.read(lightData);
 			chunkData.read(metaData);
-			chunkData.read(layerIntermediate);
 			chunkData.reset();
 			
 			assert decompressedSize == UNCOMPRESSED_CHUNK_SIZE
 					: "Mismatch in chunk decompression count! (" + chunkX + "," + chunkY + ", " + chunkZ + ")"
 					+ "[" + decompressedSize + " != " + UNCOMPRESSED_CHUNK_SIZE + "]";
 			
-			// Convert layer data into short array
-			ByteBuffer.wrap(layerIntermediate).asShortBuffer().get(layerData);
-			
 			chunk = new Chunk(null, chunkX, chunkY, chunkZ);
-			chunk.deserialize(blockData, lightData, metaData, layerData, tickables, blockCount);
+			chunk.deserialize(blockData, lightData, metaData, tickables);
 			chunkList.add(chunk);
 		}
 		
@@ -193,12 +184,11 @@ public class PSChunkData extends Packet
 		
 		// Variable Block:
 		// 1 Chunk segment:
-		// ChunkY     (4, i)       | BlockCount  (2, us)      | Tick-able Count (2, us)   |
-		// Tick-ables (4*size, i)  | CompressedLength (2, us) | CompressedData (1*size,b) |
+		// ChunkY     (4, i)        | Tick-able Count (2, us)   | Tick-ables (4*size, i) |
+		// CompressedLength (2, us) | CompressedData (1*size,b) |
 		
 		// Compressed Chunk Data:
 		// BlockData[] (1*size, b) | Lighting[] (1*size, b)  | BlockMeta[] (1*size, b) |
-		// LayerData[] (2*size, s) |
 		
 		data.writeInt(chunkX);
 		data.writeInt(chunkZ);
@@ -219,7 +209,6 @@ public class PSChunkData extends Packet
 		aggregator.reset();
 		
 		// Working buffers
-		final byte[] layerIntermediate = new byte[Chunk.LAYER_DATA_SIZE * 2];
 		final byte[] deflateBuffer = new byte[UNCOMPRESSED_CHUNK_SIZE * 2];
 		
 		// Compressor
@@ -229,7 +218,6 @@ public class PSChunkData extends Packet
 		for (Chunk chunk : chunkList)
 		{
 			data.writeInt(chunk.chunkY);
-			data.writeShort(chunk.getBlockCount());
 			
 			// Do the tickables
 			int tickableCount = chunk.tickables.size();
@@ -237,14 +225,10 @@ public class PSChunkData extends Packet
 			for (int tickable : chunk.tickables)
 				data.writeInt(tickable);
 			
-			// Copy the layer data to the holding area
-			ByteBuffer.wrap(layerIntermediate).asShortBuffer().put(chunk.getLayerData());
-			
 			// Aggregate the arrays
 			aggregator.write(chunk.getData());
 			aggregator.write(chunk.getLightData());
 			aggregator.write(chunk.getMetaData());
-			aggregator.write(layerIntermediate);
 			aggregator.flush();
 			byte[] aggregateData = aggregator.toByteArray();
 			
