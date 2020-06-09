@@ -339,7 +339,7 @@ public class SeList implements ISerialize
 		for (SeValue value : values)
 		{
 			if (value == null)
-				SeUtil.writeTo(new SeEmptyValue(), output);
+				SeUtil.writeTo(SeUtil.EMPTY_VALUE, output);
 			else
 				SeUtil.writeTo(value, output);
 		}
@@ -401,7 +401,7 @@ public class SeList implements ISerialize
 				.reduce(Integer::sum)
 				.orElse(0);
 		
-		computedSize += Arrays.stream(values).filter(Objects::isNull).count() * 3;
+		computedSize += Arrays.stream(values).filter(Objects::isNull).count() * 2;
 		
 		isComputingSize = false;
 		

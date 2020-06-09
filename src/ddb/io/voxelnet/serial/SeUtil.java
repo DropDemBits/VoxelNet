@@ -25,8 +25,8 @@ public class SeUtil
 	 */
 	public static void writeTo(ISerialize serialize, DataOutputStream output) throws IOException
 	{
-		// Skip size before Type tag
-		writeVarInt(serialize.getComputedSize(), output);
+		// Skip size before Type tag (includes tag)
+		writeVarInt(serialize.getComputedSize() + 1, output);
 		// Type tag before data block
 		output.write((byte)serialize.getSerializeType().ordinal());
 		// Data block
@@ -149,7 +149,7 @@ public class SeUtil
 	// Computes the number of bytes that a VarInt will use
 	public static int getVarIntSize(int value)
 	{
-		return (1 + Integer.numberOfLeadingZeros(value) / 7);
+		return ((32 - Integer.numberOfLeadingZeros(value)) / 7) + 1;
 	}
 	
 }
