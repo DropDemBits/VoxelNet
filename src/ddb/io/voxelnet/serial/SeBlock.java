@@ -348,7 +348,14 @@ public class SeBlock implements ISerialize
 		isComputingSize = true;
 		
 		computedSize += valueMap.values().parallelStream()
-				.mapToInt(ISerialize::getComputedSize)
+				.mapToInt((i) -> {
+					// Account for tag and skip bytes
+					int size = i.getComputedSize();
+					size += SeUtil.getVarIntSize(size);
+					size += 1;
+					
+					return size;
+				})
 				.reduce(Integer::sum)
 				.orElse(0);
 		

@@ -390,11 +390,18 @@ public class SeList implements ISerialize
 		isComputingSize = true;
 		
 		computedSize += Arrays.stream(values).filter(Objects::nonNull)
-				.mapToInt(ISerialize::getComputedSize)
+				.mapToInt((i) -> {
+					// Account for tag & skip bytes
+					int size = i.getComputedSize();
+					size += SeUtil.getVarIntSize(size);
+					size += 1;
+					
+					return size;
+				})
 				.reduce(Integer::sum)
 				.orElse(0);
 		
-		computedSize += Arrays.stream(values).filter(Objects::isNull).count();
+		computedSize += Arrays.stream(values).filter(Objects::isNull).count() * 3;
 		
 		isComputingSize = false;
 		
