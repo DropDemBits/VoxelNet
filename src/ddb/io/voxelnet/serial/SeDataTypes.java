@@ -4,6 +4,9 @@ import java.util.function.Supplier;
 
 public enum SeDataTypes
 {
+	// Empty value
+	EMPTY (SeEmptyValue::new),
+	
 	// Non-array types
 	BYTE    (SeByteValue::new),
 	BOOLEAN (SeBooleanValue::new),
