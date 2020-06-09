@@ -3,52 +3,57 @@ package ddb.io.voxelnet.serial;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
- * Value container for ints
+ * Value container for strings
  */
-class SeIntValue extends SeValue
+class SeStringValue extends SeValue
 {
-	private int value;
+	private String value;
+	private int computedSize;
 	
 	// Empty constructor
-	SeIntValue() {}
+	SeStringValue() {}
 	
-	SeIntValue(int value)
+	SeStringValue(String value)
 	{
 		super();
 		
 		this.value = value;
+		
+		computedSize = SeUtil.getVarIntSize(value.length()) + value.getBytes(StandardCharsets.UTF_8).length;
 	}
 	
 	@Override
 	public void serializeTo(DataOutputStream output) throws IOException
 	{
 		// Write out the value
-		output.writeInt(value);
+		SeUtil.writeString(value, output);
 	}
 	
 	@Override
 	public boolean deserializeFrom(DataInputStream input) throws IOException
 	{
-		value = input.readInt();
+		value = SeUtil.readString(input);
+		computedSize = SeUtil.getVarIntSize(value.length()) + value.getBytes(StandardCharsets.UTF_8).length;
 		return true;
 	}
 	
 	@Override
 	public SeDataTypes getSerializeType()
 	{
-		return SeDataTypes.INT;
+		return SeDataTypes.STRING;
 	}
 	
 	@Override
 	public int getComputedSize()
 	{
-		return Integer.BYTES;
+		return computedSize;
 	}
 	
 	@Override
-	public int asInt()
+	public String asString()
 	{
 		return value;
 	}

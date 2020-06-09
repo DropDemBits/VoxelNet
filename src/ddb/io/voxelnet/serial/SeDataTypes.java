@@ -1,20 +1,21 @@
 package ddb.io.voxelnet.serial;
 
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public enum SeDataTypes
 {
 	// Non-array types
-	/* BYTE,
-	BOOLEAN,
-	SHORT,
-	CHAR, */
-	INT(SeIntValue::new),
-	/* FLOAT,
-	LONG,
-	DOUBLE,
+	BYTE    (SeByteValue::new),
+	BOOLEAN (SeBooleanValue::new),
+	SHORT   (SeShortValue::new),
+	CHAR    (SeCharValue::new),
+	INT     (SeIntValue::new),
+	FLOAT   (SeFloatValue::new),
+	LONG    (SeLongValue::new),
+	DOUBLE  (SeDoubleValue::new),
+	STRING  (SeStringValue::new),
 	
+	/*
 	// Array Types
 	BYTE_ARRAY,
 	BOOLEAN_ARRAY,
@@ -24,8 +25,7 @@ public enum SeDataTypes
 	FLOAT_ARRAY,
 	LONG_ARRAY,
 	DOUBLE_ARRAY,
-	
-	STRING, */
+	*/
 	
 	// Compound types
 	ROOT (() -> new SeWrapperValue<>(new SeRoot())),

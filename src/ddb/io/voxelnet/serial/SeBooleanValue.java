@@ -5,16 +5,16 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Value container for ints
+ * Value container for booleans
  */
-class SeIntValue extends SeValue
+class SeBooleanValue extends SeValue
 {
-	private int value;
+	private boolean value;
 	
 	// Empty constructor
-	SeIntValue() {}
+	SeBooleanValue() {}
 	
-	SeIntValue(int value)
+	SeBooleanValue(boolean value)
 	{
 		super();
 		
@@ -25,30 +25,30 @@ class SeIntValue extends SeValue
 	public void serializeTo(DataOutputStream output) throws IOException
 	{
 		// Write out the value
-		output.writeInt(value);
+		output.writeBoolean(value);
 	}
 	
 	@Override
 	public boolean deserializeFrom(DataInputStream input) throws IOException
 	{
-		value = input.readInt();
+		value = input.readBoolean();
 		return true;
 	}
 	
 	@Override
 	public SeDataTypes getSerializeType()
 	{
-		return SeDataTypes.INT;
+		return SeDataTypes.BOOLEAN;
 	}
 	
 	@Override
 	public int getComputedSize()
 	{
-		return Integer.BYTES;
+		return 1;
 	}
 	
 	@Override
-	public int asInt()
+	public boolean asBoolean()
 	{
 		return value;
 	}

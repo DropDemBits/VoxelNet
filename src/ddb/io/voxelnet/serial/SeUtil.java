@@ -132,7 +132,7 @@ public class SeUtil
 	// Read a VarInt
 	public static int readVarInt(DataInputStream input) throws IOException
 	{
-		int decodeByte = 0, output = 0;
+		int decodeByte, output = 0;
 		
 		do
 		{
@@ -142,6 +142,12 @@ public class SeUtil
 		} while ((decodeByte & 0x80) != 0);
 		
 		return output;
+	}
+	
+	// Computes the number of bytes that a VarInt will use
+	public static int getVarIntSize(int value)
+	{
+		return (1 + Integer.numberOfLeadingZeros(value) / 7);
 	}
 	
 }

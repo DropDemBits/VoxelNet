@@ -5,16 +5,16 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Value container for ints
+ * Value container for bytes
  */
-class SeIntValue extends SeValue
+class SeByteValue extends SeValue
 {
-	private int value;
+	private byte value;
 	
 	// Empty constructor
-	SeIntValue() {}
+	SeByteValue() {}
 	
-	SeIntValue(int value)
+	SeByteValue(byte value)
 	{
 		super();
 		
@@ -25,30 +25,30 @@ class SeIntValue extends SeValue
 	public void serializeTo(DataOutputStream output) throws IOException
 	{
 		// Write out the value
-		output.writeInt(value);
+		output.writeByte(value);
 	}
 	
 	@Override
 	public boolean deserializeFrom(DataInputStream input) throws IOException
 	{
-		value = input.readInt();
+		value = input.readByte();
 		return true;
 	}
 	
 	@Override
 	public SeDataTypes getSerializeType()
 	{
-		return SeDataTypes.INT;
+		return SeDataTypes.BYTE;
 	}
 	
 	@Override
 	public int getComputedSize()
 	{
-		return Integer.BYTES;
+		return Byte.BYTES;
 	}
 	
 	@Override
-	public int asInt()
+	public byte asByte()
 	{
 		return value;
 	}

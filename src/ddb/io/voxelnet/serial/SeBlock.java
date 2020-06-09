@@ -24,13 +24,150 @@ public class SeBlock implements ISerialize
 	
 	public SeBlock() {}
 	
-	// If there is a value with the existing name, it will overwrite that value
+	// *--* Primitive values *--* //
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, byte value)
+	{
+		addValue(name, new SeByteValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, boolean value)
+	{
+		addValue(name, new SeBooleanValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, short value)
+	{
+		addValue(name, new SeShortValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, char value)
+	{
+		addValue(name, new SeCharValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
 	public void setValue(String name, int value)
 	{
 		addValue(name, new SeIntValue(value));
 	}
 	
-	// Gets the value, returns null if not found
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, float value)
+	{
+		addValue(name, new SeFloatValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, long value)
+	{
+		addValue(name, new SeLongValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, double value)
+	{
+		addValue(name, new SeDoubleValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, String value)
+	{
+		addValue(name, new SeStringValue(value));
+	}
+	
+	
+	// *--* Compound values *--* //
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, SeBlock value)
+	{
+		addValue(name, new SeWrapperValue<>(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, SeList value)
+	{
+		addValue(name, new SeWrapperValue<>(value));
+	}
+	
+	
+	/**
+	 * Gets a value in the block
+	 *
+	 * @param name The name of the value to fetch
+	 * @return The value wrapper if found, or null if not
+	 */
 	public SeValue getValue(String name)
 	{
 		return valueMap.get(name);
