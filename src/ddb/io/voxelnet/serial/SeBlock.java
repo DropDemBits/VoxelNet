@@ -347,12 +347,15 @@ public class SeBlock implements ISerialize
 		int computedSize = Integer.BYTES;
 		isComputingSize = true;
 		
-		computedSize += valueMap.values().parallelStream()
-				.mapToInt((i) -> {
+		computedSize += valueMap.entrySet().parallelStream()
+				.mapToInt((entry) -> {
 					// Account for tag and skip bytes
-					int size = i.getComputedSize();
+					int size = entry.getValue().getComputedSize();
 					size += SeUtil.getVarIntSize(size);
 					size += 1;
+					
+					// Account for the string size
+					size += SeUtil.getStringSize(entry.getKey());
 					
 					return size;
 				})

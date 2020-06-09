@@ -63,11 +63,11 @@ public class SeUtil
 		if (string.length() > MAX_STRLEN)
 			throw new IllegalArgumentException("String length exceeds maximum encoding length");
 		
-		int length = Math.min(string.length(), MAX_STRLEN);
-		writeVarInt(length, output);
-		
-		// Write out the string in UTF-8 format
 		byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
+		int length = Math.min(bytes.length, MAX_STRLEN);
+		
+		writeVarInt(length, output);
+		// Write out the string in UTF-8 format
 		output.write(bytes);
 	}
 	
@@ -89,6 +89,11 @@ public class SeUtil
 			throw new IllegalArgumentException("String length is less than the storage length");
 		
 		return new String(bytes, StandardCharsets.UTF_8);
+	}
+	
+	public static int getStringSize(String string)
+	{
+		return getVarIntSize(string.length()) + string.getBytes(StandardCharsets.UTF_8).length;
 	}
 	
 	// Write out a VarInt

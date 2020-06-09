@@ -22,6 +22,9 @@ public class SeRoot implements ISerialize
 	// Actual data block
 	private final SeBlock data;
 	
+	// Whether to compress the data block
+	private boolean useCompression = false;
+	
 	/**
 	 * Creates a new serialization tree
 	 */
@@ -54,16 +57,44 @@ public class SeRoot implements ISerialize
 		output.writeInt(MAJOR_VERSION);
 		output.writeInt(MINOR_VERSION);
 		
-		// Flags (none)
-		output.writeInt(0);
+		// Flags (compression)
+		output.writeInt(useCompression ? FLAG_COMPRESSED : 0);
+		
+		if (useCompression)
+		{
+			// Decompressed size is the same as computedSize, including the tag
+			output.writeInt(data.getComputedSize() + 1);
+		}
 		
 		// Footer Magic
 		output.write(HEADER_END_MAGIC);
 		output.writeInt(0);
 		
 		// Write the serial data
-		output.writeByte((byte)data.getSerializeType().ordinal());
-		data.serializeTo(output);
+		if (!useCompression)
+		{
+			output.writeByte((byte) data.getSerializeType().ordinal());
+			data.serializeTo(output);
+		}
+		else
+		{
+			// Compress the entire data stream after the header
+			ByteArrayOutputStream bos = new ByteArrayOutputStream(4096);
+			DataOutputStream compressOut = new DataOutputStream(bos);
+			
+			compressOut.writeByte((byte) data.getSerializeType().ordinal());
+			data.serializeTo(compressOut);
+			
+			compressOut.close();
+			byte[] toCompress = bos.toByteArray();
+			bos.close();
+			
+			// Write out the compressed data
+			GZIPOutputStream compressor = new GZIPOutputStream(output);
+			compressor.write(toCompress);
+			compressor.flush();
+			compressor.close();
+		}
 	}
 	
 	@Override
@@ -89,7 +120,10 @@ public class SeRoot implements ISerialize
 		// Read in decompression
 		int decompressedSize = 0;
 		if ((flags & FLAG_COMPRESSED) != 0)
+		{
 			decompressedSize = input.readInt();
+			useCompression = true;
+		}
 		
 		if (decompressedSize > MAX_DATA_SIZE)
 			throw new IllegalArgumentException("Decompressed data size is greater than the maximum data size of 4 MiB");
@@ -145,6 +179,15 @@ public class SeRoot implements ISerialize
 	public SeBlock getDataBlock()
 	{
 		return data;
+	}
+	
+	/**
+	 * Set whether compression is used or not
+	 * @param useCompression If compression is to be used, or not
+	 */
+	public void setCompressionUsage(boolean useCompression)
+	{
+		this.useCompression = useCompression;
 	}
 	
 }
