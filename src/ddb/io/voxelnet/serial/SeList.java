@@ -3,6 +3,8 @@ package ddb.io.voxelnet.serial;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Generic array list of serializable values
@@ -17,7 +19,14 @@ public class SeList implements ISerialize
 	private SeValue[] values;
 	private int length = 0;
 	
-	private int computedSize = Integer.BYTES;
+	// Whether or not the list is being serialized
+	// Used to prevent loops in the serialization tree
+	// XXX: Make atomic if deserializing with multithreading
+	private boolean isSerializing = false;
+	
+	// Whether or not the list is having the size recomputed
+	// Used to prevent loops in the serialization tree
+	private boolean isComputingSize = false;
 	
 	/**
 	 * Creates a new array list
@@ -298,23 +307,27 @@ public class SeList implements ISerialize
 	 */
 	public SeValue getValueAt(int index)
 	{
-		return values[index];
+		return (values[index] == null) ? SeUtil.EMPTY_VALUE : values[index];
 	}
 	
 	
 	private void replaceValueAt(int index, SeValue value)
 	{
-		computedSize += value.getComputedSize();
-		
-		if (values[index] != null)
-			computedSize -= values[index].getComputedSize();
-		
 		values[index] = value;
 	}
 	
 	@Override
 	public void serializeTo(DataOutputStream output) throws IOException
 	{
+		// Break recursive loops
+		if(isSerializing)
+		{
+			output.writeInt(0);
+			return;
+		}
+		
+		isSerializing = true;
+		
 		// Write the length
 		output.writeInt(length);
 		
@@ -330,6 +343,8 @@ public class SeList implements ISerialize
 			else
 				SeUtil.writeTo(value, output);
 		}
+		
+		isSerializing = false;
 	}
 	
 	@Override
@@ -358,7 +373,7 @@ public class SeList implements ISerialize
 			if (value instanceof SeEmptyValue)
 				continue;
 			
-			values[i] = value;
+			replaceValueAt(i, value);
 		}
 		
 		return true;
@@ -367,6 +382,22 @@ public class SeList implements ISerialize
 	@Override
 	public int getComputedSize()
 	{
+		// If cycled over, only return the size of the length
+		if(isComputingSize)
+			return Integer.BYTES;
+		
+		int computedSize = Integer.BYTES;
+		isComputingSize = true;
+		
+		computedSize += Arrays.stream(values).filter(Objects::nonNull)
+				.mapToInt(ISerialize::getComputedSize)
+				.reduce(Integer::sum)
+				.orElse(0);
+		
+		computedSize += Arrays.stream(values).filter(Objects::isNull).count();
+		
+		isComputingSize = false;
+		
 		return computedSize;
 	}
 	

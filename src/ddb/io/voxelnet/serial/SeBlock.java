@@ -14,13 +14,14 @@ public class SeBlock implements ISerialize
 	// Map of values
 	private final Map<String, SeValue> valueMap = new LinkedHashMap<>();
 	
-	// Computed serialized size of the block (including the tag)
-	private int computedSize = Integer.BYTES;
-	
 	// Whether or not the block is being serialized
 	// Used to prevent loops in the serialization tree
 	// XXX: Make atomic if deserializing with multithreading
 	private boolean isSerializing = false;
+	
+	// Whether or not the block is having the size recomputed
+	// Used to prevent loops in the serialization tree
+	private boolean isComputingSize = false;
 	
 	public SeBlock() {}
 	
@@ -263,22 +264,17 @@ public class SeBlock implements ISerialize
 	 * Gets a value in the block
 	 *
 	 * @param name The name of the value to fetch
-	 * @return The value wrapper if found, or null if not
+	 * @return The value wrapper if found, or SeUtil.EMPTY_VALUE value if not
 	 */
 	public SeValue getValue(String name)
 	{
-		return valueMap.get(name);
+		return valueMap.getOrDefault(name, SeUtil.EMPTY_VALUE);
 	}
 	
-	// Adds a value to the map, computing the new computed size
+	// Adds a value to the map
 	private void addValue(String name, SeValue value)
 	{
-		computedSize += value.getComputedSize();
-		SeValue oldValue = valueMap.put(name, value);
-		
-		// Recalculate the computed size
-		if (oldValue != null)
-			computedSize -= oldValue.getComputedSize();
+		valueMap.put(name, value);
 	}
 	
 	@Override
@@ -315,7 +311,7 @@ public class SeBlock implements ISerialize
 	public boolean deserializeFrom(DataInputStream input) throws IOException
 	{
 		// Fetch value count
-		int valueCount = SeUtil.readVarInt(input);
+		int valueCount = input.readInt();
 		
 		// If empty, done processing
 		if (valueCount == 0)
@@ -344,9 +340,19 @@ public class SeBlock implements ISerialize
 	public int getComputedSize()
 	{
 		// If serializing, a cycle was detected
-		// Return nothing
-		if (isSerializing)
-			return 0;
+		// Return the size
+		if (isComputingSize)
+			return Integer.BYTES;
+		
+		int computedSize = Integer.BYTES;
+		isComputingSize = true;
+		
+		computedSize += valueMap.values().parallelStream()
+				.mapToInt(ISerialize::getComputedSize)
+				.reduce(Integer::sum)
+				.orElse(0);
+		
+		isComputingSize = false;
 		
 		return computedSize;
 	}

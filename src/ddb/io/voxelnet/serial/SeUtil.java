@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets;
  */
 public class SeUtil
 {
+	// Generic empty value
+	public static final SeEmptyValue EMPTY_VALUE = new SeEmptyValue();
 	// Maximum length of an encodable string
 	public static final int MAX_STRLEN = 2 << (16 - 2);
 	

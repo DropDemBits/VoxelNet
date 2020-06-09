@@ -41,4 +41,24 @@ class SeWrapperValue<T extends ISerialize> extends SeValue
 		return wrappedValue.getSerializeType();
 	}
 	
+	@Override
+	public SeBlock asBlock()
+	{
+		if (wrappedValue instanceof SeBlock)
+			return (SeBlock) wrappedValue;
+		
+		// Fail
+		return super.asBlock();
+	}
+	
+	@Override
+	public SeList asList()
+	{
+		if (wrappedValue instanceof SeList)
+			return (SeList) wrappedValue;
+		
+		// Fail
+		return super.asList();
+	}
+	
 }
