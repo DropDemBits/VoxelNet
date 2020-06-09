@@ -134,6 +134,103 @@ public class SeBlock implements ISerialize
 		addValue(name, new SeStringValue(value));
 	}
 	
+	// *--* Array values *--* //
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, byte[] value)
+	{
+		addValue(name, new SeByteArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, boolean[] value)
+	{
+		addValue(name, new SeBooleanArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, short[] value)
+	{
+		addValue(name, new SeShortArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, char[] value)
+	{
+		addValue(name, new SeCharArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, int[] value)
+	{
+		addValue(name, new SeIntArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, float[] value)
+	{
+		addValue(name, new SeFloatArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, long[] value)
+	{
+		addValue(name, new SeLongArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the block
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param name The name of the value
+	 * @param value The associated value
+	 */
+	public void setValue(String name, double[] value)
+	{
+		addValue(name, new SeDoubleArrayValue(value));
+	}
 	
 	// *--* Compound values *--* //
 	
@@ -199,7 +296,7 @@ public class SeBlock implements ISerialize
 		isSerializing = true;
 		
 		// Write value count
-		SeUtil.writeVarInt(valueMap.values().size(), output);
+		output.writeInt(valueMap.values().size());
 		
 		// Write out values
 		for (Map.Entry<String, SeValue> entry : valueMap.entrySet())

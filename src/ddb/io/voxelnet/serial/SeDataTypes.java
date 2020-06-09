@@ -18,17 +18,15 @@ public enum SeDataTypes
 	DOUBLE  (SeDoubleValue::new),
 	STRING  (SeStringValue::new),
 	
-	/*
 	// Array Types
-	BYTE_ARRAY,
-	BOOLEAN_ARRAY,
-	SHORT_ARRAY,
-	CHAR_ARRAY,
-	INT_ARRAY,
-	FLOAT_ARRAY,
-	LONG_ARRAY,
-	DOUBLE_ARRAY,
-	*/
+	BYTE_ARRAY    (SeByteArrayValue::new),
+	BOOLEAN_ARRAY (SeBooleanArrayValue::new),
+	SHORT_ARRAY   (SeShortArrayValue::new),
+	CHAR_ARRAY    (SeCharArrayValue::new),
+	INT_ARRAY     (SeIntArrayValue::new),
+	FLOAT_ARRAY   (SeFloatArrayValue::new),
+	LONG_ARRAY    (SeLongArrayValue::new),
+	DOUBLE_ARRAY  (SeDoubleArrayValue::new),
 	
 	// Compound types
 	ROOT (() -> new SeWrapperValue<>(new SeRoot())),

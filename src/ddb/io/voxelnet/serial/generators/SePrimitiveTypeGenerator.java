@@ -30,6 +30,15 @@ public class SePrimitiveTypeGenerator
 			{
 				e.printStackTrace();
 			}
+			
+			String filenameArray = String.format("Se%sArrayValue.java", info.className);
+			try(FileWriter writter = new FileWriter(filenameArray))
+			{
+				writter.append(generateArraySource(info));
+			} catch (IOException e)
+			{
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -104,6 +113,85 @@ public class SePrimitiveTypeGenerator
 				"	\n" +
 				"	@Override\n" +
 				String.format("	public %s as%s()\n", typeName, className) +
+				"	{\n" +
+				"		return value;\n" +
+				"	}\n" +
+				"}\n";
+	}
+	
+	
+	private static String generateArraySource(ValueTypeInfo info)
+	{
+		String typeName = info.typeName;
+		String className = info.className;
+		String enumName = info.enumName;
+		String size = info.size;
+		
+		return "package ddb.io.voxelnet.serial;\n" +
+				" \n" +
+				"import java.io.DataInputStream;\n" +
+				"import java.io.DataOutputStream;\n" +
+				"import java.io.IOException;\n" +
+				" \n" +
+				"/**\n" +
+				String.format(" * Wrapper for %s arrays\n", typeName) +
+				" */\n" +
+				String.format("public class Se%sArrayValue extends SeArrayValue\n", className) +
+				"{\n" +
+				String.format("	private %s[] value;\n", typeName) +
+				"	\n" +
+				"	// Empty constructor\n" +
+				String.format("	Se%sArrayValue() {}\n", className) +
+				"	\n" +
+				String.format("	public Se%sArrayValue(%s[] value)\n", className, typeName) +
+				"	{\n" +
+				"		super(value.length);\n" +
+				"		\n" +
+				"		this.value = value;\n" +
+				"	}\n" +
+				"	\n" +
+				"	@Override\n" +
+				"	public void serializeTo(DataOutputStream output) throws IOException\n" +
+				"	{\n" +
+				"		super.serializeTo(output);\n" +
+				"		\n" +
+				"		if (getLength() == 0)\n" +
+				"			return;\n" +
+				"		\n" +
+				String.format("		for (%s value : value)\n", typeName) +
+				String.format("			output.write%s(value);\n", className) +
+				"	}\n" +
+				"	\n" +
+				"	@Override\n" +
+				"	public boolean deserializeFrom(DataInputStream input) throws IOException\n" +
+				"	{\n" +
+				"		super.deserializeFrom(input);\n" +
+				"		\n" +
+				String.format("		value = new %s[getLength()];\n", typeName) +
+				"		\n" +
+				"		if (getLength() == 0)\n" +
+				"			return true;\n" +
+				"		\n" +
+				"		for (int i = 0; i < getLength(); i++)\n" +
+				String.format("			value[i] = input.read%s();\n", className) +
+				"		\n" +
+				"		return true;\n" +
+				"	}\n" +
+				"	\n" +
+				"	@Override\n" +
+				"	public int getComputedSize()\n" +
+				"	{\n" +
+				String.format("		return super.getComputedSize() + getLength() * %s;\n", size) +
+				"	}\n" +
+				"	\n" +
+				"	@Override\n" +
+				"	public SeDataTypes getSerializeType()\n" +
+				"	{\n" +
+				String.format("		return SeDataTypes.%s_ARRAY;\n", enumName) +
+				"	}\n" +
+				"	\n" +
+				"	@Override\n" +
+				String.format("	public %s[] as%sArray()\n", typeName, className) +
 				"	{\n" +
 				"		return value;\n" +
 				"	}\n" +

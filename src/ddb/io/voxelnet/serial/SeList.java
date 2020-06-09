@@ -160,6 +160,103 @@ public class SeList implements ISerialize
 		replaceValueAt(index, new SeStringValue(value));
 	}
 	
+	// *--* Array values *--* //
+	
+	/**
+	 * Sets a new value in the list
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param index The index of the value
+	 * @param value The associated value
+	 */
+	public void setValueAt(int index, byte[] value)
+	{
+		replaceValueAt(index, new SeByteArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the list
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param index The index of the value
+	 * @param value The associated value
+	 */
+	public void setValueAt(int index, boolean[] value)
+	{
+		replaceValueAt(index, new SeBooleanArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the list
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param index The index of the value
+	 * @param value The associated value
+	 */
+	public void setValueAt(int index, short[] value)
+	{
+		replaceValueAt(index, new SeShortArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the list
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param index The index of the value
+	 * @param value The associated value
+	 */
+	public void setValueAt(int index, char[] value)
+	{
+		replaceValueAt(index, new SeCharArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the list
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param index The index of the value
+	 * @param value The associated value
+	 */
+	public void setValueAt(int index, int[] value)
+	{
+		replaceValueAt(index, new SeIntArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the list
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param index The index of the value
+	 * @param value The associated value
+	 */
+	public void setValueAt(int index, float[] value)
+	{
+		replaceValueAt(index, new SeFloatArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the list
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param index The index of the value
+	 * @param value The associated value
+	 */
+	public void setValueAt(int index, long[] value)
+	{
+		replaceValueAt(index, new SeLongArrayValue(value));
+	}
+	
+	/**
+	 * Sets a new value in the list
+	 * If there is a value with the existing name, it will overwrite that value
+	 *
+	 * @param index The index of the value
+	 * @param value The associated value
+	 */
+	public void setValueAt(int index, double[] value)
+	{
+		replaceValueAt(index, new SeDoubleArrayValue(value));
+	}
 	
 	// *--* Compound values *--* //
 	
