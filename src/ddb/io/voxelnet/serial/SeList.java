@@ -383,7 +383,7 @@ public class SeList implements ISerialize
 	public int getComputedSize()
 	{
 		// If cycled over, only return the size of the length
-		if(isComputingSize)
+		if(isComputingSize || isSerializing)
 			return Integer.BYTES;
 		
 		int computedSize = Integer.BYTES;

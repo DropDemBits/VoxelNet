@@ -2,6 +2,9 @@ package ddb.io.voxelnet.serial;
 
 import java.util.function.Supplier;
 
+/**
+ * Collection of all of the serializable data types
+ */
 public enum SeDataTypes
 {
 	// Empty value
@@ -41,8 +44,8 @@ public enum SeDataTypes
 	}
 	
 	/**
-	 * Gets the decoded value class
-	 * @return The associated decoded value class
+	 * Gets a new instance of the associated class
+	 * @return An instance of the associated value class
 	 */
 	public SeValue getNewInstance()
 	{

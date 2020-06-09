@@ -285,7 +285,7 @@ public class SeBlock implements ISerialize
 		// serialization tree
 		if (isSerializing)
 		{
-			output.write(0);
+			output.writeInt(0);
 			return;
 		}
 		
@@ -341,7 +341,7 @@ public class SeBlock implements ISerialize
 	{
 		// If serializing, a cycle was detected
 		// Return the size
-		if (isComputingSize)
+		if (isComputingSize || isSerializing)
 			return Integer.BYTES;
 		
 		int computedSize = Integer.BYTES;

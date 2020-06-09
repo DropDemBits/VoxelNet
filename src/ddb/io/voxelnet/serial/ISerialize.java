@@ -9,7 +9,19 @@ import java.io.IOException;
  */
 public interface ISerialize
 {
+	/**
+	 * Serializes the object to the output stream
+	 * @param output The stream to serialize to
+	 * @throws IOException If any errors occur during serialization
+	 */
 	void serializeTo(DataOutputStream output) throws IOException;
+	
+	/**
+	 * Deserialzes the object's data from the input stream
+	 * @param input The stream to serialize from
+	 * @return True if deserialization was successful
+	 * @throws IOException If any errors occur during serialization
+	 */
 	boolean deserializeFrom(DataInputStream input) throws IOException;
 	
 	/**

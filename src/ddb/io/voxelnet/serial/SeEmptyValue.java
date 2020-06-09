@@ -3,6 +3,9 @@ package ddb.io.voxelnet.serial;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 
+/**
+ * Placeholder for empty list entries
+ */
 public class SeEmptyValue extends SeValue
 {
 	SeEmptyValue() {}
