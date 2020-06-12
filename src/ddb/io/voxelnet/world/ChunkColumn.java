@@ -4,12 +4,14 @@ public class ChunkColumn
 {
 	public static final int COLUMNS_SIZE = 16 * 16;
 	
-	// 1 Column is defined to be a vertical stack of 256 blocks
+	// 1 Column is defined to be a vertical stack of 256 blocks or a vertical stack of 16 chunks
 	
 	// Tallest opaque block in each column
 	private final byte[] opaqueColumns = new byte[COLUMNS_SIZE];
 	// Tallest block in each column, can be either transparent or opaque
 	private byte[] blockColumns = new byte[16 * 16];
+	// If the column is to be or is already unloaded
+	private boolean isUnloaded = false;
 	
 	// Column positions
 	public final int columnX, columnZ;
@@ -70,6 +72,31 @@ public class ChunkColumn
 	public byte[] getOpaqueColumnData()
 	{
 		return opaqueColumns;
+	}
+	
+	/**
+	 * Mark a column for unloading
+	 */
+	public void markUnloaded()
+	{
+		isUnloaded = true;
+	}
+	
+	/**
+	 * Mark a column for not being unloaded
+	 */
+	public void markLoaded()
+	{
+		isUnloaded = false;
+	}
+	
+	/**
+	 * Check if the column is unloaded
+	 * @return True if the column is unloaded
+	 */
+	public boolean isUnloaded()
+	{
+		return isUnloaded;
 	}
 	
 }

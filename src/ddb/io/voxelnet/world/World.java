@@ -871,7 +871,7 @@ public class World
 		if (accumulatedWorldTick > 1f/20f)
 		{
 			accumulatedWorldTick = 0;
-			doBlockTick();
+			//doBlockTick();
 		}
 		
 		// Add all of the pending entities

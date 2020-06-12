@@ -21,7 +21,7 @@ import ddb.io.voxelnet.event.network.ConnectionStateChangeEvent;
 import ddb.io.voxelnet.fluid.Fluid;
 import ddb.io.voxelnet.client.ConnectionState;
 import ddb.io.voxelnet.util.RaycastResult;
-import ddb.io.voxelnet.world.World;
+import ddb.io.voxelnet.world.ChunkManager;
 import ddb.io.voxelnet.world.WorldSave;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -38,7 +38,7 @@ public class Game {
 	
 	private static final float FOV   = 90.0f;
 	private static final float ZNEAR = 0.1f;
-	private static final float ZFAR  = 1000.0f;
+	private static final float ZFAR  = 10000.0f;
 	
 	public static boolean showWireframe = false;
 	public static boolean showDebugInfo = false;
@@ -583,9 +583,11 @@ public class Game {
 		String lyrStr = String.format("L %04d\n", world.getChunk(blockX >> 4, blockY >> 4, blockZ >> 4).getLayerData()[blockY & 0xF]);
 		String ligStr = String.format("B %2d S %2d E %2d\n", blkLight, skyLight, effLight);
 		String colStr = String.format("H %2d\n", world.getColumnHeight(blockX, blockZ));
+		ChunkManager chunkManager = world.chunkManager;
+		String chcStr = String.format("CC %d PU %d\n", chunkManager.chunkCache.size(), chunkManager.pendingUnloads.size());
 		
 		if (showDebugInfo)
-			fontRenderer.putString(nameVersion+timeStr+posStr+lokStr+blkStr+ligStr+colStr, 0, 0);
+			fontRenderer.putString(nameVersion+timeStr+posStr+lokStr+blkStr+ligStr+colStr+chcStr, 0, 0);
 		else
 			fontRenderer.putString(nameVersion, 0, 0);
 		fontRenderer.flush();

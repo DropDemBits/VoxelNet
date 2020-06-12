@@ -19,7 +19,7 @@ class ChunkModel
 	private static long generateCount = 0;
 	
 	private final Matrix4f modelMatrix;
-	final Chunk chunk;
+	Chunk chunk;
 	private final Model[] modelLayers = new Model[RenderLayer.values().length];
 	private final ModelBuilder[] builderLayers = new ModelBuilder[RenderLayer.values().length];
 	
@@ -56,7 +56,18 @@ class ChunkModel
 		this.updateLock = new ReentrantLock();
 		
 		// Associate chunk to this model
+		associateWith(chunk);
+	}
+	
+	/**
+	 * Associates a chunk with the model
+	 * @param chunk The chunk to associate with the model
+	 */
+	public void associateWith(Chunk chunk)
+	{
 		this.chunk = chunk;
+		this.modelMatrix.translation(chunk.chunkX * 16, chunk.chunkY * 16, chunk.chunkZ * 16);
+		updateAdjacencyField();
 	}
 	
 	/**

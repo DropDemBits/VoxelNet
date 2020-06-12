@@ -1,6 +1,5 @@
 package ddb.io.voxelnet.client.render;
 
-import ddb.io.voxelnet.client.ClientWorld;
 import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import ddb.io.voxelnet.util.Vec3i;
@@ -53,21 +52,32 @@ public class WorldRenderer
 		// Update existing chunks
 		for(Chunk chunk : world.chunkManager.loadedChunks.values())
 		{
-			if (chunk.recentlyGenerated() && !chunk.isPlaceholder())
+			if (chunk.isRecentlyLoaded() && !chunk.isPlaceholder())
 			{
-				// New chunk generated
+				// New chunk recently loaded
 				newChunks = true;
 				ChunkModel model = new ChunkModel(chunk);
+				
 				renderList.add(model);
-				chunk.setGenerated();
+				chunk.setPreviouslyLoaded();
 				model.forceNeighborRebuild();
 			}
-			
-			// TODO: Check for unloaded chunks, and reassociate models if found
 		}
 		
-		for (ChunkModel model : renderList)
+		Iterator<ChunkModel> modelItr = renderList.iterator();
+		
+		while (modelItr.hasNext())
 		{
+			ChunkModel model = modelItr.next();
+			
+			if (model.chunk.isUnloaded())
+			{
+				generateQueue.remove(model);
+				// Remove the model from the render list
+				modelItr.remove();
+				continue;
+			}
+			
 			if (model.chunk.needsRebuild())
 			{
 				if (!model.isUpdatePending() && !model.isUpdateInProgress())
@@ -75,7 +85,6 @@ public class WorldRenderer
 					// No model update is pending, add it to the generate queue
 					generateQueue.push(model);
 					model.setUpdatePending(true);
-					//System.out.println("Pending Add (" + generateQueue.size() + ") " + pos.toString());
 				}
 			}
 		}
@@ -115,16 +124,6 @@ public class WorldRenderer
 		{
 			// Perform empty check
 			if (chunkModel.chunk.hasNoBlocks())
-				continue;
-			
-			// TODO: Check if the model's associated chunk is unloaded
-			// Cancel model update if chunk is unloaded
-			
-			// Render around a certain radius
-			// ???: How about only rendering the active chunks? (takes care of distancing problems)
-			if (((chunkModel.chunk.chunkX << 4) + 8.5f - clientPlayer.xPos)*((chunkModel.chunk.chunkX << 4) + 8.5f - clientPlayer.xPos) +
-					((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos)*((chunkModel.chunk.chunkZ << 4) + 8.5f - clientPlayer.zPos) >
-					(ClientWorld.loadRadius*ClientWorld.loadRadius)*(16*16))
 				continue;
 			
 			// Perform frustum culling

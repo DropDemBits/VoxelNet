@@ -5,17 +5,23 @@ import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.util.PerlinOctaves;
 import ddb.io.voxelnet.util.Vec3i;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 
 public class ChunkManager
 {
 	// Map of currently loaded chunks
 	public final Map<Vec3i, Chunk> loadedChunks = new LinkedHashMap<>();
-	// Highest, opaque block in each chunk column (vertical group of chunks)
-	// Accessed by index = x + z * 16
+	// List/cache of previously loaded chunks and columns
+	public final List<ChunkCacheEntry> chunkCache = new CopyOnWriteArrayList<>();
+	// Pending set of chunks to unload
+	public final Set<Long> pendingUnloads = new HashSet<>();
+	
+	// List of active chunk columns
 	// TODO: Add Vec2i
-	final Map<Vec3i, ChunkColumn> chunkColumns = new LinkedHashMap<>();
+	public final Map<Vec3i, ChunkColumn> chunkColumns = new LinkedHashMap<>();
+	
 	// Empty Chunk
 	public final Chunk EMPTY_CHUNK;
 	
@@ -101,6 +107,7 @@ public class ChunkManager
 		return doLoadChunk(pos);
 	}
 	
+	// Method to override
 	protected Chunk doLoadChunk(Vec3i pos)
 	{
 		Chunk chunk = new Chunk(world, pos.getX(), pos.getY(), pos.getZ());
@@ -316,6 +323,165 @@ public class ChunkManager
 				
 				depth = 0;
 			}
+		}
+	}
+	
+	/**
+	 * Marks a chunk column for unload
+	 * @param column The chunk to be added to the pending unload queue
+	 */
+	public void markColumnForUnload(ChunkColumn column)
+	{
+		if (column == null || column.isUnloaded())
+			return;
+		
+		// Add column to pending unload set
+		long columnPair = makeColumnPair(column.columnX, column.columnZ);
+		pendingUnloads.add(columnPair);
+		column.markUnloaded();
+		
+		// Mark all chunks in a column to be unloaded
+		// TODO: Associate chunks with columns
+		for (int i = 0; i < 16; i++)
+		{
+			Chunk chunk = getChunk(column.columnX, i, column.columnZ);
+			
+			if (chunk != EMPTY_CHUNK)
+				chunk.markUnloaded();
+		}
+	}
+	
+	/**
+	 * Marks a chunk for preservation
+	 * @param column The chunk to be removed from the pending unload queue
+	 */
+	public void markColumnForKeep(ChunkColumn column)
+	{
+		if (column == null || !column.isUnloaded())
+			return;
+		
+		// Remove the column from the pending unload set
+		long columnPair = makeColumnPair(column.columnX, column.columnZ);
+		pendingUnloads.remove(columnPair);
+		column.markLoaded();
+		
+		for (int i = 0; i < 16; i++)
+		{
+			Chunk chunk = getChunk(column.columnX, i, column.columnZ);
+			
+			if (chunk != EMPTY_CHUNK)
+			{
+				chunk.setRecentlyLoaded();
+				chunk.markLoaded();
+			}
+		}
+	}
+	
+	private long makeColumnPair(int columnX, int columnZ)
+	{
+		return (Integer.toUnsignedLong(columnX) << 32) | Integer.toUnsignedLong(columnZ);
+	}
+	
+	// *---* Chunk Cache Management *---* //
+	
+	/**
+	 * Unloads chunks from the unload set
+	 */
+	public void pruneChunks()
+	{
+		Iterator<Long> toEvict = pendingUnloads.iterator();
+		
+		if (toEvict.hasNext())
+			System.out.printf("Pruning (%d)\n", pendingUnloads.size());
+		
+		// Evict the first 256 pairs of the set
+		for (int count = 0; count < 256 && toEvict.hasNext(); count++)
+		{
+			// Get an eviction entry
+			long evictPair = toEvict.next();
+			toEvict.remove();
+			
+			int evictX = (int) ((evictPair >> 32));
+			int evictZ = (int) ((evictPair >>  0));
+			
+			Vec3i pos = new Vec3i(evictX, 0, evictZ);
+			
+			ChunkColumn preserveColumn = chunkColumns.remove(pos);
+			List<Chunk> preserveEntries = new ArrayList<>();
+			
+			chunkColumns.remove(pos);
+			
+			for (int y = 0; y < 16; y++)
+			{
+				pos.set(evictX, y, evictZ);
+				Chunk chunk = loadedChunks.remove(pos);
+				
+				if (chunk != null && !chunk.isPlaceholder())
+					preserveEntries.add(chunk);
+			}
+			
+			// Add to the chunk cache
+			System.out.println("In cache: " + pos);
+			chunkCache.add(new ChunkCacheEntry(preserveColumn, preserveEntries));
+		}
+	}
+	
+	/**
+	 * Trys to load a column from the chunk cache
+	 * @param chunkPos The chunk position to load in
+	 * @return True if an entry from the cache was loaded in
+	 */
+	public boolean loadFromChunkCache(Vec3i chunkPos)
+	{
+		// If cache is empty, do nothing
+		if (chunkCache.isEmpty())
+			return false;
+		
+		// Slow check through the cache
+		Predicate<ChunkCacheEntry> entFilter = (ent) ->
+				ent.column != null
+						&& ent.column.columnX == chunkPos.getX()
+						&& ent.column.columnZ == chunkPos.getZ();
+		
+		long duplicates = chunkCache.parallelStream().filter(entFilter).count();
+		if (duplicates > 1)
+			System.out.println("Duplicate entries (" + chunkPos + "): " + duplicates);
+		
+		ChunkCacheEntry entry = chunkCache.parallelStream()
+				.filter(entFilter)
+				.findAny()
+				.orElse(null);
+		
+		if (entry == null)
+			return false;
+		
+		chunkCache.remove(entry);
+		
+		System.out.println("Loading from cache " + chunkPos);
+		
+		// Entry is not null, add back to cache
+		entry.column.markLoaded();
+		chunkColumns.put(new Vec3i(entry.column.columnX, 0, entry.column.columnZ), entry.column);
+		
+		entry.chunks.parallelStream()
+				.forEach((chunk) -> {
+					chunk.setRecentlyLoaded();
+					chunk.markLoaded();
+					loadedChunks.put(new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ), chunk);
+				});
+		
+		return true;
+	}
+	
+	private static class ChunkCacheEntry
+	{
+		final ChunkColumn column;
+		final List<Chunk> chunks;
+		
+		private ChunkCacheEntry(ChunkColumn column, List<Chunk> chunks)
+		{
+			this.column = column;
+			this.chunks = chunks;
 		}
 	}
 }

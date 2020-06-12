@@ -17,10 +17,6 @@ import java.util.stream.Collectors;
 
 public class ClientChunkManager extends ChunkManager
 {
-	// Cache of all unloaded chunks
-	private final Map<Vec3i, Chunk> chunkCache = new LinkedHashMap<>();
-	// Cache of all loaded columns
-	private final Map<Vec3i, Chunk> columnCache = new LinkedHashMap<>();
 	// Positions of in progress loading chunks (not thread safe!)
 	private final Set<Vec3i> pendingColumnLoads = new HashSet<>();
 	// Positions which have placeholders chunks (Not thread safe as well!)
@@ -52,9 +48,14 @@ public class ClientChunkManager extends ChunkManager
 	@Override
 	protected Chunk doLoadChunk(Vec3i pos)
 	{
-		// TODO: If in unloaded cache, check for unloaded chunks
+		Chunk chunk;
+		
+		// Check if the chunk exists in the chunk cache
+		if (loadFromChunkCache(pos))
+			return loadedChunks.get(pos);
+		
 		// Chunk doesn't exist yet, create an empty one
-		Chunk chunk = new Chunk(world, pos.getX(), pos.getY(), pos.getZ());
+		chunk = new Chunk(world, pos.getX(), pos.getY(), pos.getZ());
 		loadedChunks.put(pos, chunk);
 		
 		Vec3i columnPos = new Vec3i(pos.getX(), 0, pos.getZ());
@@ -85,6 +86,13 @@ public class ClientChunkManager extends ChunkManager
 		// Don't load columns that already have data in flight
 		if (pendingColumnLoads.contains(pos))
 			return;
+		
+		// Check if the column exists in the chunk column cache
+		if (loadFromChunkCache(pos))
+		{
+			// Column is now loaded
+			return;
+		}
 		
 		// Send over a request to load the column
 		ClientNetworkManager networkManager = Game.getInstance().getNetworkManager();

@@ -56,10 +56,12 @@ public class Chunk
 	private final boolean[] layerNeedsRebuild = new boolean[RenderLayer.values().length];
 	// If the chunk needs to be saved to disk
 	private boolean isDirty = false;
-	// If the chunk was recently generated
-	private boolean recentlyGenerated = true;
+	// If the chunk was recently loaded
+	private boolean recentlyLoaded = true;
 	// If the chunk is a placeholder until the real data arrives
 	private boolean isPlaceholder = false;
+	// If the column is to be or is already unloaded
+	private boolean isUnloaded = false;
 	
 	// List of tickables (i.e blocks that have "isTickable" return true) contained within the chunk
 	public List<Integer> tickables = new ArrayList<>();
@@ -508,20 +510,29 @@ public class Chunk
 	}
 	
 	/**
-	 * Checks if the chunk is recently generated
-	 * @return True if the chunk was recently generated
+	 * Checks if the chunk is recently loaded (i.e. recently generated, recently loaded from cache)
+	 * @return True if the chunk was recently loaded
 	 */
-	public boolean recentlyGenerated()
+	public boolean isRecentlyLoaded()
 	{
-		return recentlyGenerated;
+		return recentlyLoaded;
 	}
 	
 	/**
-	 * Sets the chunk to be already generated
+	 * Sets the chunk to be already loaded
 	 */
-	public void setGenerated()
+	public void setPreviouslyLoaded()
 	{
-		recentlyGenerated = false;
+		recentlyLoaded = false;
+	}
+	
+	/**
+	 * Remarks the chunk as being recently loaded
+	 * Used to re-associate a model on the client side
+	 */
+	public void setRecentlyLoaded()
+	{
+		recentlyLoaded = true;
 	}
 	
 	/**
@@ -563,7 +574,32 @@ public class Chunk
 	{
 		System.out.println("ChunkDump (" + chunkX + ", " + chunkY + ", " + chunkZ + ")");
 		System.out.println("Bcnt " + blockCount);
-		System.out.println("Rbld " + Arrays.toString(layerNeedsRebuild) + " | Drty " + isDirty + " | Rgen " + recentlyGenerated);
+		System.out.println("Rbld " + Arrays.toString(layerNeedsRebuild) + " | Drty " + isDirty + " | Rgen " + recentlyLoaded);
+	}
+	
+	/**
+	 * Mark a chunk for unloading
+	 */
+	public void markUnloaded()
+	{
+		isUnloaded = true;
+	}
+	
+	/**
+	 * Mark a chunk for not being unloaded
+	 */
+	public void markLoaded()
+	{
+		isUnloaded = false;
+	}
+	
+	/**
+	 * Check if the chunk is unloaded
+	 * @return True if the chunk is unloaded
+	 */
+	public boolean isUnloaded()
+	{
+		return isUnloaded;
 	}
 	
 }
