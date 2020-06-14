@@ -7,13 +7,8 @@ import ddb.io.voxelnet.network.packet.PSChunkData;
 import ddb.io.voxelnet.util.Vec3i;
 
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.function.*;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 public class ClientChunkManager extends ChunkManager
 {
@@ -57,6 +52,10 @@ public class ClientChunkManager extends ChunkManager
 		// Chunk doesn't exist yet, create an empty one
 		chunk = new Chunk(world, pos.getX(), pos.getY(), pos.getZ());
 		loadedChunks.put(pos, chunk);
+		
+		// Rebuild the fields
+		chunk.chunkField.rebuildField();
+		chunk.chunkField.rebuildNeighborFields();
 		
 		Vec3i columnPos = new Vec3i(pos.getX(), 0, pos.getZ());
 		
@@ -127,6 +126,10 @@ public class ClientChunkManager extends ChunkManager
 			Vec3i chunkPos = new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ);
 			loadedChunks.put(chunkPos, chunk);
 			placeholderChunks.remove(chunkPos);
+			
+			// Rebuild the fields
+			chunk.chunkField.rebuildField();
+			chunk.chunkField.rebuildNeighborFields();
 		}
 		
 		// Column is now loaded

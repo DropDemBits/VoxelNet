@@ -543,7 +543,7 @@ public class World
 	public void setBlockMeta (int x, int y, int z, int meta)
 	{
 		// Don't set block below or above the world
-		if (y < 0 || y > worldHeight)
+		if (y < 0 || y >= worldHeight)
 			return;
 		
 		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);
@@ -574,7 +574,7 @@ public class World
 	public int getBlockMeta (int x, int y, int z)
 	{
 		// Don't fetch data below or above the world
-		if (y < 0 || y > worldHeight)
+		if (y < 0 || y >= worldHeight)
 			return 0;
 		
 		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);

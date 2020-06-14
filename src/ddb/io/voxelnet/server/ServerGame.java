@@ -88,7 +88,7 @@ public class ServerGame
 		// Setup the world, world save/loader, and world renderer
 		// "world-allthings" is main world
 		world = new World(false);
-		worldSave = new WorldSave(world, "world-server-yay/world-server.dat");
+		worldSave = new WorldSave(world, "world-server/world-server.dat");
 		
 		// Load / Generate the world
 		if (worldSave.canLoad())

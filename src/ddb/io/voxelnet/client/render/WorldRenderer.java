@@ -2,7 +2,6 @@ package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.entity.EntityPlayer;
-import ddb.io.voxelnet.util.Vec3i;
 import ddb.io.voxelnet.world.Chunk;
 import ddb.io.voxelnet.world.World;
 
@@ -78,14 +77,11 @@ public class WorldRenderer
 				continue;
 			}
 			
-			if (model.chunk.needsRebuild())
+			if (model.chunk.needsRebuild() && model.getModelState() == ChunkModel.ModelState.UPDATED)
 			{
-				if (!model.isUpdatePending() && !model.isUpdateInProgress())
-				{
-					// No model update is pending, add it to the generate queue
-					generateQueue.push(model);
-					model.setUpdatePending(true);
-				}
+				// No model update is pending, add it to the generate queue
+				model.setModelState(ChunkModel.ModelState.PENDING);
+				generateQueue.push(model);
 			}
 		}
 		
@@ -126,17 +122,13 @@ public class WorldRenderer
 			if (chunkModel.chunk.hasNoBlocks())
 				continue;
 			
-			// Perform frustum culling
+			// Cull chunks not inside the view frustum
 			if (!renderer.getCamera().getViewFrustum().isSphereInside(
 					(chunkModel.chunk.chunkX << 4) + 8.5f,
 					(chunkModel.chunk.chunkY << 4) + 8.5f,
 					(chunkModel.chunk.chunkZ << 4) + 8.5f,
 					22.627416998f))
 				continue;
-				
-			
-			// Allow a chunk to be rendered between model updates
-			boolean isUpdating = chunkModel.isUpdateInProgress();
 			
 			if (chunkModel.hasTransparency())
 				transparentChunks.add(chunkModel);
@@ -146,7 +138,7 @@ public class WorldRenderer
 			model.bind();
 			
 			// Update the vertices if an update is not in progress
-			if (!chunkModel.isUpdateInProgress())
+			if (chunkModel.getModelState() == ChunkModel.ModelState.UPDATED)
 				chunkModel.updateLayer(RenderLayer.OPAQUE);
 			
 			renderer.drawModel(model);
@@ -178,7 +170,7 @@ public class WorldRenderer
 				// Update the vertices if a model update is not in progress (have
 				// not been updated above)
 				model.bind();
-				if (!chunkModel.isUpdateInProgress())
+				if (chunkModel.getModelState() == ChunkModel.ModelState.UPDATED)
 					chunkModel.updateLayer(layer);
 				
 				renderer.drawModel(model);
@@ -247,22 +239,16 @@ public class WorldRenderer
 		@Override
 		public void run()
 		{
-			model.setUpdateProgress(true);
-			
 			modelUpdates.incrementAndGet();
 			try
 			{
-				if (!model.updateModel(atlas))
-					System.err.println("OI, MODEL UPDATE DIDN'T HAPPEN @ " + new Vec3i(model.chunk.chunkX, model.chunk.chunkY, model.chunk.chunkZ).toString());
+				model.updateModel(atlas);
 			}
 			catch(BufferOverflowException e)
 			{
 				e.printStackTrace();
 			}
 			modelUpdates.decrementAndGet();
-			
-			model.setUpdateProgress(false);
-			model.setUpdatePending(false);
 		}
 	}
 }

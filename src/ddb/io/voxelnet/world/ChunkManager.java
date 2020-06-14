@@ -112,6 +112,8 @@ public class ChunkManager
 	{
 		Chunk chunk = new Chunk(world, pos.getX(), pos.getY(), pos.getZ());
 		loadedChunks.put(pos, chunk);
+		chunk.chunkField.rebuildField();
+		chunk.chunkField.rebuildNeighborFields();
 		return chunk;
 	}
 	
@@ -417,7 +419,14 @@ public class ChunkManager
 				Chunk chunk = loadedChunks.remove(pos);
 				
 				if (chunk != null && !chunk.isPlaceholder())
+				{
 					preserveEntries.add(chunk);
+					
+					// Update the adjacent neighbor's fields
+					chunk.chunkField.rebuildNeighborFields();
+					// Clear this chunk field
+					chunk.chunkField.clearField();
+				}
 			}
 			
 			// Add to the chunk cache
@@ -468,6 +477,10 @@ public class ChunkManager
 					chunk.setRecentlyLoaded();
 					chunk.markLoaded();
 					loadedChunks.put(new Vec3i(chunk.chunkX, chunk.chunkY, chunk.chunkZ), chunk);
+					
+					// Rebuild the chunk fields
+					chunk.chunkField.rebuildField();
+					chunk.chunkField.rebuildNeighborFields();
 				});
 		
 		return true;

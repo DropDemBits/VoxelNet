@@ -5,6 +5,7 @@ import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.Chunk;
+import ddb.io.voxelnet.world.ChunkField;
 import org.joml.Matrix4f;
 
 import java.util.concurrent.locks.ReentrantLock;
@@ -22,19 +23,16 @@ class ChunkModel
 	Chunk chunk;
 	private final Model[] modelLayers = new Model[RenderLayer.values().length];
 	private final ModelBuilder[] builderLayers = new ModelBuilder[RenderLayer.values().length];
-	
-	private volatile boolean isDirty = false;
-	private volatile boolean updatePending = false;
-	private volatile boolean updateInProgress = false;
+	// Layers that need updates
+	private final boolean[] layerNeedsUpdate = new boolean[RenderLayer.values().length];
+	// Update state for the model
+	private volatile ModelState modelState = ModelState.UPDATED;
+	// If the model has transparent layers
 	private volatile boolean hasTransparency = false;
 	private int updateAttempts = 0;
 	
 	private final ReentrantLock updateLock;
-	// Layers that need updates
-	private final boolean[] layerNeedsUpdate = new boolean[RenderLayer.values().length];
-	// Chunks surrounding the current one
-	// See "BlockRenderer" for a definition of an adjacency field
-	private final Chunk[] adjacentField = new Chunk[3*3*3];
+	private final ReentrantLock stateLock;
 	
 	/**
 	 * Creates a chunk model
@@ -54,6 +52,7 @@ class ChunkModel
 		}
 		
 		this.updateLock = new ReentrantLock();
+		this.stateLock = new ReentrantLock();
 		
 		// Associate chunk to this model
 		associateWith(chunk);
@@ -67,25 +66,24 @@ class ChunkModel
 	{
 		this.chunk = chunk;
 		this.modelMatrix.translation(chunk.chunkX * 16, chunk.chunkY * 16, chunk.chunkZ * 16);
-		updateAdjacencyField();
 	}
 	
 	/**
 	 * Updates the chunk model
 	 * @param atlas The texture atlas to use for the faces
-	 * @return True if the chunk has been updated
 	 */
-	public boolean updateModel(TextureAtlas atlas)
+	public void updateModel(TextureAtlas atlas)
 	{
+		setModelState(ModelState.UPDATING);
 		updateLock.lock();
 		++updateAttempts;
+		
+		chunk.chunkField.rebuildField();
+		chunk.chunkField.rebuildNeighborFields();
 		
 		// Check if the chunk has been made empty
 		if (chunk.hasNoBlocks())
 		{
-			// Defer the vertex buffer update to the render stage
-			isDirty = true;
-			
 			// Reset all the layers and indicate that the chunk has been rebuilt
 			for (RenderLayer layer : RenderLayer.values())
 			{
@@ -94,74 +92,54 @@ class ChunkModel
 				builderLayers[layer.ordinal()].reset();
 				builderLayers[layer.ordinal()].compact();
 			}
+		}
+		else
+		{
+			// Take a snapshot of the layer rebuild statuses
+			boolean[] rebuildSnapshot = new boolean[RenderLayer.values().length];
 			
-			--updateAttempts;
-			updateLock.unlock();
-			return true;
-		}
-		
-		// Take a snapshot of the layer rebuild statuses
-		boolean[] rebuildSnapshot = new boolean[RenderLayer.values().length];
-		
-		for (RenderLayer layer : RenderLayer.values())
-		{
-			rebuildSnapshot[layer.ordinal()] = chunk.layerNeedsRebuild(layer);
-		}
-		
-		updateAdjacencyField();
-		
-		// Rebuild each layer individually
-		long start = System.nanoTime();
-		hasTransparency = false;
-		
-		for (RenderLayer layer : RenderLayer.values())
-		{
-			// Since the opaque layer is the most frequently updated layer,
-			// allow changes to it to rebuild the other layers
-			if (rebuildSnapshot[layer.ordinal()] || rebuildSnapshot[RenderLayer.OPAQUE.ordinal()])
-				rebuildLayer(layer, atlas);
-		}
-		
-		// Defer the vertex buffer update to the render stage
-		isDirty = true;
-		
-		long currentGenerate = System.nanoTime() - start;
-		generateAccum += currentGenerate;
-		generateCount += 1;
-		
-		if (Game.showDetailedDebug && (generateCount % 8) == 0)
-		{
-			System.out.print("\tAvg Generate Time: " + (((double) generateAccum / (double) generateCount) / 1000000.0d) + "ms");
-			System.out.println(", Current Generate Time: " + (currentGenerate) / 1000000.0d);
-			System.out.println(BlockRenderer.statNear + ", " + BlockRenderer.statSolid + ", " + BlockRenderer.statNoShow);
-			System.out.println("---------------------------------");
+			for (RenderLayer layer : RenderLayer.values())
+			{
+				rebuildSnapshot[layer.ordinal()] = chunk.layerNeedsRebuild(layer);
+			}
+			
+			// Rebuild each layer individually
+			long start = System.nanoTime();
+			hasTransparency = false;
+			
+			for (RenderLayer layer : RenderLayer.values())
+			{
+				// Since the opaque layer is the most frequently updated layer,
+				// allow changes to it to rebuild the other layers
+				if (rebuildSnapshot[layer.ordinal()] || rebuildSnapshot[RenderLayer.OPAQUE.ordinal()])
+					rebuildLayer(layer, atlas);
+			}
+			
+			long currentGenerate = System.nanoTime() - start;
+			generateAccum += currentGenerate;
+			generateCount += 1;
+			
+			if (Game.showDetailedDebug && (generateCount % 8) == 0)
+			{
+				System.out.print("\tAvg Generate Time: " + (((double) generateAccum / (double) generateCount) / 1000000.0d) + "ms");
+				System.out.println(", Current Generate Time: " + (currentGenerate) / 1000000.0d);
+				System.out.println(BlockRenderer.statNear + ", " + BlockRenderer.statSolid + ", " + BlockRenderer.statNoShow);
+				System.out.println("---------------------------------");
+			}
 		}
 		
 		--updateAttempts;
 		updateLock.unlock();
-		return true;
-	}
-	
-	private void updateAdjacencyField()
-	{
-		// Update the adjacency field
-		for(int i = 0; i < adjacentField.length; i++)
-		{
-			int xOff = (i % 3) - 1;
-			int zOff = ((i / 3) % 3) - 1;
-			int yOff = (i / 9) - 1;
-			
-			adjacentField[i] = chunk.world.getChunk(
-					chunk.chunkX + xOff,
-					chunk.chunkY + yOff,
-					chunk.chunkZ + zOff
-			);
-		}
+		setModelState(ModelState.UPDATED);
+		
+		// Make sure that we are the only ones updating the chunk
+		assert updateAttempts == 0;
 	}
 	
 	private void rebuildLayer(RenderLayer layer, TextureAtlas atlas)
 	{
 		ModelBuilder targetBuilder = builderLayers[layer.ordinal()];
+		ChunkField field = chunk.chunkField;
 		
 		// Reset the builder
 		targetBuilder.reset();
@@ -177,27 +155,23 @@ class ChunkModel
 			boolean layerBelowFilled = false;
 			
 			// Check if a layer can be skipped
-			if (y < 15 && chunk.getLayerData()[y + 1] == 16 * 16)
-				layerAboveFilled = true; // Layer above is filled, in the current chunk
-			else if (y == 15 && adjacentField[BlockRenderer.toAdjacentIndex(0, 1, 0)].getLayerData()[0] == 16 * 16)
-				layerAboveFilled = true; // Layer above is filled, in the chunk up
+			if (field.getChunk(0, y + 1, 0, Facing.NONE).getLayerCount(y + 1) == 16 * 16)
+				layerAboveFilled = true; // Layer above is filled
 			
-			if (y > 0 && chunk.getLayerData()[y - 1] == 16 * 16)
-				layerBelowFilled = true; // Layer below is filled, in the current chunk
-			else if (y == 0 && adjacentField[BlockRenderer.toAdjacentIndex(0, -1, 0)].getLayerData()[15] == 16 * 16)
-				layerBelowFilled = true; // Layer below is filled, in the chunk down
+			if (field.getChunk(0, y - 1, 0, Facing.NONE).getLayerCount(y - 1) == 16 * 16)
+				layerBelowFilled = true; // Layer below is filled
 			
-			if (layerAboveFilled && layerBelowFilled)
+			if (layerAboveFilled && layerBelowFilled && chunk.getLayerCount(y) == 16 * 16)
 			{
-				// Layer is a candidate for skipping
+				// Layer is a candidate for skipping (layer above, below, and self is full)
 				skipLayer = true;
 				
 				// Check if the current layer can actually be skipped by
 				// checking if the cardinally adjacent layers are filled
 				for (Facing adjacentDir : Facing.CARDINAL_FACES)
 				{
-					int i = BlockRenderer.toAdjacentIndex(adjacentDir.getOffsetX(), 0, adjacentDir.getOffsetZ());
-					if (adjacentField[i].getLayerData()[y] < 16 * 16)
+					// If the cardinal adjacent layer is not full, don't skip the layer
+					if (field.getAdjacentChunk(adjacentDir).getLayerCount(y) < 16 * 16)
 					{
 						skipLayer = false;
 						break;
@@ -227,7 +201,7 @@ class ChunkModel
 					
 					int[] faceTextures = block.getFaceTextures();
 					
-					BlockRenderer.addModel(targetBuilder, adjacentField, block, x, y, z, faceTextures, atlas);
+					BlockRenderer.addModel(targetBuilder, field, block, x, y, z, faceTextures, atlas);
 				}
 			}
 		}
@@ -246,59 +220,29 @@ class ChunkModel
 		return modelLayers[layer.ordinal()];
 	}
 	
-	public boolean isDirty()
-	{
-		return isDirty;
-	}
-	
 	public Matrix4f getTransform()
 	{
 		return modelMatrix;
 	}
 	
-	public synchronized void makeClean()
+	/**
+	 * Sets the update state for the model
+	 * @param newState The new update state
+	 */
+	public void setModelState(ModelState newState)
 	{
-		if(!isDirty)
-			return;
-		
-		// Update the model data
-		isDirty = false;
+		stateLock.lock();
+		this.modelState = newState;
+		stateLock.unlock();
 	}
 	
 	/**
-	 * Sees if a model update is pending
-	 * @return True if a model update is pending
+	 * Sets the update state for the model
+	 * @return The current update state
 	 */
-	public boolean isUpdatePending()
+	public ModelState getModelState()
 	{
-		return updatePending;
-	}
-	
-	/**
-	 * Sets the pending update state
-	 * @param updatePending The new pending update state
-	 */
-	public synchronized void setUpdatePending(boolean updatePending)
-	{
-		this.updatePending = updatePending;
-	}
-	
-	/**
-	 * Sees if a model update is in progress
-	 * @return True if a model update is in progress
-	 */
-	public boolean isUpdateInProgress()
-	{
-		return updateInProgress;
-	}
-	
-	/**
-	 * Sets the update progress state
-	 * @param updateProgressing The new update progress state
-	 */
-	public synchronized void setUpdateProgress(boolean updateProgressing)
-	{
-		this.updateInProgress = updateProgressing;
+		return this.modelState;
 	}
 	
 	/**
@@ -317,6 +261,16 @@ class ChunkModel
 	public void updateLayer(RenderLayer layer)
 	{
 		updateLock.lock();
+		
+		if (!updateLock.isHeldByCurrentThread())
+			System.out.println("mischance what");
+		
+		if (modelState != ModelState.UPDATED)
+		{
+			updateLock.unlock();
+			return;
+		}
+		
 		try
 		{
 			Model updatingModel = modelLayers[layer.ordinal()];
@@ -332,6 +286,9 @@ class ChunkModel
 		}
 		finally
 		{
+			if (!updateLock.isHeldByCurrentThread())
+				System.out.println("mischance postlayer");
+			
 			updateLock.unlock();
 		}
 	}
@@ -339,9 +296,20 @@ class ChunkModel
 	// Forces a rebuild of the adjacent neighbors
 	public void forceNeighborRebuild()
 	{
-		updateAdjacencyField();
-		
 		for (Facing sides : Facing.directions())
-			adjacentField[BlockRenderer.toAdjacentIndex(sides.getOffsetX(), sides.getOffsetY(), sides.getOffsetZ())].forceLayerRebuild();
+			chunk.chunkField.getAdjacentChunk(sides).forceLayerRebuild();
+	}
+	
+	/**
+	 * Update state for a model
+	 */
+	enum ModelState
+	{
+		// Model update is finished, vertex buffer updates are delayed to the render stage
+		UPDATED,
+		// Model update is queued, will be processed later
+		PENDING,
+		// Model is in the process for being updated
+		UPDATING,
 	}
 }

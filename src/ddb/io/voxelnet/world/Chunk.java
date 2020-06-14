@@ -4,7 +4,9 @@ import ddb.io.voxelnet.block.Block;
 import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.client.render.RenderLayer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.IntPredicate;
 import java.util.stream.IntStream;
 
@@ -66,6 +68,9 @@ public class Chunk
 	// List of tickables (i.e blocks that have "isTickable" return true) contained within the chunk
 	public List<Integer> tickables = new ArrayList<>();
 	
+	// Chunk field for the given chunk
+	public final ChunkField chunkField;
+	
 	/**
 	 * Constructs a new chunk
 	 * @param world The world associated with this chunk
@@ -75,6 +80,7 @@ public class Chunk
 	 */
 	public Chunk(World world, int x, int y, int z)
 	{
+		this.chunkField = new ChunkField(this);
 		this.world = world;
 		this.chunkX = x;
 		this.chunkY = y;
@@ -155,6 +161,18 @@ public class Chunk
 	public byte[] getMetaData() { return blockMeta; }
 	
 	public short[] getLayerData() { return blockLayers; }
+	
+	/**
+	 * Gets the block count in the given layer
+	 * The y position is wrapped inside of the chunk
+	 *
+	 * @param y The y position (can be world or chunk block coordinates)
+	 * @return The block count for the given layer
+	 */
+	public short getLayerCount(int y)
+	{
+		return blockLayers[y & 0xF];
+	}
 	
 	/**
 	 * Gets the per-block light data in the chunk
