@@ -23,6 +23,6 @@
     <orderEntry type="library" name="Maven: org.lwjgl:lwjgl-opengl:natives-linux:3.1.5" level="project" />
     <orderEntry type="library" name="Maven: org.lwjgl:lwjgl-stb:natives-linux:3.1.5" level="project" />
     <orderEntry type="library" name="Maven: org.joml:joml:1.9.16" level="project" />
-    <orderEntry type="library" name="Maven: io.netty:netty-all:4.1.32.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-all:4.1.42.Final" level="project" />
   </component>
 </module>
