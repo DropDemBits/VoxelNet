@@ -2,6 +2,7 @@ package ddb.io.voxelnet.client.render;
 
 import ddb.io.voxelnet.Game;
 import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.Chunk;
@@ -187,11 +188,13 @@ class ChunkModel
 			{
 				for (int x = 0; x < 16; x++)
 				{
-					byte id = chunk.getData()[x + (z << 4) + (y << 8)];
-					if (id == 0)
+					Block block = Block.idToBlock(chunk.getBlock(x, y, z));
+					
+					if (block == Blocks.AIR)
 						continue;
 					
-					Block block = Block.idToBlock(id);
+					assert block != Blocks.VOID : "Bad access coords or bad block id";
+					
 					// Skip blocks not part of the requested layer
 					if (block.getRenderLayer() != layer)
 						continue;
