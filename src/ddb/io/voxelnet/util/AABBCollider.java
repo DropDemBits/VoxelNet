@@ -2,6 +2,9 @@ package ddb.io.voxelnet.util;
 
 public class AABBCollider
 {
+	// Used in computing collision response
+	private static final float COLLISION_EPSILON = 1f/1024f;
+	
 	public float x, y, z;
 	public float width, height, depth;
 	// Offsets, only used in setPosition
@@ -101,7 +104,7 @@ public class AABBCollider
 			
 			// If distance is smaller, make it the offset
 			if (d < velocity)
-				velocity = d - 1/256f;
+				velocity = d - COLLISION_EPSILON;
 		}
 		
 		// negative velocity, may intersect w/ right
@@ -111,7 +114,7 @@ public class AABBCollider
 			
 			// If distance is smaller, make it the offset
 			if (d > velocity)
-				velocity = d + 1/256f;
+				velocity = d + COLLISION_EPSILON;
 		}
 		
 		return velocity;
@@ -136,7 +139,7 @@ public class AABBCollider
 			
 			// If distance is smaller, make it the offset
 			if (d < velocity)
-				velocity = d - 1/256f;
+				velocity = d - COLLISION_EPSILON;
 		}
 		
 		// negative velocity, may intersect w/ top
@@ -146,7 +149,7 @@ public class AABBCollider
 			
 			// If distance is smaller, make it the offset
 			if (d > velocity)
-				velocity = d + 1/256f;
+				velocity = d + COLLISION_EPSILON;
 		}
 		
 		return velocity;

@@ -146,7 +146,7 @@ public class Entity
 	
 	protected boolean updateCollision (float delta)
 	{
-		return updateVerticalCollision(delta) || updateHorizontalCollision(delta);
+		return updateHorizontalCollision(delta) || updateVerticalCollision(delta);
 	}
 	
 	protected boolean updateVerticalCollision (float delta)
