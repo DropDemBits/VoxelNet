@@ -7,6 +7,7 @@ import ddb.io.voxelnet.client.ClientNetworkManager;
 import ddb.io.voxelnet.network.packet.PCSBreakBlock;
 import ddb.io.voxelnet.network.packet.PCSPlaceBlock;
 import ddb.io.voxelnet.util.AABBCollider;
+import ddb.io.voxelnet.util.MathUtil;
 import ddb.io.voxelnet.util.RaycastResult;
 import org.joml.Vector3d;
 
@@ -162,7 +163,7 @@ public class EntityPlayer extends Entity
 		if(Math.abs(zVel) > 1/256f)
 			zVel = MathUtil.lerp(zVel, 0, slipperiness * accelCoef * delta);
 		else
-			zVel = 0;*/
+			zVel = 0;
 		
 		// Stop sprinting if a wall was hit
 		if (hitWall)
