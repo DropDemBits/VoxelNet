@@ -17,6 +17,8 @@ public class WorldRenderer
 {
 	// Layers that have transparent blocks on them
 	private static final RenderLayer[] transparentLayers = new RenderLayer[] { RenderLayer.TRANSPARENT, RenderLayer.FLUID };
+	// Maximum number of models that can be updated within a single frame
+	private static final int MAX_UPDATING_MODELS = 16;
 	
 	// Player that the world is rendered around
 	private EntityPlayer clientPlayer;
@@ -25,7 +27,7 @@ public class WorldRenderer
 	// List of chunks that need model updates
 	private final Stack<ChunkModel> generateQueue = new Stack<>();
 	private final ExecutorService generatePool = Executors.newWorkStealingPool(); //Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
-	private final AtomicInteger modelUpdates = new AtomicInteger();
+	private final AtomicInteger updateThrottler = new AtomicInteger();
 	
 	private final TextureAtlas atlas;
 	private final World world;
@@ -201,10 +203,13 @@ public class WorldRenderer
 		// Enqueue all the changed chunks
 		if (!generateQueue.isEmpty())
 		{
-			System.out.println("Model Upd (" + generateQueue.size() + ")");
+			System.out.println("Model Upd (" + generateQueue.size() + "), Active (" + updateThrottler.get() + ")");
 			
-			for (int i = 0; i < 16 && !generateQueue.isEmpty(); i++)
+			for (int i = updateThrottler.get(); i < MAX_UPDATING_MODELS && !generateQueue.isEmpty(); i++)
+			{
+				updateThrottler.getAndIncrement();
 				generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
+			}
 		}
 	}
 	
@@ -239,7 +244,6 @@ public class WorldRenderer
 		@Override
 		public void run()
 		{
-			modelUpdates.incrementAndGet();
 			try
 			{
 				model.updateModel(atlas);
@@ -248,7 +252,7 @@ public class WorldRenderer
 			{
 				e.printStackTrace();
 			}
-			modelUpdates.decrementAndGet();
+			updateThrottler.decrementAndGet();
 		}
 	}
 }
