@@ -7,28 +7,40 @@ import ddb.io.voxelnet.client.ClientNetworkManager;
 import ddb.io.voxelnet.network.packet.PCSBreakBlock;
 import ddb.io.voxelnet.network.packet.PCSPlaceBlock;
 import ddb.io.voxelnet.util.AABBCollider;
-import ddb.io.voxelnet.util.MathUtil;
 import ddb.io.voxelnet.util.RaycastResult;
 import org.joml.Vector3d;
 
 public class EntityPlayer extends Entity
 {
-	// Horizontal speed
-	public final float speed = 3f;
 	
-	// Speed Coefficient
-	public float speedCoef = 1f;
-	public float accelCoef = 1f;
+	// Horizontal speed (blocks / second)
+	public final float speed = 3.5f;
+	// Time for the speed to accelerate to the base movement velocity (in seconds)
+	public final float accelTime = 0.125f;
+	// Base acceleration, based on the normal movement speed
+	public final float baseAccel = speed / accelTime;
 	
-	// Ramp Up/Down Coefficient
-	public final float rampUpCoeff = 10.5f;
-	public final float slipperiness = 10.5f;
+	// Modifiers
+	
+	// Modifier for the max top speed, relative to the base walking speed
+	public float topSpeedModifier = 1f;
+	// Modifier for the acceleration to the top speed, relative to the base acceleration
+	public float accelModifier = 1f;
+	// How much friction a surface has, and is only applied when not moving (in percentage to reduce / second)
+	public final float friction = 10.5f;
 	
 	// Jump related
+	// Maximum jump height, in blocks
 	private final float targetHeight = 1.25f;
-	private final float targetTime = 3f;
+	// Time to reach peak, in seconds
+	private final float targetTime = 0.35f;
 	
-	private final float jumpVelocity = ((2.0f * targetHeight) * targetTime);
+	private final float jumpVelocity = ((2 * targetHeight) / targetTime);
+	
+	// The gravity of the entity
+	// Derived from the player's jump height
+	// g = 2 * h / t^2
+	public final float gravity = ((2 * targetHeight) / (targetTime * targetTime));
 	
 	// If the player is sneaking
 	public boolean isSneaking = false;
@@ -58,8 +70,8 @@ public class EntityPlayer extends Entity
 	}
 	
 	/**
-	 * Pushes the player to the specified direction
-	 * The acceleration is relative to the current direction
+	 * Moves the entity to the specified direction
+	 * The acceleration is relative to the current yaw orientation
 	 * @param xAccel The acceleration in the x direction
 	 * @param zAccel The acceleration in the z direction
 	 */
@@ -70,8 +82,6 @@ public class EntityPlayer extends Entity
 			this.xAccel = 0;
 			this.zAccel = 0;
 			
-			// Stop sprinting
-			this.isSprinting = false;
 			return;
 		}
 		
@@ -79,14 +89,15 @@ public class EntityPlayer extends Entity
 		double xDir =  xAccel * Math.cos(phi) + zAccel * Math.sin(phi);
 		double zDir = -xAccel * Math.sin(phi) + zAccel * Math.cos(phi);
 		
-		// Normalize the horizontal movement vector
-		double mag = Math.sqrt(Math.pow(xDir, 2) + Math.pow(zDir, 2));
+		// Normalize the horizontal movement vector if it larger than a unit vector
+		double mag = Math.sqrt(xDir * xDir + zDir * zDir);
+		mag = Math.max(mag, 1.0d);
 		
 		xDir /= mag;
 		zDir /= mag;
 		
-		this.xAccel = (float) (xDir * speed);
-		this.zAccel = (float) (zDir * speed);
+		this.xAccel = (float) (xDir * baseAccel);
+		this.zAccel = (float) (zDir * baseAccel);
 	}
 	
 	public void jump()
@@ -102,19 +113,26 @@ public class EntityPlayer extends Entity
 	{
 		updateBreakAndPlace(delta);
 		
-		// Update speed coef
-		if (isSprinting)
-			speedCoef = 1.75f;
-		if (isSneaking)
-			speedCoef = 0.25f;
-		if (!isSneaking && !isSprinting)
-			speedCoef = 1f;
+		if (xAccel == 0 && zAccel == 0) {
+			// Stop sprinting
+			this.isSprinting = false;
+		}
 		
-		// Do movement update
+		// Update speed coeff
+		if (isSprinting)
+			topSpeedModifier = 1.75f;
+		if (isSneaking)
+			topSpeedModifier = 0.33f;
+		if (!isSneaking && !isSprinting)
+			topSpeedModifier = 1f;
+		
+		// Update acceleration coeff
 		if (world.getBlock((int)Math.floor(xPos), (int)Math.floor(yPos), (int)Math.floor(zPos)) == Blocks.WATER)
-			accelCoef = 0.375f;
+			accelModifier = 0.375f;
 		else
-			accelCoef = 1f;
+			accelModifier = 1f;
+		
+		float max_speed = speed * topSpeedModifier;
 		
 		// Change the yAccel if the player is flying or not
 		if (isFlying)
@@ -122,20 +140,26 @@ public class EntityPlayer extends Entity
 		else
 			yAccel = -gravity;
 		
-		// Apply the acceleration
-		xVel += accelCoef * speedCoef * rampUpCoeff * xAccel * delta;
-		zVel += accelCoef * speedCoef * rampUpCoeff * zAccel * delta;
+		// Do physics update
 		
-		if (yVel > 0)
+		// Apply the acceleration
+		xVel += accelModifier * xAccel * delta;
+		zVel += accelModifier * zAccel * delta;
+		
+		// If moving up, don't affect the acceleration
+		if (isFlying)
 			yVel += 1f * yAccel * delta;
 		else
-			yVel += accelCoef * yAccel * delta;
+			yVel += accelModifier * yAccel * delta;
 		
-		// Clamp the horizontal velocities
-		xVel = clamp(xVel, -speed * speedCoef, speed * speedCoef);
-		zVel = clamp(zVel, -speed * speedCoef, speed * speedCoef);
+		double real_speed = Math.sqrt(xVel * xVel + zVel * zVel);
+		if (real_speed > max_speed) {
+			// Cap the horizontal velocities to the max effective speed
+			xVel = (float) ((xVel / real_speed) * max_speed);
+			zVel = (float) ((zVel / real_speed) * max_speed);
+		}
 		
-		// Clamp the vertical velocity if flying
+		// Clamp the vertical velocity to jump velocity if flying
 		if (isFlying)
 			yVel = clamp(yVel, -jumpVelocity, jumpVelocity);
 		else
@@ -146,24 +170,32 @@ public class EntityPlayer extends Entity
 		
 		// Update the collision status
 		// Update horizontal before vertical to prevent sticking on a corner
-		boolean hitWall = updateHorizontalCollision(delta);
+		double lastVelX = xVel, lastVelZ = zVel;
+		updateHorizontalCollision(delta);
 		updateVerticalCollision(delta);
-		
+		boolean hitWall = (xVel != lastVelX) || (zVel != lastVelZ);
+				
 		// Apply the velocity
 		xPos += xVel * delta;
 		yPos += yVel * delta;
 		zPos += zVel * delta;
 		
-		// Apply exponential decay to the velocity
-		if(Math.abs(xVel) > 1/256f)
-			xVel = MathUtil.lerp(xVel, 0, slipperiness * accelCoef * delta);
-		else
-			xVel = 0;
+		// Apply exponential decay if not moving to the velocity
+		if (Math.abs(xAccel) < 1 / 1024f)
+		{
+			if (Math.abs(xVel) > 1 / 1024f)
+				xVel *= (1 - friction * delta);
+			else
+				xVel = 0;
+		}
 		
-		if(Math.abs(zVel) > 1/256f)
-			zVel = MathUtil.lerp(zVel, 0, slipperiness * accelCoef * delta);
-		else
-			zVel = 0;
+		if (Math.abs(zAccel) < 1 / 1024f)
+		{
+			if (Math.abs(zVel) > 1 / 1024f)
+				zVel *= (1 - friction * delta);
+			else
+				zVel = 0;
+		}
 		
 		// Stop sprinting if a wall was hit
 		if (hitWall)

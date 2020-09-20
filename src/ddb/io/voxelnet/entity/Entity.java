@@ -18,8 +18,8 @@ public class Entity
 	
 	// The gravity of the entity
 	// Derived from the player's jump height
-	// g = 2 * h * t^2
-	public final float gravity = ((2.0f * 1.25f) * (3f * 3f));
+	// g = 2 * h / t^2
+	public final float gravity = ((2.0f * 1.25f) / (0.35f * 0.35f));
 	
 	// The orientation of the entity
 	public float pitch = 0.0f, yaw = 0.0f;
