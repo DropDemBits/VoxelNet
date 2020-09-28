@@ -120,13 +120,22 @@ public class Camera
 	}
 	
 	/**
-	 * Gets the actual transform of the camera
-	 * The matrix returned is the combined perspective-view matrix
-	 * @return The actual transformation matrix of the camera
+	 * Gets the perspective projection matrix of the camera.
+	 * @return The projection matrix of the camera
 	 */
-	public Matrix4f getTransform()
+	public Matrix4f getPerspectiveTransform()
 	{
-		return pvMatrix.identity().mul(perspectiveMatrix).mul(viewMatrix);
+		return perspectiveMatrix;
+	}
+	
+	/**
+	 * Gets the view transformation matrix of the camera.
+	 * Only the view matrix is returned
+	 * @return The view matrix of the camera
+	 */
+	public Matrix4f getViewTransform()
+	{
+		return viewMatrix;
 	}
 	
 	public Frustum getViewFrustum() { return viewFrustum; }

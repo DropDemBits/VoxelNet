@@ -2,12 +2,13 @@
 #version 110
 attribute vec3 position;
 
-uniform mat4 PVMatrix;
+uniform mat4 ProjectMatrix;
+uniform mat4 ViewMatrix;
 uniform mat4 ModelMatrix;
 
 void main (void) {
     gl_PointSize = 10.0f;
-    gl_Position = PVMatrix * ModelMatrix * vec4(position, 1);
+    gl_Position = ProjectMatrix * ViewMatrix * ModelMatrix * vec4(position, 1);
 }
 
 #fragment

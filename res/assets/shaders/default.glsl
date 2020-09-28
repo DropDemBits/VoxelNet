@@ -6,17 +6,18 @@ attribute vec3 lightValues;
 
 varying float frag_lightIntensity;
 varying vec2 frag_texCoord;
-varying float dbuff;
-varying float frag_faceIntensity;
+varying vec4 viewCoord;
 
-uniform mat4 PVMatrix;
+uniform mat4 ProjectMatrix;
+uniform mat4 ViewMatrix;
 uniform mat4 ModelMatrix;
 
 uniform float iTime;
 
 const float[8*4] faceIntensities = float[8*4](
     //   S       N       E       W       U       D
-    0.750f, 0.750f, 0.825f, 0.825f, 0.950f, 0.600f, 0.0f, 0.0f,
+    //0.750f, 0.750f, 0.825f, 0.825f, 0.950f, 0.600f, 0.0f, 0.0f,
+    0.825f, 0.825f, 0.950f, 0.950f, 1.000f, 0.750f, 0.0f, 0.0f,
     0.825f, 0.825f, 0.950f, 0.950f, 1.000f, 0.750f, 0.0f, 0.0f,
     0.825f, 0.825f, 0.950f, 0.950f, 1.000f, 0.750f, 0.0f, 0.0f,
     0.825f, 0.825f, 0.950f, 0.950f, 1.000f, 0.750f, 0.0f, 0.0f
@@ -27,7 +28,10 @@ float sunBright = 1.f;
 const float interval = (2 * 3.14159265f);
 
 void main (void) {
-    gl_Position = PVMatrix * ModelMatrix * vec4(position, 1);
+    const float test = 0.1f;
+    float nee = mod(test, 1.0f);
+
+    gl_Position = ProjectMatrix * ViewMatrix * ModelMatrix * vec4(position, 1);
     frag_texCoord = texCoord;
 
     // Compute light value
@@ -40,13 +44,12 @@ void main (void) {
     float skyLight = lightValues.x / 4.0f;
     float maxLight = max(skyLight, blockLight);
     float effectiveLight = blockLight * (1 - sunBright) + maxLight * sunBright;
-
     float finalLight = effectiveLight / 15.0f;
+    finalLight = exp2((1.f - (finalLight)) * log2(0.2f)) * faceIntensities[faceIndex];
 
-    frag_faceIntensity = faceIntensities[faceIndex];
     frag_lightIntensity = finalLight;
 
-    dbuff = gl_Position.z;
+    viewCoord = ViewMatrix * ModelMatrix * vec4(position, 1);
 }
 
 #fragment
@@ -54,36 +57,43 @@ void main (void) {
 
 varying float frag_lightIntensity;
 varying vec2 frag_texCoord;
-varying float dbuff;
-varying float frag_faceIntensity;
+varying vec4 viewCoord;
 
 uniform sampler2D texture0;
 uniform bool inWater;
 
-const float AMBIENT = 0.03;
+const float AMBIENT_LIGHTING = 0.00;
 const vec4 WATER_COLOR = vec4(0.44, 0.4, 0.6, 1.0);
+const float FOG_DENSITY = 0.125;
+const float INV_LOG2E = 1.442695;
 
 const float gamma = 2.2f;
 const float inv_gamma = 1.f / 2.2f;
 
 void main (void) {
     vec4 clr = texture2D(texture0, frag_texCoord);
+    clr.rgb = pow(clr.rgb, vec3(2));
 
     if (clr.a < 0.001)
         discard;
 
-    if (inWater)
-        clr *= WATER_COLOR;
-
-    float finalLight = exp2((1.f - (frag_lightIntensity)) * log2(0.2f));
-    float computedLight = finalLight * frag_faceIntensity + AMBIENT;
+    float computedLight = frag_lightIntensity + AMBIENT_LIGHTING;
     clr.rgb = vec3(clr.rgb * clamp(computedLight, 0.f, 1.f));
 
-    gl_FragColor = clr;
-    //gl_FragColor = vec4(vec3(gl_FragCoord.z), clr.a);
+    clr.rgb = sqrt(clr.rgb);
 
-    // Fog-like effect
-    //gl_FragColor = vec4(clamp((1.f - dbuff/5.f) * (frag_lightIntensity + AMBIENT), 0.f, 1.f) * clr.rgb, clr.a);
+    if (inWater) {
+        // Water fog
+        // fogFactor = e^(-(density * gl_FragCoord.z)^2.0)
+        float z = (viewCoord.z / viewCoord.w);
+
+        float fogFactor = exp2(-FOG_DENSITY * FOG_DENSITY * z * z * INV_LOG2E);
+        fogFactor = clamp(fogFactor, 0.0, 1.0);
+
+        gl_FragColor = vec4(mix(WATER_COLOR.rgb, clr.rgb, fogFactor), clr.a);
+    } else {
+        gl_FragColor = clr;
+    }
 }
 
 #vertexlayout
