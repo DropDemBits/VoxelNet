@@ -363,7 +363,7 @@ public class Game {
 			
 			// Render Stage
 			double renderTick = glfwGetTime();
-			render(lag * MS_PER_PHYSICS_TICK);
+			render(lag);
 			frameTime = glfwGetTime() - renderTick;
 			fps++;
 			
@@ -439,6 +439,7 @@ public class Game {
 			networkManager.getNetworkIDMap().addExistingEntity(player, networkManager.getClientID());
 	}
 	
+	// Partial ticks is in ms
 	private void render(double partialTicks)
 	{
 		worldRenderer.update();
@@ -576,7 +577,7 @@ public class Game {
 		int effLight = Math.max(blkLight, skyLight);
 		
 		String nameVersion = String.format("VoxelNet %s\n", GameVersion.asText());
-		String timeStr = String.format("FT %-5.2f (%d | %.3f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, currentUPD * 1000d);
+		String timeStr = String.format("FT %-5.2f (%d | %f) / UT %-5.2f\n", frameTime * 1000d, currentFPS, partialTicks, currentUPD * 1000d);
 		String posStr = String.format("Pos %.2f / %.2f / %.2f\n", player.xPos, player.yPos, player.zPos);
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
 		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ).getId(), Integer.toBinaryString(world.getBlockMeta(blockX, blockY, blockZ)));
