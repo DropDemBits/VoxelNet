@@ -14,7 +14,9 @@ import static org.lwjgl.opengl.GL11.*;
  */
 public class GameRenderer
 {
-	private final float[] matrix = new float[16];
+	// Temporary matrix transfer arrays
+	private final float[] floatMatrix = new float[16];
+	
 	private Camera camera;
 	private Shader currentShader;
 	private final Map<Class<? extends Entity>, EntityRenderer> entityRenderers;
@@ -79,14 +81,19 @@ public class GameRenderer
 	
 	/**
 	 * Prepares the shader for drawing models
-	 * Sends the PV matrix to the shader
+	 * Sends the projection and view matrix to the shader
 	 */
 	public void prepareShader()
 	{
-		camera.getTransform().get(matrix);
-		
 		currentShader.bind();
-		currentShader.setUniformMatrix4fv("PVMatrix", false, matrix);
+	
+		// Upload projection matrix
+		camera.getPerspectiveTransform().get(floatMatrix);
+		currentShader.setUniformMatrix4fv("ProjectMatrix", false, floatMatrix);
+		
+		// Upload view matrix
+		camera.getViewTransform().get(floatMatrix);
+		currentShader.setUniformMatrix4fv("ViewMatrix", false, floatMatrix);
 	}
 	
 	public Shader getCurrentShader()
@@ -130,8 +137,8 @@ public class GameRenderer
 	public void drawModel(Model model)
 	{
 		// Upload the model matrix
-		model.getTransform().get(matrix);
-		currentShader.setUniformMatrix4fv("ModelMatrix", false, matrix);
+		model.getTransform().get(floatMatrix);
+		currentShader.setUniformMatrix4fv("ModelMatrix", false, floatMatrix);
 		
 		model.bind();
 		glDrawElements(model.getDrawMode().toGLEnum(), model.getIndexCount(), GL_UNSIGNED_INT, 0L);
