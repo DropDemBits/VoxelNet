@@ -2,15 +2,22 @@ package ddb.io.voxelnet.network.packet;
 
 import io.netty.buffer.ByteBuf;
 
-public class PSKillPlayer extends Packet
+public class PSKillPlayer implements Packet
 {
 	public int clientID;
 	
-	public PSKillPlayer() {}
+	PSKillPlayer() {}
 	
 	public PSKillPlayer(int clientID)
 	{
 		this.clientID = clientID;
+	}
+	
+	@SuppressWarnings("unused")
+	@Override
+	public Packet makeEmptyPacket()
+	{
+		return new PSKillPlayer();
 	}
 	
 	@Override

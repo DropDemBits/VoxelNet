@@ -2,11 +2,18 @@ package ddb.io.voxelnet.network.packet;
 
 import io.netty.buffer.ByteBuf;
 
-public class PSSpawnPlayer extends Packet
+public class PSSpawnPlayer implements Packet
 {
 	public int clientID;
 	
-	public PSSpawnPlayer() {}
+	PSSpawnPlayer() {}
+	
+	@SuppressWarnings("unused")
+	@Override
+	public Packet makeEmptyPacket()
+	{
+		return new PSSpawnPlayer();
+	}
 	
 	public PSSpawnPlayer(int clientID)
 	{

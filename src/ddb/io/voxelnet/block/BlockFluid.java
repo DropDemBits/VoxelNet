@@ -3,11 +3,8 @@ package ddb.io.voxelnet.block;
 import ddb.io.voxelnet.client.render.BlockRenderModel;
 import ddb.io.voxelnet.client.render.RenderLayer;
 import ddb.io.voxelnet.fluid.Fluid;
-import ddb.io.voxelnet.fluid.FluidPlacement;
 import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.world.World;
-
-import java.util.Stack;
 
 public abstract class BlockFluid extends Block
 {

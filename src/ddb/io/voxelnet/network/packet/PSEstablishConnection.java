@@ -2,15 +2,22 @@ package ddb.io.voxelnet.network.packet;
 
 import io.netty.buffer.ByteBuf;
 
-public class PSEstablishConnection extends Packet
+public class PSEstablishConnection implements Packet
 {
 	public int clientID;
 	
-	public PSEstablishConnection() {}
+	PSEstablishConnection() {}
 	
 	public PSEstablishConnection(int clientID)
 	{
 		this.clientID = clientID;
+	}
+	
+	@SuppressWarnings("unused")
+	@Override
+	public Packet makeEmptyPacket()
+	{
+		return new PSEstablishConnection();
 	}
 	
 	@Override

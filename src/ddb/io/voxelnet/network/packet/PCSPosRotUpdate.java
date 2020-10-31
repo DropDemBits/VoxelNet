@@ -3,7 +3,7 @@ package ddb.io.voxelnet.network.packet;
 import ddb.io.voxelnet.entity.EntityPlayer;
 import io.netty.buffer.ByteBuf;
 
-public class PCSPosRotUpdate extends Packet
+public class PCSPosRotUpdate implements Packet
 {
 	public int clientID;
 	public float xPos;
@@ -22,7 +22,7 @@ public class PCSPosRotUpdate extends Packet
 	public boolean isSprinting;
 	public boolean isSneaking;
 	
-	public PCSPosRotUpdate() {}
+	PCSPosRotUpdate() {}
 	
 	public PCSPosRotUpdate(int clientID, EntityPlayer entity)
 	{
@@ -65,6 +65,13 @@ public class PCSPosRotUpdate extends Packet
 		this.isFlying = isFlying;
 		this.isSneaking = isSneaking;
 		this.isSprinting = isSprinting;
+	}
+	
+	@SuppressWarnings("unused")
+	@Override
+	public Packet makeEmptyPacket()
+	{
+		return new PCSPosRotUpdate();
 	}
 	
 	@Override

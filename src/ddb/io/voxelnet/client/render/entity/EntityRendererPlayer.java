@@ -5,7 +5,7 @@ import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
 import ddb.io.voxelnet.entity.Entity;
 import org.joml.Matrix4f;
 
-public class EntityRendererPlayer extends EntityRenderer
+public class EntityRendererPlayer implements EntityRenderer
 {
 	// TODO: Use an entity shader
 	private final Model playerModel;

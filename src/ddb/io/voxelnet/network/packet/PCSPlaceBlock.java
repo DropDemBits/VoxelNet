@@ -5,19 +5,26 @@ import ddb.io.voxelnet.util.Facing;
 import ddb.io.voxelnet.util.RaycastResult;
 import io.netty.buffer.ByteBuf;
 
-public class PCSPlaceBlock extends Packet
+public class PCSPlaceBlock implements Packet
 {
 	public int clientID;
 	public RaycastResult hitResult;
 	public Block placingBlock;
 	
-	public PCSPlaceBlock() {}
+	PCSPlaceBlock() {}
 	
 	public PCSPlaceBlock(int clientID, RaycastResult hitResult, Block placeBlock)
 	{
 		this.clientID = clientID;
 		this.hitResult = hitResult;
 		this.placingBlock = placeBlock;
+	}
+	
+	@SuppressWarnings("unused")
+	@Override
+	public Packet makeEmptyPacket()
+	{
+		return new PCSPlaceBlock();
 	}
 	
 	@Override

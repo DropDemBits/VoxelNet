@@ -12,7 +12,7 @@ import ddb.io.voxelnet.util.MathUtil;
 
 import java.util.Arrays;
 
-public class EntityRendererFalling extends EntityRenderer
+public class EntityRendererFalling implements EntityRenderer
 {
 	private final Model model;
 	private final ModelBuilder builder;

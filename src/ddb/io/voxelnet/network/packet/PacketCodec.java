@@ -74,7 +74,7 @@ public class PacketCodec extends ByteToMessageCodec<Packet>
 	}
 	
 	@Override
-	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
 	{
 		cause.printStackTrace();
 		ctx.close();

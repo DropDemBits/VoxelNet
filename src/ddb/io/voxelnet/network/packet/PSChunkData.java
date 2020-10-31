@@ -8,12 +8,11 @@ import io.netty.buffer.ByteBuf;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.*;
 
-public class PSChunkData extends Packet
+public class PSChunkData implements Packet
 {
 	private static final int UNCOMPRESSED_CHUNK_SIZE = Chunk.BLOCK_DATA_SIZE + Chunk.LIGHT_DATA_SIZE + Chunk.META_DATA_SIZE;
 	
@@ -22,13 +21,20 @@ public class PSChunkData extends Packet
 	public ChunkColumn column;
 	public final List<Chunk> chunkList = new ArrayList<>();
 	
-	public PSChunkData() {}
+	PSChunkData() {}
 	
 	public PSChunkData(int chunkX, int chunkZ, ChunkColumn column)
 	{
 		this.chunkX = chunkX;
 		this.chunkZ = chunkZ;
 		this.column = column;
+	}
+	
+	@SuppressWarnings("unused")
+	@Override
+	public Packet makeEmptyPacket()
+	{
+		return new PSChunkData();
 	}
 	
 	/**
