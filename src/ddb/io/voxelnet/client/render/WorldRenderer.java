@@ -79,10 +79,9 @@ public class WorldRenderer
 				continue;
 			}
 			
-			if (model.chunk.needsRebuild() && model.getModelState() == ChunkModel.ModelState.UPDATED)
+			if (model.chunk.needsRebuild() && model.markForUpdate())
 			{
 				// No model update is pending, add it to the generate queue
-				model.setModelState(ChunkModel.ModelState.PENDING);
 				generateQueue.push(model);
 			}
 		}
@@ -123,9 +122,7 @@ public class WorldRenderer
 			}
 		}
 		
-		// List of chunks that have transparent blocks
-		List<ChunkModel> transparentChunks = new ArrayList<>();
-		
+		// Update `inWater` status
 		renderer.getCurrentShader().setUniform1i("inWater", clientPlayer.isInWater() ? 1 : 0);
 		
 		glDisable(GL_BLEND);
@@ -144,24 +141,18 @@ public class WorldRenderer
 					22.627416998f))
 				continue;
 			
-			if (chunkModel.hasTransparency())
-				transparentChunks.add(chunkModel);
-			
-			Model model = chunkModel.getModelForLayer(RenderLayer.OPAQUE);
-			
-			model.bind();
-			
-			// Update the vertices if an update is not in progress
-			if (chunkModel.getModelState() == ChunkModel.ModelState.UPDATED)
-				chunkModel.updateLayer(RenderLayer.OPAQUE);
-			
-			renderer.drawModel(model);
+			if (chunkModel.dataInLayer(RenderLayer.OPAQUE))
+			{
+				Model model = chunkModel.getModelForLayer(RenderLayer.OPAQUE);
+				model.bind();
+				renderer.drawModel(model);
+			}
 		}
 		
 		// Reverse iterate through the array & other layers
 		for (RenderLayer layer : transparentLayers)
 		{
-			ListIterator<ChunkModel> itr = transparentChunks.listIterator(transparentChunks.size());
+			ListIterator<ChunkModel> itr = renderList.listIterator(renderList.size());
 			
 			if (layer == RenderLayer.FLUID)
 			{
@@ -180,15 +171,21 @@ public class WorldRenderer
 			while (itr.hasPrevious())
 			{
 				ChunkModel chunkModel = itr.previous();
-				Model model = chunkModel.getModelForLayer(layer);
 				
-				// Update the vertices if a model update is not in progress (have
-				// not been updated above)
-				model.bind();
-				if (chunkModel.getModelState() == ChunkModel.ModelState.UPDATED)
-					chunkModel.updateLayer(layer);
+				// Cull chunks not inside the view frustum
+				if (!renderer.getCamera().getViewFrustum().isSphereInside(
+						(chunkModel.chunk.chunkX << 4) + 8.5f,
+						(chunkModel.chunk.chunkY << 4) + 8.5f,
+						(chunkModel.chunk.chunkZ << 4) + 8.5f,
+						22.627416998f))
+					continue;
 				
-				renderer.drawModel(model);
+				if (chunkModel.dataInLayer(layer))
+				{
+					Model model = chunkModel.getModelForLayer(layer);
+					model.bind();
+					renderer.drawModel(model);
+				}
 			}
 			
 			if (layer == RenderLayer.FLUID)
@@ -212,6 +209,13 @@ public class WorldRenderer
 				continue;
 			
 			renderer.getEntityRenderer(e.getClass()).render(e, renderer, partialTicks);
+		}
+		
+		// Update any chunks with dirty models
+		// Models keep track of their dirty states
+		for (ChunkModel chunkModel : renderList)
+		{
+			chunkModel.updateModels();
 		}
 	}
 	

@@ -23,16 +23,21 @@ class ChunkModel
 	private final Matrix4f modelMatrix;
 	Chunk chunk;
 	private final Model[] modelLayers = new Model[RenderLayer.values().length];
-	private final ModelBuilder[] builderLayers = new ModelBuilder[RenderLayer.values().length];
+	
+	// Model builders for the layers
+	private final ModelBuilder[] layerBuilders = new ModelBuilder[RenderLayer.values().length];
+	
 	// Layers that need updates
 	private final boolean[] layerNeedsUpdate = new boolean[RenderLayer.values().length];
+	// Layers that have data
+	private final boolean[] layerHasData = new boolean[RenderLayer.values().length];
 	// Update state for the model
-	private volatile ModelState modelState = ModelState.UPDATED;
-	// If the model has transparent layers
-	private volatile boolean hasTransparency = false;
+	private volatile ModelState modelState = ModelState.CURRENT;
 	private int updateAttempts = 0;
 	
+	// Synchronizes model updates
 	private final ReentrantLock updateLock;
+	// Synchronizes state updates
 	private final ReentrantLock stateLock;
 	
 	/**
@@ -49,7 +54,7 @@ class ChunkModel
 			modelLayers[layer.ordinal()] = new Model(BlockRenderer.BLOCK_LAYOUT);
 			modelLayers[layer.ordinal()].setTransform(this.modelMatrix);
 			
-			builderLayers[layer.ordinal()] = new ModelBuilder(BlockRenderer.BLOCK_LAYOUT, EnumDrawMode.TRIANGLES);
+			layerBuilders[layer.ordinal()] = new ModelBuilder(BlockRenderer.BLOCK_LAYOUT, EnumDrawMode.TRIANGLES);
 		}
 		
 		this.updateLock = new ReentrantLock();
@@ -89,9 +94,11 @@ class ChunkModel
 			for (RenderLayer layer : RenderLayer.values())
 			{
 				chunk.resetLayerRebuildStatus(layer);
+				
+				layerBuilders[layer.ordinal()].reset();
+				layerBuilders[layer.ordinal()].compact();
+				
 				layerNeedsUpdate[layer.ordinal()] = true;
-				builderLayers[layer.ordinal()].reset();
-				builderLayers[layer.ordinal()].compact();
 			}
 		}
 		else
@@ -106,7 +113,6 @@ class ChunkModel
 			
 			// Rebuild each layer individually
 			long start = System.nanoTime();
-			hasTransparency = false;
 			
 			for (RenderLayer layer : RenderLayer.values())
 			{
@@ -126,12 +132,16 @@ class ChunkModel
 				System.out.println(", Current Generate Time: " + (currentGenerate) / 1000000.0d);
 				System.out.println(BlockRenderer.statNear + ", " + BlockRenderer.statSolid + ", " + BlockRenderer.statNoShow);
 				System.out.println("---------------------------------");
+				
+				// reset counts (it's fiiiiiine that it's globally mutable data, these are rough counters)
+				generateAccum = 0;
+				generateCount = 0;
 			}
 		}
 		
 		--updateAttempts;
 		updateLock.unlock();
-		setModelState(ModelState.UPDATED);
+		setModelState(ModelState.UPDATE_DONE);
 		
 		// Make sure that we are the only ones updating the chunk
 		assert updateAttempts == 0;
@@ -139,14 +149,11 @@ class ChunkModel
 	
 	private void rebuildLayer(RenderLayer layer, TextureAtlas atlas)
 	{
-		ModelBuilder targetBuilder = builderLayers[layer.ordinal()];
+		ModelBuilder targetBuilder = layerBuilders[layer.ordinal()];
 		ChunkField field = chunk.chunkField;
 		
 		// Reset the builder
 		targetBuilder.reset();
-		
-		// Current layer will need update
-		layerNeedsUpdate[layer.ordinal()] = true;
 		
 		// Chunk is not empty, update the things
 		for (int y = 0; y < 16; y++)
@@ -157,10 +164,10 @@ class ChunkModel
 			
 			// Check if a layer can be skipped
 			int layerY = y;
-			if ((field.getChunk(0, y + 1, 0, Facing.NONE).map(chunk->chunk.getLayerCount(layerY + 1)).orElse((short)0)) == 16 * 16)
+			if ((field.getChunk(0, y + 1, 0, Facing.NONE).map(chunk -> chunk.getLayerCount(layerY + 1)).orElse((short)0)) == 16 * 16)
 				layerAboveFilled = true; // Layer above is filled
 			
-			if ((field.getChunk(0, y - 1, 0, Facing.NONE).map(chunk->chunk.getLayerCount(layerY - 1)).orElse((short) 0)) == 16 * 16)
+			if ((field.getChunk(0, y - 1, 0, Facing.NONE).map(chunk -> chunk.getLayerCount(layerY - 1)).orElse((short) 0)) == 16 * 16)
 				layerBelowFilled = true; // Layer below is filled
 			
 			if (layerAboveFilled && layerBelowFilled && chunk.getLayerCount(y) == 16 * 16)
@@ -191,17 +198,9 @@ class ChunkModel
 				{
 					Block block = Block.idToBlock(chunk.getBlock(x, y, z));
 					
-					if (block == Blocks.AIR)
+					// Skip blocks that are air or not part of the requested layer
+					if (block == Blocks.AIR || block == Blocks.VOID || block.getRenderLayer() != layer)
 						continue;
-					
-					assert block != Blocks.VOID : "Bad access coords or bad block id";
-					
-					// Skip blocks not part of the requested layer
-					if (block.getRenderLayer() != layer)
-						continue;
-					
-					if (block.isTransparent())
-						hasTransparency = true;
 					
 					int[] faceTextures = block.getFaceTextures();
 					
@@ -212,6 +211,9 @@ class ChunkModel
 		
 		// Indicate that the chunk has been updated
 		chunk.resetLayerRebuildStatus(layer);
+		
+		// Current layer will need update
+		layerNeedsUpdate[layer.ordinal()] = true;
 	}
 	
 	/**
@@ -224,16 +226,40 @@ class ChunkModel
 		return modelLayers[layer.ordinal()];
 	}
 	
+	/**
+	 * Sees if the given layer has data to render
+	 * @return True if there are things to render in the layer
+	 */
+	public boolean dataInLayer(RenderLayer layer)
+	{
+		return this.layerHasData[layer.ordinal()];
+	}
+	
 	public Matrix4f getTransform()
 	{
 		return modelMatrix;
 	}
 	
 	/**
+	 * Marks the model as pending a rebuild
+	 * @return True if the model was marked for update, false if an update was already pending
+	 */
+	public boolean markForUpdate()
+	{
+		if (getModelState() == ModelState.CURRENT)
+		{
+			setModelState(ModelState.PENDING);
+			return true;
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * Sets the update state for the model
 	 * @param newState The new update state
 	 */
-	public void setModelState(ModelState newState)
+	private void setModelState(ModelState newState)
 	{
 		stateLock.lock();
 		this.modelState = newState;
@@ -244,57 +270,52 @@ class ChunkModel
 	 * Sets the update state for the model
 	 * @return The current update state
 	 */
-	public ModelState getModelState()
+	private ModelState getModelState()
 	{
 		return this.modelState;
-	}
-	
-	/**
-	 * Sees if the chunk model has transparent blocks
-	 * @return True if there are transparent blocks to render
-	 */
-	public boolean hasTransparency()
-	{
-		return hasTransparency;
 	}
 	
 	/**
 	 * Updates the layer's vertices
 	 * @param layer The layer to update
 	 */
-	public void updateLayer(RenderLayer layer)
+	private void updateLayer(RenderLayer layer)
 	{
-		updateLock.lock();
+		Model updatingModel = modelLayers[layer.ordinal()];
 		
-		if (!updateLock.isHeldByCurrentThread())
-			System.out.println("mischance what");
-		
-		if (modelState != ModelState.UPDATED)
+		// Update the model & clear the vertices
+		if (layerNeedsUpdate[layer.ordinal()])
 		{
-			updateLock.unlock();
+			ModelBuilder builder = layerBuilders[layer.ordinal()];
+			layerHasData[layer.ordinal()] = builder.hasData();
+			
+			updatingModel.updateVertices(builder);
+			builder.compact();
+		}
+			
+		layerNeedsUpdate[layer.ordinal()] = false;
+	}
+	
+	/**
+	 * Updates the layer models
+	 */
+	public void updateModels()
+	{
+		if (modelState != ModelState.UPDATE_DONE)
+		{
+			// If not called in the update done state, bail out
 			return;
 		}
 		
-		try
+		for (RenderLayer layer : RenderLayer.values())
 		{
-			Model updatingModel = modelLayers[layer.ordinal()];
-			
-			// Update the model & clear the vertices
-			if (layerNeedsUpdate[layer.ordinal()])
-			{
-				updatingModel.updateVertices(builderLayers[layer.ordinal()]);
-				builderLayers[layer.ordinal()].compact();
-			}
-			
-			layerNeedsUpdate[layer.ordinal()] = false;
+			Model model = getModelForLayer(layer);
+			model.bind();
+			updateLayer(layer);
+			model.unbind();
 		}
-		finally
-		{
-			if (!updateLock.isHeldByCurrentThread())
-				System.out.println("mischance postlayer");
 			
-			updateLock.unlock();
-		}
+		setModelState(ModelState.CURRENT);
 	}
 	
 	// Forces a rebuild of the adjacent neighbors
@@ -307,13 +328,16 @@ class ChunkModel
 	/**
 	 * Update state for a model
 	 */
-	enum ModelState
+	private enum ModelState
 	{
-		// Model update is finished, vertex buffer updates are delayed to the render stage
-		UPDATED,
 		// Model update is queued, will be processed later
 		PENDING,
 		// Model is in the process for being updated
+		// Don't observe the ChunkModel in this state, values may be indeterminant / transient
 		UPDATING,
+		// Model update is finished, vertex buffer updates are delayed to the render stage
+		UPDATE_DONE,
+		// Vertex buffer update is complete, most recent model is being displayed
+		CURRENT,
 	}
 }
