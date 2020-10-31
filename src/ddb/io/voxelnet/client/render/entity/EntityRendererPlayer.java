@@ -166,7 +166,7 @@ public class EntityRendererPlayer extends EntityRenderer
 		playerTransform.identity();
 		
 		// Currently setup so that the entire player model pitches
-		float pt = (float)1.0f/60.0f;
+		float pt = (float)partialTicks;
 		playerTransform.translate(e.xPos + e.xVel * pt, e.yPos + e.yVel * pt, e.zPos + e.zVel * pt);
 		//playerTransform.translate(-0.5f, 0.0f, -0.5f);
 		playerTransform.rotate((float)Math.toRadians(e.yaw), 0.f, 1.f, 0.f);

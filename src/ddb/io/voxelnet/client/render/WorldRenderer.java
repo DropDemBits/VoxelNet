@@ -26,7 +26,7 @@ public class WorldRenderer
 	private final List<ChunkModel> renderList = new ArrayList<>();
 	// List of chunks that need model updates
 	private final Stack<ChunkModel> generateQueue = new Stack<>();
-	private final ExecutorService generatePool = Executors.newWorkStealingPool(); //Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+	private final ExecutorService generatePool = Executors.newWorkStealingPool();
 	private final AtomicInteger updateThrottler = new AtomicInteger();
 	
 	private final TextureAtlas atlas;
@@ -111,6 +111,18 @@ public class WorldRenderer
 	
 	public void render(GameRenderer renderer, double partialTicks)
 	{
+		// Enqueue all the changed chunks
+		if (!generateQueue.isEmpty())
+		{
+			System.out.println("Model Upd (" + generateQueue.size() + "), Active (" + updateThrottler.get() + ")");
+			
+			for (int i = updateThrottler.get(); i < MAX_UPDATING_MODELS && !generateQueue.isEmpty(); i++)
+			{
+				updateThrottler.getAndIncrement();
+				generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
+			}
+		}
+		
 		// List of chunks that have transparent blocks
 		List<ChunkModel> transparentChunks = new ArrayList<>();
 		
@@ -153,9 +165,10 @@ public class WorldRenderer
 			
 			if (layer == RenderLayer.FLUID)
 			{
-				glDepthMask(false);
+				glDepthMask(true);
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glDisable(GL_CULL_FACE);
 			}
 			
 			if (layer == RenderLayer.TRANSPARENT)
@@ -180,6 +193,7 @@ public class WorldRenderer
 			
 			if (layer == RenderLayer.FLUID)
 			{
+				glEnable(GL_CULL_FACE);
 				glDepthMask(true);
 				glDisable(GL_BLEND);
 			}
@@ -198,18 +212,6 @@ public class WorldRenderer
 				continue;
 			
 			renderer.getEntityRenderer(e.getClass()).render(e, renderer, partialTicks);
-		}
-		
-		// Enqueue all the changed chunks
-		if (!generateQueue.isEmpty())
-		{
-			System.out.println("Model Upd (" + generateQueue.size() + "), Active (" + updateThrottler.get() + ")");
-			
-			for (int i = updateThrottler.get(); i < MAX_UPDATING_MODELS && !generateQueue.isEmpty(); i++)
-			{
-				updateThrottler.getAndIncrement();
-				generatePool.execute(new ThreadedChunkGenerator(generateQueue.pop()));
-			}
 		}
 	}
 	

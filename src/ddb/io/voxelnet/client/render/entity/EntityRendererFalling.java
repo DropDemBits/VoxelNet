@@ -1,10 +1,14 @@
 package ddb.io.voxelnet.client.render.entity;
 
-import ddb.io.voxelnet.client.render.*;
+import ddb.io.voxelnet.client.render.BlockRenderer;
+import ddb.io.voxelnet.client.render.GameRenderer;
+import ddb.io.voxelnet.client.render.Model;
+import ddb.io.voxelnet.client.render.ModelBuilder;
 import ddb.io.voxelnet.client.render.gl.EnumDrawMode;
 import ddb.io.voxelnet.entity.Entity;
 import ddb.io.voxelnet.entity.EntityFallingBlock;
 import ddb.io.voxelnet.util.Facing;
+import ddb.io.voxelnet.util.MathUtil;
 
 import java.util.Arrays;
 
@@ -62,7 +66,15 @@ public class EntityRendererFalling extends EntityRenderer
 		builder.compact();
 		
 		// Setup the transform
-		model.getTransform().identity().translate(e.xPos - 0.5f, e.yPos, e.zPos - 0.5f);
+		float centeredX = e.xPos - 0.5f;
+		float centeredY = e.yPos;
+		float centeredZ = e.zPos - 0.5f;
+		
+		float lerpX = (float) MathUtil.lerp(centeredX, centeredX + e.xVel, partialTicks);
+		float lerpY = (float) MathUtil.lerp(centeredY, centeredY + e.yVel, partialTicks);
+		float lerpZ = (float) MathUtil.lerp(centeredZ, centeredZ + e.zVel, partialTicks);
+		
+		model.getTransform().identity().translate(lerpX, lerpY, lerpZ);
 		renderer.drawModel(model);
 	}
 	
