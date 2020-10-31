@@ -7,6 +7,7 @@ import ddb.io.voxelnet.network.packet.PSChunkData;
 import ddb.io.voxelnet.util.Vec3i;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -80,17 +81,19 @@ public class ClientChunkManager extends ChunkManager
 	}
 	
 	@Override
-	protected void doColumnLoad(Vec3i pos)
+	protected ChunkColumn doColumnLoad(Vec3i pos)
 	{
 		// Don't load columns that already have data in flight
 		if (pendingColumnLoads.contains(pos))
-			return;
+		{
+			return chunkColumns.get(pos);
+		}
 		
 		// Check if the column exists in the chunk column cache
 		if (loadFromChunkCache(pos))
 		{
 			// Column is now loaded
-			return;
+			return chunkColumns.get(pos);
 		}
 		
 		// Send over a request to load the column
@@ -104,6 +107,7 @@ public class ClientChunkManager extends ChunkManager
 		// Use a placeholder column for now
 		ChunkColumn column = new ChunkColumn(pos.getX(), pos.getZ());
 		chunkColumns.put(pos, column);
+		return column;
 	}
 	
 	/**
@@ -141,7 +145,7 @@ public class ClientChunkManager extends ChunkManager
 				.filter(inSameColumn)
 				.peek((pos) -> {
 					// Mark placeholder chunk as real, no data exists
-					loadedChunks.getOrDefault(pos, EMPTY_CHUNK).markNotPlaceholder();
+					Optional.ofNullable(loadedChunks.get(pos)).ifPresent(Chunk::markNotPlaceholder);
 				})
 				.count();
 		

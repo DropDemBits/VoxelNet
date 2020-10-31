@@ -141,11 +141,10 @@ public class World
 		int blockZ = z & 0xF;
 		
 		// Check the ChunkColumn for access to the sky
-		ChunkColumn column = chunkManager.getColumn(chunkX, chunkZ);
-		if (column == null)
-			return 0;
+		return chunkManager.getColumn(chunkX, chunkZ)
+				.map(chunkColumn -> chunkColumn.getTallestOpaque(blockX, blockZ))
+				.orElse(0);
 		
-		return column.getTallestOpaque(blockX, blockZ);
 	}
 	
 	public boolean canBlockSeeSky(int x, int y, int z)
@@ -160,18 +159,18 @@ public class World
 		int blockZ = z & 0xF;
 		
 		// Check the ChunkColumn for access to the sky
-		ChunkColumn column = chunkManager.getColumn(chunkX, chunkZ);
+		Optional<ChunkColumn> column = chunkManager.getColumn(chunkX, chunkZ);
 		boolean canSeeSky;
 		
-		if (column == null)
+		if (!column.isPresent())
 			// If a column is missing, the blocks can definitely see the sky
 			canSeeSky = true;
 		else if (y >= 0)
 			// If greater than the height of the opaque block, the block can see the sky
-			canSeeSky = y > column.getTallestOpaque(blockX, blockZ);
+			canSeeSky = y > column.get().getTallestOpaque(blockX, blockZ);
 		else
 			// For below the world (y < 0), a block can see the sky if the column is empty
-			canSeeSky = column.getTallestOpaque(blockX, blockZ) == 0; // If 0 (column empty), can see the sky
+			canSeeSky = column.get().getTallestOpaque(blockX, blockZ) == 0; // If 0 (column empty), can see the sky
 		
 		return canSeeSky;
 	}
@@ -223,7 +222,10 @@ public class World
 		int blockZ = z & 0xF;
 		
 		// Fetch the sky light at the block's chunk
-		return chunkManager.getChunk(chunkX, chunkY, chunkZ, false).getSkyLight(blockX, blockY, blockZ);
+		return chunkManager
+				.getChunk(chunkX, chunkY, chunkZ, false)
+				.map(chunk -> chunk.getSkyLight(blockX, blockY, blockZ))
+				.orElse(15);
 	}
 	
 	/**
@@ -248,7 +250,9 @@ public class World
 		int blockY = y & 0xF;
 		int blockZ = z & 0xF;
 		
-		return chunkManager.getChunk(chunkX, chunkY, chunkZ, false).getBlockLight(blockX, blockY, blockZ);
+		return chunkManager.getChunk(chunkX, chunkY, chunkZ, false)
+				.map(chunk -> chunk.getBlockLight(blockX, blockY, blockZ))
+				.orElse(0);
 	}
 	
 	private void setBlockLight(int x, int y, int z, int newLight)
@@ -257,8 +261,9 @@ public class World
 			return;
 		
 		// Load new chunks only if new light is not zero
-		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, newLight > 0);
-		chunk.setBlockLight(x & 0xF, y & 0xF, z & 0xF, newLight);
+		chunkManager
+				.getChunk(x >> 4, y >> 4, z >> 4, newLight > 0)
+				.ifPresent(chunk -> chunk.setBlockLight(x & 0xF, y & 0xF, z & 0xF, newLight));
 	}
 	
 	private void setSkyLight(int x, int y, int z, int newLight)
@@ -267,8 +272,11 @@ public class World
 			return;
 		
 		// Load new chunks only if new light is not zero
-		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, newLight != 0);
-		chunk.setSkyLight(x & 0xF, y & 0xF, z & 0xF, newLight);
+		boolean loadNewChunks = newLight != 0;
+		
+		chunkManager
+				.getChunk(x >> 4, y >> 4, z >> 4, loadNewChunks)
+				.ifPresent(chunk -> chunk.setSkyLight(x & 0xF, y & 0xF, z & 0xF, newLight));
 	}
 	
 	/**
@@ -286,9 +294,11 @@ public class World
 		if (y < 0)
 			return Blocks.VOID;
 		
-		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);
-		
-		return Block.idToBlock(chunk.getBlock(x & 0xF, y & 0xF, z & 0xF));
+		return chunkManager
+				.getChunk(x >> 4, y >> 4, z >> 4, false)
+				.map(chunk -> chunk.getBlock(x & 0xF, y & 0xF, z & 0xF))
+				.map(Block::idToBlock)
+				.orElse(Blocks.AIR);
 	}
 	
 	/**
@@ -361,7 +371,13 @@ public class World
 			return;
 		
 		Vec3i chunkPos = new Vec3i(x >> 4, y >> 4, z >> 4);
-		Chunk chunk = chunkManager.getChunk(chunkPos, block != Blocks.AIR);
+		Optional<Chunk> maybeChunk = chunkManager.getChunk(chunkPos, block != Blocks.AIR);
+		if (!maybeChunk.isPresent()) {
+			// Exit early if there's no chunk
+			return;
+		}
+		
+		Chunk chunk = maybeChunk.get();
 		
 		// Block positions within the chunk
 		int blockX = x & 0xF;
@@ -383,17 +399,20 @@ public class World
 			chunk.setBlockLight(blockX, blockY, blockZ, block.getBlockLight());
 		
 		// Update the chunk column
-		ChunkColumn chunkColumn = chunkManager.getColumn(x >> 4, z >> 4);
+		Optional<ChunkColumn> maybeChunkColumn = chunkManager.getColumn(x >> 4, z >> 4);
+		ChunkColumn chunkColumn;
 		
-		if (chunkColumn == null)
+		if (!maybeChunkColumn.isPresent())
 		{
 			if (block == Blocks.AIR)
 				return; // Don't need to add a column if air is being placed
 			
 			// Force load the column (should have been loaded with the chunks!)
 			System.out.println("Warning: Missing column load at " + (x >> 4) + ", " + (z >> 4));
-			chunkManager.loadColumn(x >> 4, z >> 4);
-			chunkColumn = chunkManager.getColumn(x >> 4, z >> 4);
+			chunkColumn = chunkManager.loadColumn(x >> 4, z >> 4);
+		} else
+		{
+			chunkColumn = maybeChunkColumn.get();
 		}
 		
 		int oldestHeight = chunkColumn.getTallestOpaque(blockX, blockZ);
@@ -522,12 +541,12 @@ public class World
 	 */
 	private void updateNeighboringChunks(Vec3i sourceChunk, int blockX, int blockY, int blockZ)
 	{
-		if (blockX ==  0) chunkManager.getChunk(sourceChunk.add(-1,  0,  0), false).forceLayerRebuild();
-		if (blockZ == 15) chunkManager.getChunk(sourceChunk.add( 0,  0,  1), false).forceLayerRebuild();
-		if (blockY ==  0) chunkManager.getChunk(sourceChunk.add( 0, -1,  0), false).forceLayerRebuild();
-		if (blockY == 15) chunkManager.getChunk(sourceChunk.add( 0,  1,  0), false).forceLayerRebuild();
-		if (blockX == 15) chunkManager.getChunk(sourceChunk.add( 1,  0,  0), false).forceLayerRebuild();
-		if (blockZ ==  0) chunkManager.getChunk(sourceChunk.add( 0,  0, -1), false).forceLayerRebuild();
+		if (blockX ==  0) chunkManager.getChunk(sourceChunk.add(-1,  0,  0), false).ifPresent(Chunk::forceLayerRebuild);
+		if (blockZ == 15) chunkManager.getChunk(sourceChunk.add( 0,  0,  1), false).ifPresent(Chunk::forceLayerRebuild);
+		if (blockY ==  0) chunkManager.getChunk(sourceChunk.add( 0, -1,  0), false).ifPresent(Chunk::forceLayerRebuild);
+		if (blockY == 15) chunkManager.getChunk(sourceChunk.add( 0,  1,  0), false).ifPresent(Chunk::forceLayerRebuild);
+		if (blockX == 15) chunkManager.getChunk(sourceChunk.add( 1,  0,  0), false).ifPresent(Chunk::forceLayerRebuild);
+		if (blockZ ==  0) chunkManager.getChunk(sourceChunk.add( 0,  0, -1), false).ifPresent(Chunk::forceLayerRebuild);
 	}
 	
 	/**
@@ -546,10 +565,15 @@ public class World
 		if (y < 0 || y >= worldHeight)
 			return;
 		
-		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);
+		Optional<Chunk> maybeChunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);
+		Chunk chunk;
 		
-		if (chunk == chunkManager.EMPTY_CHUNK)
+		if (!maybeChunk.isPresent())
+		{
 			return;
+		} else {
+			chunk = maybeChunk.get();
+		}
 		
 		// Block positions within the chunk
 		int blockX = x & 0xF;
@@ -577,10 +601,15 @@ public class World
 		if (y < 0 || y >= worldHeight)
 			return 0;
 		
-		Chunk chunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);
+		Optional<Chunk> maybeChunk = chunkManager.getChunk(x >> 4, y >> 4, z >> 4, false);
+		Chunk chunk;
 		
-		if (chunk == chunkManager.EMPTY_CHUNK)
+		if (!maybeChunk.isPresent())
+		{
 			return 0;
+		} else {
+			chunk = maybeChunk.get();
+		}
 		
 		// Block positions within the chunk
 		int blockX = x & 0xF;
@@ -789,7 +818,7 @@ public class World
 	 * @param chunkZ The z position of the target chunk (in chunks)
 	 * @return The requested chunk
 	 */
-	public Chunk getChunk(int chunkX, int chunkY, int chunkZ)
+	public Optional<Chunk> getChunk(int chunkX, int chunkY, int chunkZ)
 	{
 		return chunkManager.getChunk(chunkX, chunkY, chunkZ);
 	}
@@ -799,7 +828,7 @@ public class World
 	 * @param pos The position of the target chunk (in chunks)
 	 * @return The requested chunk
 	 */
-	public Chunk getChunk(Vec3i pos)
+	public Optional<Chunk> getChunk(Vec3i pos)
 	{
 		return chunkManager.getChunk(pos);
 	}

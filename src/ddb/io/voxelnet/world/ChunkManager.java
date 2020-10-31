@@ -22,9 +22,6 @@ public class ChunkManager
 	// TODO: Add Vec2i
 	public final Map<Vec3i, ChunkColumn> chunkColumns = new LinkedHashMap<>();
 	
-	// Empty Chunk
-	public final Chunk EMPTY_CHUNK;
-	
 	public final PerlinOctaves perlinNoise;
 	
 	// World associated with this chunk manager
@@ -32,8 +29,6 @@ public class ChunkManager
 	
 	public ChunkManager(World world)
 	{
-		EMPTY_CHUNK = new Chunk(world, 0, -64, 0);
-		
 		perlinNoise = new PerlinOctaves(1, 0.9);
 		
 		this.world = world;
@@ -47,7 +42,7 @@ public class ChunkManager
 	 * @param chunkZ The z position of the target chunk (in chunks)
 	 * @return The requested chunk
 	 */
-	public Chunk getChunk(int chunkX, int chunkY, int chunkZ)
+	public Optional<Chunk> getChunk(int chunkX, int chunkY, int chunkZ)
 	{
 		return getChunk(chunkX, chunkY, chunkZ, false);
 	}
@@ -58,7 +53,7 @@ public class ChunkManager
 	 * @param pos The position of the target chunk (in chunks)
 	 * @return The requested chunk
 	 */
-	public Chunk getChunk(Vec3i pos)
+	public Optional<Chunk> getChunk(Vec3i pos)
 	{
 		return getChunk(pos, false);
 	}
@@ -71,7 +66,7 @@ public class ChunkManager
 	 * @param loadNewChunks Whether to load new chunks if none was found
 	 * @return The requested chunk
 	 */
-	public Chunk getChunk(int chunkX, int chunkY, int chunkZ, boolean loadNewChunks)
+	public Optional<Chunk> getChunk(int chunkX, int chunkY, int chunkZ, boolean loadNewChunks)
 	{
 		Vec3i pos = new Vec3i(chunkX, chunkY, chunkZ);
 		return getChunk(pos, loadNewChunks);
@@ -83,14 +78,14 @@ public class ChunkManager
 	 * @param loadNewChunks Whether to create a new chunk if none was found
 	 * @return The requested chunk
 	 */
-	public Chunk getChunk(Vec3i pos, boolean loadNewChunks)
+	public Optional<Chunk> getChunk(Vec3i pos, boolean loadNewChunks)
 	{
-		Chunk chunk = loadedChunks.getOrDefault(pos, EMPTY_CHUNK);
+		Optional<Chunk> chunk = Optional.ofNullable(loadedChunks.get(pos));
 		
-		if (chunk == EMPTY_CHUNK && loadNewChunks)
+		if (!chunk.isPresent() && loadNewChunks)
 		{
 			// If we are to load new chunks, do so
-			chunk = loadChunk(pos);
+			chunk = Optional.of(loadChunk(pos));
 		}
 		
 		return chunk;
@@ -123,7 +118,7 @@ public class ChunkManager
 	 * @param columnZ The z position of the chunk column (in chunks)
 	 * @return The requested column
 	 */
-	public ChunkColumn getColumn(int columnX, int columnZ)
+	public Optional<ChunkColumn> getColumn(int columnX, int columnZ)
 	{
 		Vec3i pos = new Vec3i(columnX, 0, columnZ);
 		return getColumn(pos);
@@ -134,9 +129,9 @@ public class ChunkManager
 	 * @param pos The position of the chunk column (in chunks)
 	 * @return The requested column
 	 */
-	public ChunkColumn getColumn(Vec3i pos)
+	public Optional<ChunkColumn> getColumn(Vec3i pos)
 	{
-		return chunkColumns.getOrDefault(pos, null);
+		return Optional.ofNullable(chunkColumns.get(pos));
 	}
 	
 	/**
@@ -144,11 +139,12 @@ public class ChunkManager
 	 * The chunk column may either be loaded from disk or requested over the network
 	 * @param columnX The x position of the chunk column (in chunks)
 	 * @param columnZ The z position of the chunk column (in chunks)
+	 * @return The loaded chunk column
 	 */
-	public void loadColumn(int columnX, int columnZ)
+	public ChunkColumn loadColumn(int columnX, int columnZ)
 	{
 		Vec3i pos = new Vec3i(columnX, 0, columnZ);
-		doColumnLoad(pos);
+		return doColumnLoad(pos);
 	}
 	
 	/**
@@ -156,20 +152,20 @@ public class ChunkManager
 	 * The chunk column may either be loaded from disk or requested over the network
 	 * @param pos The position of the chunk column (in chunks)
 	 */
-	public void loadColumn(Vec3i pos)
+	public ChunkColumn loadColumn(Vec3i pos)
 	{
-		doColumnLoad(pos);
+		return doColumnLoad(pos);
 	}
 	
 	/**
 	 * Implementation of "loadColumn"
 	 * @param pos The position of the chunk column (in chunks)
 	 */
-	protected void doColumnLoad(Vec3i pos)
+	protected ChunkColumn doColumnLoad(Vec3i pos)
 	{
 		// TODO: Check if the column is in the unloaded column cache
 		// Default: Generate new chunks
-		generateChunk(pos.getX(), pos.getZ());
+		return generateChunk(pos.getX(), pos.getZ());
 	}
 	
 	/**
@@ -182,7 +178,7 @@ public class ChunkManager
 	 */
 	public boolean isColumnLoaded(Vec3i pos)
 	{
-		return getColumn(pos) != null;
+		return getColumn(pos).isPresent();
 	}
 	
 	/**
@@ -196,7 +192,7 @@ public class ChunkManager
 	 */
 	public boolean isColumnLoaded(int chunkX, int chunkZ)
 	{
-		return getColumn(chunkX, chunkZ) != null;
+		return getColumn(chunkX, chunkZ).isPresent();
 	}
 	
 	/**
@@ -204,7 +200,7 @@ public class ChunkManager
 	 * @param cx The x position of the new chunk column
 	 * @param cz The z position of the new chunk column
 	 */
-	public void generateChunk(int cx, int cz)
+	public ChunkColumn generateChunk(int cx, int cz)
 	{
 		// ???: The server sends out the chunk column before a light update is performed, should the server send out a light update packet/notification?
 		// Make the chunk columns
@@ -298,12 +294,23 @@ public class ChunkManager
 					
 					if ((block == Blocks.WATER && y < waterLevel) || !block.isTransparent())
 					{
+						int chunkBlockX = x & 0xF;
+						int chunkBlockY = y & 0xF;
+						int chunkBlockZ = z & 0xF;
+						
 						// Remove skylight if the height is 1 below the water level, or the block is not transparent
-						getChunk(cx, y >> 4, cz, false).setSkyLight(x & 0xF, y & 0xF, z & 0xF, 0);
-					} else if ((block == Blocks.WATER && y == waterLevel))
+						getChunk(cx, y >> 4, cz, false)
+								.ifPresent(chunk -> chunk.setSkyLight(chunkBlockX, chunkBlockY, chunkBlockZ, 0));
+					} else if (block == Blocks.WATER && y == waterLevel)
 					{
 						// Set the light level to the attenuated light
-						getChunk(cx, y >> 4, cz, false).setSkyLight(x & 0xF, y & 0xF, z & 0xF, (15 - block.getOpacity()));
+						int attenuatedLight = (15 - block.getOpacity());
+						int chunkBlockX = x & 0xF;
+						int chunkBlockY = y & 0xF;
+						int chunkBlockZ = z & 0xF;
+						
+						getChunk(cx, y >> 4, cz, false)
+								.ifPresent(chunk -> chunk.setSkyLight(chunkBlockX, chunkBlockY, chunkBlockZ, attenuatedLight));
 						// Add pending sky light updates
 						world.addSkyLightUpdate(new Vec3i((cx << 4) + x, y, (cz << 4) + z), 0);
 					}
@@ -326,6 +333,8 @@ public class ChunkManager
 				depth = 0;
 			}
 		}
+		
+		return column;
 	}
 	
 	/**
@@ -346,10 +355,7 @@ public class ChunkManager
 		// TODO: Associate chunks with columns
 		for (int i = 0; i < 16; i++)
 		{
-			Chunk chunk = getChunk(column.columnX, i, column.columnZ);
-			
-			if (chunk != EMPTY_CHUNK)
-				chunk.markUnloaded();
+			getChunk(column.columnX, i, column.columnZ).ifPresent(Chunk::markUnloaded);
 		}
 	}
 	
@@ -367,15 +373,13 @@ public class ChunkManager
 		pendingUnloads.remove(columnPair);
 		column.markLoaded();
 		
+		// Mark all chunks in a column to be loaded
 		for (int i = 0; i < 16; i++)
 		{
-			Chunk chunk = getChunk(column.columnX, i, column.columnZ);
-			
-			if (chunk != EMPTY_CHUNK)
-			{
+			getChunk(column.columnX, i, column.columnZ).ifPresent(chunk -> {
 				chunk.setRecentlyLoaded();
 				chunk.markLoaded();
-			}
+			});
 		}
 	}
 	
@@ -436,7 +440,7 @@ public class ChunkManager
 	}
 	
 	/**
-	 * Trys to load a column from the chunk cache
+	 * Tries to load a column from the chunk cache
 	 * @param chunkPos The chunk position to load in
 	 * @return True if an entry from the cache was loaded in
 	 */

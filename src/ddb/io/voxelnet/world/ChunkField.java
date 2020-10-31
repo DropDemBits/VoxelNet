@@ -1,9 +1,11 @@
 package ddb.io.voxelnet.world;
 
 import ddb.io.voxelnet.block.Block;
+import ddb.io.voxelnet.block.Blocks;
 import ddb.io.voxelnet.util.Facing;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 /**
  * A ChunkField is a 3x3x3 volume of the central chunk's surrounding chunks
@@ -15,7 +17,7 @@ public class ChunkField
 	// If the field does not contain other chunks (aside from the reference chunk)
 	private boolean isEmptyField = true;
 	// Chunks surrounding the reference chunk
-	private final Chunk[] adjacentField = new Chunk[3*3*3];
+	private final Optional<Chunk>[] adjacentField;
 	// The reference chunk
 	private final Chunk referenceChunk;
 	
@@ -26,6 +28,12 @@ public class ChunkField
 	public ChunkField(Chunk chunk)
 	{
 		this.referenceChunk = chunk;
+		
+		// Not generified over any types, final type is known at compile-time
+		@SuppressWarnings("unchecked")
+		final Optional<Chunk>[] field = (Optional<Chunk>[]) new Optional[3*3*3];
+		
+		this.adjacentField = field;
 	}
 	
 	/**
@@ -61,12 +69,16 @@ public class ChunkField
 		if (isEmptyField)
 			return;
 		
-		for (Chunk neighbor : adjacentField)
+		for (Optional<Chunk> neighbor : adjacentField)
 		{
-			if (neighbor == referenceChunk || neighbor == referenceChunk.world.chunkManager.EMPTY_CHUNK)
+			if(!neighbor.isPresent())
 				continue;
 			
-			neighbor.chunkField.rebuildField();
+			Chunk chunk = neighbor.get();
+			if (chunk == referenceChunk)
+				continue;
+			
+			chunk.chunkField.rebuildField();
 		}
 	}
 	
@@ -75,8 +87,8 @@ public class ChunkField
 	 */
 	public void clearField()
 	{
-		Arrays.fill(adjacentField, null);
-		adjacentField[toAdjacentIndex(0, 0, 0)] = referenceChunk;
+		Arrays.fill(adjacentField, Optional.empty());
+		adjacentField[toAdjacentIndex(0, 0, 0)] = Optional.of(referenceChunk);
 	}
 	
 	/**
@@ -87,7 +99,7 @@ public class ChunkField
 	 * @param face The offset to apply to the position
 	 * @return The chunk in the chunk field containing the chunk block position
 	 */
-	public Chunk getChunk(int x, int y, int z, Facing face)
+	public Optional<Chunk> getChunk(int x, int y, int z, Facing face)
 	{
 		// Positions relative to the current chunk
 		int relX = x + face.getOffsetX();
@@ -126,7 +138,7 @@ public class ChunkField
 	 * @param dir The direction to get the adjacent chunk for
 	 * @return The adjacent chunk
 	 */
-	public Chunk getAdjacentChunk(Facing dir)
+	public Optional<Chunk> getAdjacentChunk(Facing dir)
 	{
 		return adjacentField[toAdjacentIndex(dir.getOffsetX(), dir.getOffsetY(), dir.getOffsetZ())];
 	}
@@ -137,14 +149,17 @@ public class ChunkField
 	 * @param y The chunk block y coordinate, relative to the reference chunk
 	 * @param z The chunk block z coordinate, relative to the reference chunk
 	 * @param off The offset for the block coordinate
-	 * @return
+	 * @return The block in the given chunk
 	 */
 	public Block getBlock(int x, int y, int z, Facing off)
 	{
-		return Block.idToBlock(getChunk(x, y, z, off).getBlock(
-				(x + off.getOffsetX()) & 0xF,
-				(y + off.getOffsetY()) & 0xF,
-				(z + off.getOffsetZ()) & 0xF));
+		return getChunk(x, y, z, off)
+				.map(chunk -> chunk.getBlock(
+					(x + off.getOffsetX()) & 0xF,
+					(y + off.getOffsetY()) & 0xF,
+					(z + off.getOffsetZ()) & 0xF))
+				.map(Block::idToBlock)
+				.orElse(Blocks.AIR);
 	}
 	
 	/**
@@ -157,10 +172,12 @@ public class ChunkField
 	 */
 	public int getMeta(int x, int y, int z, Facing off)
 	{
-		return getChunk(x, y, z, off).getBlockMeta(
-				(x + off.getOffsetX()) & 0xF,
-				(y + off.getOffsetY()) & 0xF,
-				(z + off.getOffsetZ()) & 0xF);
+		return getChunk(x, y, z, off)
+				.map(chunk -> chunk.getBlockMeta(
+					(x + off.getOffsetX()) & 0xF,
+					(y + off.getOffsetY()) & 0xF,
+					(z + off.getOffsetZ()) & 0xF))
+				.orElse(0);
 	}
 	
 	/**
@@ -173,10 +190,12 @@ public class ChunkField
 	 */
 	public int getBlockLight(int x, int y, int z, Facing off)
 	{
-		return getChunk(x, y, z, off).getBlockLight(
-				(x + off.getOffsetX()) & 0xF,
-				(y + off.getOffsetY()) & 0xF,
-				(z + off.getOffsetZ()) & 0xF);
+		return getChunk(x, y, z, off)
+				.map(chunk -> chunk.getBlockLight(
+						(x + off.getOffsetX()) & 0xF,
+						(y + off.getOffsetY()) & 0xF,
+						(z + off.getOffsetZ()) & 0xF))
+				.orElse(0);
 	}
 	
 	/**
@@ -189,10 +208,12 @@ public class ChunkField
 	 */
 	public int getSkyLight(int x, int y, int z, Facing off)
 	{
-		return getChunk(x, y, z, off).getSkyLight(
-				(x + off.getOffsetX()) & 0xF,
-				(y + off.getOffsetY()) & 0xF,
-				(z + off.getOffsetZ()) & 0xF);
+		return getChunk(x, y, z, off)
+				.map(chunk -> chunk.getSkyLight(
+						(x + off.getOffsetX()) & 0xF,
+						(y + off.getOffsetY()) & 0xF,
+						(z + off.getOffsetZ()) & 0xF))
+				.orElse(15);
 	}
 	
 	/**

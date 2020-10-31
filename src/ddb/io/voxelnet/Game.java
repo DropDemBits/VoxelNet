@@ -581,14 +581,13 @@ public class Game {
 		String posStr = String.format("Pos %.2f / %.2f / %.2f\n", player.xPos, player.yPos, player.zPos);
 		String lokStr = String.format("Rot %.2f / %.2f \n", player.yaw, player.pitch);
 		String blkStr = String.format("I %02x M %s\n", world.getBlock(blockX, blockY, blockZ).getId(), Integer.toBinaryString(world.getBlockMeta(blockX, blockY, blockZ)));
-		String lyrStr = String.format("L %04d\n", world.getChunk(blockX >> 4, blockY >> 4, blockZ >> 4).getLayerCount(blockY));
 		String ligStr = String.format("B %2d S %2d E %2d\n", blkLight, skyLight, effLight);
 		String colStr = String.format("H %2d\n", world.getColumnHeight(blockX, blockZ));
 		ChunkManager chunkManager = world.chunkManager;
 		String chcStr = String.format("CC %d PU %d\n", chunkManager.chunkCache.size(), chunkManager.pendingUnloads.size());
 		
 		if (showDebugInfo)
-			fontRenderer.putString(nameVersion+timeStr+posStr+lokStr+blkStr+ligStr+colStr+chcStr+lyrStr, 0, 0);
+			fontRenderer.putString(nameVersion+timeStr+posStr+lokStr+blkStr+ligStr+colStr+chcStr, 0, 0);
 		else
 			fontRenderer.putString(nameVersion, 0, 0);
 		fontRenderer.flush();

@@ -156,10 +156,11 @@ class ChunkModel
 			boolean layerBelowFilled = false;
 			
 			// Check if a layer can be skipped
-			if (field.getChunk(0, y + 1, 0, Facing.NONE).getLayerCount(y + 1) == 16 * 16)
+			int layerY = y;
+			if ((field.getChunk(0, y + 1, 0, Facing.NONE).map(chunk->chunk.getLayerCount(layerY + 1)).orElse((short)0)) == 16 * 16)
 				layerAboveFilled = true; // Layer above is filled
 			
-			if (field.getChunk(0, y - 1, 0, Facing.NONE).getLayerCount(y - 1) == 16 * 16)
+			if ((field.getChunk(0, y - 1, 0, Facing.NONE).map(chunk->chunk.getLayerCount(layerY - 1)).orElse((short) 0)) == 16 * 16)
 				layerBelowFilled = true; // Layer below is filled
 			
 			if (layerAboveFilled && layerBelowFilled && chunk.getLayerCount(y) == 16 * 16)
@@ -172,7 +173,7 @@ class ChunkModel
 				for (Facing adjacentDir : Facing.CARDINAL_FACES)
 				{
 					// If the cardinal adjacent layer is not full, don't skip the layer
-					if (field.getAdjacentChunk(adjacentDir).getLayerCount(y) < 16 * 16)
+					if (field.getAdjacentChunk(adjacentDir).map(chunk->chunk.getLayerCount(layerY)).orElse((short)0) < 16 * 16)
 					{
 						skipLayer = false;
 						break;
@@ -300,7 +301,7 @@ class ChunkModel
 	public void forceNeighborRebuild()
 	{
 		for (Facing sides : Facing.directions())
-			chunk.chunkField.getAdjacentChunk(sides).forceLayerRebuild();
+			chunk.chunkField.getAdjacentChunk(sides).ifPresent(Chunk::forceLayerRebuild);
 	}
 	
 	/**

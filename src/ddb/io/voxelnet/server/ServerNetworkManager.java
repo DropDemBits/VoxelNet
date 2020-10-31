@@ -7,7 +7,6 @@ import ddb.io.voxelnet.network.NetworkManager;
 import ddb.io.voxelnet.network.packet.*;
 import ddb.io.voxelnet.util.EntityIDMap;
 import ddb.io.voxelnet.util.RaycastResult;
-import ddb.io.voxelnet.world.Chunk;
 import ddb.io.voxelnet.world.ChunkColumn;
 import ddb.io.voxelnet.world.ChunkManager;
 import io.netty.bootstrap.ServerBootstrap;
@@ -342,26 +341,18 @@ public class ServerNetworkManager implements NetworkManager
 	{
 		System.out.format("Sending (%d, %d)\n", x, z);
 		ChunkManager chunkManager = instance.world.chunkManager;
-		ChunkColumn column = chunkManager.getColumn(x, z);
-		
-		// Generate chunk if null
-		if (column == null)
-		{
+		ChunkColumn column = chunkManager.getColumn(x, z).orElseGet(() -> {
+			// Generate chunk if null
 			// TODO: Only allow one thread to generate at a time
-			chunkManager.loadColumn(x, z);
-		}
+			return chunkManager.loadColumn(x, z);
+		});
 		
 		// Construct a new chunk data packet
-		PSChunkData chunkData = new PSChunkData(x, z, chunkManager.getColumn(x, z));
+		PSChunkData chunkData = new PSChunkData(x, z, column);
 		
 		for (int y = 0; y < 256 / 16; y++)
 		{
-			Chunk chunk = chunkManager.getChunk(x, y, z, false);
-			
-			if (chunk == chunkManager.EMPTY_CHUNK)
-				continue;
-			
-			chunkData.addChunk(chunk);
+			chunkManager.getChunk(x, y, z, false).ifPresent(chunkData::addChunk);
 		}
 		
 		// Send out the chunk
